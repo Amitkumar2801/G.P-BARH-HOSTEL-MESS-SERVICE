@@ -1,0 +1,10 @@
+{
+  "name": "gp-barh-hostel-mess-service",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "install:client": "npm --prefix client install",
+    "start:client": "npm --prefix client start",
+    "build:client": "npm --prefix client run build"
+  }
+}
