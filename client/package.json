@@ -14,5 +14,12 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
-  }
+  },
+  "description": "Scaffold for GP-BARH Hostel Mess Service client.",
+  "main": "index.js",
+  "devDependencies": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
 }
