@@ -1,1 +1,3 @@
-# G.P-BARH-HOSTEL-MESS-SERVICE
+# Database Diagrams
+
+Place your database diagrams and schema designs in this folder.
