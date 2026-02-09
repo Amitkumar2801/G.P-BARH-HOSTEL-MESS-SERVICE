@@ -5,8 +5,9 @@
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.8.0",
+    "react-scripts": "5.0.1",
     "axios": "^1.3.0",
+    "react-router-dom": "^6.8.0",
     "react-hot-toast": "^2.4.0"
   },
   "scripts": {
@@ -15,11 +16,21 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
-  "description": "Scaffold for GP-BARH Hostel Mess Service client.",
-  "main": "index.js",
-  "devDependencies": {},
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs"
+  "eslintConfig": {
+    "extends": [
+      "react-app"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
 }
