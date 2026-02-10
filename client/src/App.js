@@ -1,33 +1,30 @@
 import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import './App.css';
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <h1>🎓 GP Barh Hostel & Mess Service</h1>
-        <p>Welcome to the Smart Hostel Management System</p>
-        
-        <div className="status">
-          <h3>📊 System Status</h3>
-          <p>✅ Backend Server: Running on port 5000</p>
-          <p>✅ MongoDB: Connected</p>
-          <p>🔄 Frontend: Development mode</p>
-        </div>
+// Pages
+import LoginPage from './pages/LoginPage';
+import HomePage from './pages/HomePage';
 
-        <div className="links">
-          <a href="http://localhost:5000/api/health" target="_blank" rel="noopener noreferrer">
-            Check Server Health
-          </a>
-          <a href="/login" className="button">
-            Student Login
-          </a>
-          <a href="/register" className="button">
-            New Registration
-          </a>
-        </div>
-      </header>
-    </div>
+function App() {
+  const isAuthenticated = !!localStorage.getItem('token');
+
+  return (
+    <Router>
+      <div className="App">
+        <Toaster position="top-right" />
+        
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/dashboard" element={
+            isAuthenticated ? <h1>Dashboard Coming Soon</h1> : <Navigate to="/login" />
+          } />
+          <Route path="*" element={<h1>404 - Page Not Found</h1>} />
+        </Routes>
+      </div>
+    </Router>
   );
 }
 
