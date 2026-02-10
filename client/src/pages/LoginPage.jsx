@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import './LoginPage.css'; // New CSS file
+import './LoginPage.css';
 
 const LoginPage = () => {
     const [formData, setFormData] = useState({
@@ -23,7 +23,6 @@ const LoginPage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         
-        // Basic validation
         if (!formData.registrationNumber.match(/^\d{10}$/)) {
             toast.error('Please enter a valid 10-digit registration number');
             return;
@@ -40,27 +39,19 @@ const LoginPage = () => {
             const response = await axios.post('http://localhost:5000/api/auth/login', formData);
             
             if (response.data.success) {
-                // Save to localStorage
                 localStorage.setItem('hostel_token', response.data.data.token);
                 localStorage.setItem('hostel_user', JSON.stringify(response.data.data));
                 
                 toast.success('🎉 Login successful! Redirecting...');
                 
-                // Redirect based on role
+                // ALWAYS redirect to dashboard (temporary)
                 setTimeout(() => {
-                    if (response.data.data.role === 'admin') {
-                        navigate('/admin/dashboard');
-                    } else if (response.data.data.role === 'warden') {
-                        navigate('/warden/dashboard');
-                    } else {
-                        navigate('/student/dashboard');
-                    }
+                    navigate('/dashboard'); // Always go to dashboard
                 }, 1500);
             }
         } catch (error) {
             const errorMsg = error.response?.data?.message || 'Server connection failed';
             toast.error(`❌ ${errorMsg}`);
-            console.error('Login error:', error);
         } finally {
             setLoading(false);
         }
@@ -79,12 +70,13 @@ const LoginPage = () => {
 
     return (
         <div className="login-page">
-            {/* Left Side - Background with Overlay */}
+            {/* Left Side - With Background Image */}
             <div className="login-left">
                 <div className="background-overlay">
                     <div className="college-info">
+                        {/* YEH LINE CHANGE: src mein direct path */}
                         <img 
-                            src="/assets/G.P BARH LOGO.png" 
+                            src="/assets/logo.png" 
                             alt="GP Barh Logo" 
                             className="college-logo"
                         />
@@ -135,7 +127,6 @@ const LoginPage = () => {
                                 onChange={handleChange}
                                 placeholder="1554424049"
                                 pattern="\d{10}"
-                                title="10-digit registration number"
                                 required
                             />
                             <small className="input-hint">Enter your 10-digit college registration number</small>
@@ -192,7 +183,6 @@ const LoginPage = () => {
                             )}
                         </button>
 
-                        {/* Demo Credentials Section */}
                         <div className="demo-section">
                             <p className="demo-title">Quick Demo Access:</p>
                             <div className="demo-buttons">
