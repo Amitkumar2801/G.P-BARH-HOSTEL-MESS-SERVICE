@@ -24,9 +24,15 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// Routes will be added here later
-// app.use('/api/auth', require('./routes/authRoutes'));
-// app.use('/api/rooms', require('./routes/roomRoutes'));
+// Import Routes
+const authRoutes = require('./routes/authRoutes');
+const roomRoutes = require('./routes/roomRoutes');
+
+// Use Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/rooms', roomRoutes);
+
+console.log('✅ Routes loaded: /api/auth, /api/rooms');
 
 // 404 handler
 app.use('*', (req, res) => {
