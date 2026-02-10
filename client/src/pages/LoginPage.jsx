@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import './LoginPage.css'; // New CSS file
 
 const LoginPage = () => {
     const [formData, setFormData] = useState({
@@ -9,6 +10,7 @@ const LoginPage = () => {
         password: ''
     });
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
 
     const handleChange = (e) => {
@@ -20,65 +22,221 @@ const LoginPage = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        // Basic validation
+        if (!formData.registrationNumber.match(/^\d{10}$/)) {
+            toast.error('Please enter a valid 10-digit registration number');
+            return;
+        }
+        
+        if (formData.password.length < 6) {
+            toast.error('Password must be at least 6 characters');
+            return;
+        }
+        
         setLoading(true);
 
         try {
             const response = await axios.post('http://localhost:5000/api/auth/login', formData);
             
             if (response.data.success) {
-                // Save token to localStorage
-                localStorage.setItem('token', response.data.data.token);
-                localStorage.setItem('user', JSON.stringify(response.data.data));
+                // Save to localStorage
+                localStorage.setItem('hostel_token', response.data.data.token);
+                localStorage.setItem('hostel_user', JSON.stringify(response.data.data));
                 
-                toast.success('Login successful!');
-                navigate('/dashboard');
+                toast.success('🎉 Login successful! Redirecting...');
+                
+                // Redirect based on role
+                setTimeout(() => {
+                    if (response.data.data.role === 'admin') {
+                        navigate('/admin/dashboard');
+                    } else if (response.data.data.role === 'warden') {
+                        navigate('/warden/dashboard');
+                    } else {
+                        navigate('/student/dashboard');
+                    }
+                }, 1500);
             }
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Login failed');
+            const errorMsg = error.response?.data?.message || 'Server connection failed';
+            toast.error(`❌ ${errorMsg}`);
+            console.error('Login error:', error);
         } finally {
             setLoading(false);
         }
     };
 
+    const handleDemoLogin = (type) => {
+        const demoAccounts = {
+            student: { registrationNumber: '1554424049', password: 'password123' },
+            warden: { registrationNumber: 'WARDEN001', password: 'warden123' },
+            admin: { registrationNumber: 'ADMIN001', password: 'admin123' }
+        };
+        
+        setFormData(demoAccounts[type]);
+        toast.success(`${type.toUpperCase()} demo credentials loaded`);
+    };
+
     return (
-        <div className="login-container">
-            <div className="login-box">
-                <h2>🎓 GP Barh Hostel Login</h2>
-                <p>Enter your registration details</p>
-                
-                <form onSubmit={handleSubmit}>
-                    <div className="form-group">
-                        <label>Registration Number *</label>
-                        <input
-                            type="text"
-                            name="registrationNumber"
-                            value={formData.registrationNumber}
-                            onChange={handleChange}
-                            placeholder="Enter 10-digit registration number"
-                            required
+        <div className="login-page">
+            {/* Left Side - Background with Overlay */}
+            <div className="login-left">
+                <div className="background-overlay">
+                    <div className="college-info">
+                        <img 
+                            src="/assets/G.P BARH LOGO.png" 
+                            alt="GP Barh Logo" 
+                            className="college-logo"
                         />
+                        <h1>Government Polytechnic Barh</h1>
+                        <h2>Hostel & Mess Management System</h2>
+                        <p className="tagline">Smart Campus Living Redefined</p>
+                        
+                        <div className="features-list">
+                            <div className="feature-item">
+                                <span className="feature-icon">🛏️</span>
+                                <span>Online Room Booking</span>
+                            </div>
+                            <div className="feature-item">
+                                <span className="feature-icon">💳</span>
+                                <span>Digital Wallet & Payments</span>
+                            </div>
+                            <div className="feature-item">
+                                <span className="feature-icon">🤖</span>
+                                <span>AI Food Calorie Tracker</span>
+                            </div>
+                            <div className="feature-item">
+                                <span className="feature-icon">📱</span>
+                                <span>Real-time Complaint System</span>
+                            </div>
+                        </div>
                     </div>
-                    
-                    <div className="form-group">
-                        <label>Password *</label>
-                        <input
-                            type="password"
-                            name="password"
-                            value={formData.password}
-                            onChange={handleChange}
-                            placeholder="Enter your password"
-                            required
-                        />
+                </div>
+            </div>
+
+            {/* Right Side - Login Form */}
+            <div className="login-right">
+                <div className="login-form-container">
+                    <div className="form-header">
+                        <h2>Student Login Portal</h2>
+                        <p>Access your hostel & mess services</p>
                     </div>
-                    
-                    <button type="submit" disabled={loading}>
-                        {loading ? 'Logging in...' : 'Login'}
-                    </button>
-                </form>
-                
-                <div className="links">
-                    <Link to="/register">New Student? Register Here</Link>
-                    <Link to="/forgot-password">Forgot Password?</Link>
+
+                    <form onSubmit={handleSubmit} className="login-form">
+                        <div className="input-group">
+                            <label>
+                                <span className="label-icon">🎓</span>
+                                Registration Number
+                            </label>
+                            <input
+                                type="text"
+                                name="registrationNumber"
+                                value={formData.registrationNumber}
+                                onChange={handleChange}
+                                placeholder="1554424049"
+                                pattern="\d{10}"
+                                title="10-digit registration number"
+                                required
+                            />
+                            <small className="input-hint">Enter your 10-digit college registration number</small>
+                        </div>
+
+                        <div className="input-group">
+                            <label>
+                                <span className="label-icon">🔐</span>
+                                Password
+                            </label>
+                            <div className="password-wrapper">
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    name="password"
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                    placeholder="Enter your password"
+                                    minLength="6"
+                                    required
+                                />
+                                <button 
+                                    type="button"
+                                    className="toggle-password"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                >
+                                    {showPassword ? "🙈" : "👁️"}
+                                </button>
+                            </div>
+                            <small className="input-hint">Minimum 6 characters</small>
+                        </div>
+
+                        <div className="form-options">
+                            <label className="remember-me">
+                                <input type="checkbox" />
+                                <span>Remember me</span>
+                            </label>
+                            <Link to="/forgot-password" className="forgot-link">
+                                Forgot Password?
+                            </Link>
+                        </div>
+
+                        <button 
+                            type="submit" 
+                            className="login-btn"
+                            disabled={loading}
+                        >
+                            {loading ? (
+                                <>
+                                    <span className="spinner"></span>
+                                    Authenticating...
+                                </>
+                            ) : (
+                                'Login to Dashboard'
+                            )}
+                        </button>
+
+                        {/* Demo Credentials Section */}
+                        <div className="demo-section">
+                            <p className="demo-title">Quick Demo Access:</p>
+                            <div className="demo-buttons">
+                                <button 
+                                    type="button"
+                                    className="demo-btn student"
+                                    onClick={() => handleDemoLogin('student')}
+                                >
+                                    Student Demo
+                                </button>
+                                <button 
+                                    type="button"
+                                    className="demo-btn warden"
+                                    onClick={() => handleDemoLogin('warden')}
+                                >
+                                    Warden Demo
+                                </button>
+                                <button 
+                                    type="button"
+                                    className="demo-btn admin"
+                                    onClick={() => handleDemoLogin('admin')}
+                                >
+                                    Admin Demo
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="register-link">
+                            <p>New to GP Barh Hostel?</p>
+                            <Link to="/register" className="register-btn">
+                                Create Student Account →
+                            </Link>
+                        </div>
+                    </form>
+
+                    <div className="login-footer">
+                        <p className="security-note">
+                            🔒 Secured by JWT Authentication & SSL Encryption
+                        </p>
+                        <p className="support-contact">
+                            Need help? Contact Hostel Office: 
+                            <a href="tel:+916122262866"> +91 612 2262866</a>
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
