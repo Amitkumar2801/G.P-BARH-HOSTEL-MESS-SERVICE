@@ -1,8 +1,9 @@
 from fastapi import APIRouter, HTTPException, status
+from pydantic import BaseModel
 from app.database import database
 from app.models.user import UserInDB
 from app.schemas.user import UserCreate, UserResponse
-from app.utils.security import get_password_hash
+from app.utils.security import get_password_hash, verify_password
 from datetime import datetime
 
 router = APIRouter()
@@ -60,3 +61,33 @@ async def register_user(user: UserCreate):
         # Agar ab bhi error aaya toh terminal mein saaf dikhega
         print(f"🔥 ERROR in Register: {str(e)}") 
         raise HTTPException(status_code=500, detail=f"Server Error: {str(e)}")
+
+# --- Login ke liye Schema (Input Model) ---
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+# --- Login API ---
+@router.post("/login")
+async def login_user(login_data: LoginRequest):
+    print(f"🔑 Login Attempt: {login_data.email}")
+
+    # 1. User ko dhoondo
+    user = await database["users"].find_one({"email": login_data.email})
+    
+    if not user:
+        raise HTTPException(status_code=400, detail="Incorrect Email or Password")
+
+    # 2. Password match karo
+    is_password_correct = verify_password(login_data.password, user["hashed_password"])
+    
+    if not is_password_correct:
+        raise HTTPException(status_code=400, detail="Incorrect Email or Password")
+
+    # 3. Success Message
+    return {
+        "message": "Login Successful!",
+        "user": user["full_name"],
+        "role": user["role"],
+        "wallet_balance": user["wallet_balance"]
+    }
