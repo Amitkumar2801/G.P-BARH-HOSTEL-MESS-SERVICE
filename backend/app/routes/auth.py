@@ -1,19 +1,18 @@
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel 
 from app.database import database
 from app.models.user import UserInDB
 from app.schemas.user import UserCreate, UserResponse
-from app.utils.security import get_password_hash, verify_password
+from app.utils.security import get_password_hash, verify_password # <--- Ye naya import hai
 from datetime import datetime
 
 router = APIRouter()
 
+# --- Registration API (Jo pehle se thi) ---
 @router.post("/register", response_model=UserResponse)
 async def register_user(user: UserCreate):
     try:
-        print(f"📥 Registering: {user.email}") # Terminal mein print hoga
-
-        # 1. Check karo user pehle se hai ya nahi
+        # Check if user exists
         existing_user = await database["users"].find_one({
             "$or": [{"email": user.email}, {"registration_number": user.registration_number}]
         })
@@ -24,10 +23,8 @@ async def register_user(user: UserCreate):
                 detail="Student already registered with this Email or Registration Number"
             )
 
-        # 2. Password Hash karo
         hashed_password = get_password_hash(user.password)
 
-        # 3. Data Taiyar karo
         user_data = UserInDB(
             registration_number=user.registration_number,
             full_name=user.full_name,
@@ -37,20 +34,12 @@ async def register_user(user: UserCreate):
             created_at=datetime.now()
         )
 
-        # --- FIX IS HERE (Ye line sabse important hai) ---
-        # Data ko dictionary mein badlo
         user_dict = user_data.model_dump(by_alias=True, exclude=["id"])
-        
-        # Agar _id None hai, toh usse hata do (MongoDB khud bana lega)
         if "_id" in user_dict and user_dict["_id"] is None:
             user_dict.pop("_id")
-        # -------------------------------------------------
 
-        # 4. Save karo
         new_user = await database["users"].insert_one(user_dict)
-        print(f"✅ Success! User ID: {new_user.inserted_id}")
-
-        # 5. Response Return karo
+        
         return {
             **user.model_dump(), 
             "wallet_balance": 0.0, 
@@ -58,36 +47,39 @@ async def register_user(user: UserCreate):
         }
 
     except Exception as e:
-        # Agar ab bhi error aaya toh terminal mein saaf dikhega
         print(f"🔥 ERROR in Register: {str(e)}") 
         raise HTTPException(status_code=500, detail=f"Server Error: {str(e)}")
 
-# --- Login ke liye Schema (Input Model) ---
+# --- 👇 NAYA CODE: Login API Yahan Se Shuru Hai 👇 ---
+
 class LoginRequest(BaseModel):
     email: str
     password: str
 
-# --- Login API ---
 @router.post("/login")
 async def login_user(login_data: LoginRequest):
     print(f"🔑 Login Attempt: {login_data.email}")
 
-    # 1. User ko dhoondo
+    # 1. Email dhoondo database mein
     user = await database["users"].find_one({"email": login_data.email})
     
     if not user:
+        print("❌ User nahi mila")
         raise HTTPException(status_code=400, detail="Incorrect Email or Password")
 
     # 2. Password match karo
     is_password_correct = verify_password(login_data.password, user["hashed_password"])
     
     if not is_password_correct:
+        print("❌ Password galat hai")
         raise HTTPException(status_code=400, detail="Incorrect Email or Password")
 
-    # 3. Success Message
+    # 3. Agar sab sahi hai, toh Success bhejo
+    print("✅ Login Successful!")
     return {
         "message": "Login Successful!",
-        "user": user["full_name"],
-        "role": user["role"],
-        "wallet_balance": user["wallet_balance"]
+        "user_name": user["full_name"],
+        "registration_number": user["registration_number"],
+        "wallet_balance": user["wallet_balance"],
+        "role": user["role"]
     }
