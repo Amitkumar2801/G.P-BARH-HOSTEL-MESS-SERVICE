@@ -1,7 +1,4 @@
-node_modules/
+venv/
+.venv/
 .env
-.DS_Store
-npm-debug.log
-yarn-error.log
-client/node_modules/
-client/build/
+__pycache__/
