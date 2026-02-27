@@ -11,3 +11,7 @@ class StudentResponse(BaseModel):
     email: EmailStr
     registration_number: str
     role: str = "student"
+
+class StudentLogin(BaseModel):
+    email: EmailStr
+    password: str
