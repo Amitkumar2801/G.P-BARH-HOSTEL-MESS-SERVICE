@@ -1,27 +1,45 @@
 from fastapi import APIRouter, HTTPException
-from app.models.user import StudentCreate, StudentResponse
+from app.models.user import StudentCreate, StudentResponse, StudentLogin
 from app.database import student_collection
 from passlib.context import CryptContext
+import jwt
+import os
+from datetime import datetime, timedelta, timezone
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# .env se secret code uthana
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM")
 
 router = APIRouter()
-
-# Password ko secure (encrypt) karne ka tool
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def get_password_hash(password):
     return pwd_context.hash(password)
 
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+# 🎟️ NAYA FUNCTION: Digital Pass (Token) Banane ke liye
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    # Token 1 ghante (60 minutes) ke baad expire ho jayega
+    expire = datetime.now(timezone.utc) + timedelta(minutes=60)
+    to_encode.update({"exp": expire})
+    # Token pe stamp lagana
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
 @router.post("/register", response_model=StudentResponse)
 async def register_student(student: StudentCreate):
-    # 1. Check karo ki Email pehle se toh nahi hai database mein
     existing_user = await student_collection.find_one({"email": student.email})
     if existing_user:
         raise HTTPException(status_code=400, detail="Ye email pehle se register hai bhai!")
 
-    # 2. Password ko hash karo (Taaki DB me real password na dikhe)
     hashed_password = get_password_hash(student.password)
 
-    # 3. Database me save karne ke liye Data taiyar karo
     student_data = {
         "name": student.name,
         "email": student.email,
@@ -30,7 +48,24 @@ async def register_student(student: StudentCreate):
         "role": "student"
     }
 
-    # 4. Data MongoDB mein save karo
     await student_collection.insert_one(student_data)
-
     return student_data
+
+@router.post("/login")
+async def login_student(student: StudentLogin):
+    db_student = await student_collection.find_one({"email": student.email})
+    if not db_student:
+        raise HTTPException(status_code=404, detail="Bhai, is email se koi account nahi mila!")
+
+    if not verify_password(student.password, db_student["password"]):
+        raise HTTPException(status_code=400, detail="Password galat hai bhai!")
+
+    # 🎟️ Agar password sahi hai, toh naya Token banao!
+    access_token = create_access_token(data={"sub": db_student["email"]})
+
+    # Ab hum normal message ki jagah token bhejenge
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "student_name": db_student["name"]
+    }
