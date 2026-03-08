@@ -1,4 +1,6 @@
 from fastapi import APIRouter, HTTPException
+from fastapi import Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.models.user import StudentCreate, StudentResponse, StudentLogin
 from app.database import student_collection
 from passlib.context import CryptContext
@@ -68,4 +70,37 @@ async def login_student(student: StudentLogin):
         "access_token": access_token,
         "token_type": "bearer",
         "student_name": db_student["name"]
+    }
+
+
+# 🛡️ Darbaan (Guard) ka setup
+security = HTTPBearer()
+
+
+# Ye function Token ko check karega ki asli hai ya nakli
+async def get_current_student(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+    try:
+        # Token ko open karke dekhna ki kis student ka hai
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email = payload.get("sub")
+        if email is None:
+            raise HTTPException(status_code=401, detail="Token mein email nahi mila bhai!")
+        return email
+    except Exception:
+        raise HTTPException(status_code=401, detail="Nakli ya Expire ho chuka Token! Darwaza band! ❌")
+
+
+# 🔒 Naya LOCKED Rasta (Sirf Token walo ke liye)
+@router.get("/profile")
+async def student_profile(email: str = Depends(get_current_student)):
+    # Database se us email ka data uthana
+    db_student = await student_collection.find_one({"email": email})
+
+    # Password hata kar baaki details dikhana
+    return {
+        "message": "Welcome to your safe profile! 🛡️",
+        "name": db_student["name"],
+        "email": db_student["email"],
+        "registration_number": db_student["registration_number"]
     }
