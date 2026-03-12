@@ -27,9 +27,10 @@ function App() {
 
           <div className="flex items-center space-x-3">
             <span className="text-[10px] font-bold tracking-widest uppercase text-yellow-400 drop-shadow-md">Theme</span>
+            {/* LOGO IN WHITE CIRCLE (Theme Toggle) */}
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
-              className="rounded-full border border-gray-600 hover:border-yellow-400 hover:scale-110 transition-transform duration-300 shadow-md bg-white h-7 w-7 flex items-center justify-center p-0.5"
+              className="rounded-full border border-gray-600 hover:border-yellow-400 hover:scale-110 transition-transform duration-300 shadow-md bg-white h-7 w-7 flex items-center justify-center p-1 overflow-hidden"
               title="Toggle Theme"
             >
               <img src={logo} alt="Theme Toggle" className="h-full w-full object-contain" />
@@ -39,11 +40,12 @@ function App() {
 
         <div className="bg-[#720e0e] text-white py-2.5 px-4 md:px-6 flex items-center justify-between border-b-[3px] border-yellow-500/80 shadow-md">
           <div className="flex items-center space-x-3">
-            <div className="bg-white p-1 rounded-full shadow-lg">
-              <img src={logo} alt="GP Barh Logo" className="h-10 w-10 md:h-12 md:w-12 object-contain" />
+            {/* LOGO IN WHITE CIRCLE (Main Header) */}
+            <div className="bg-white p-1.5 h-12 w-12 md:h-14 md:w-14 rounded-full shadow-lg flex items-center justify-center overflow-hidden">
+              <img src={logo} alt="GP Barh Logo" className="h-full w-full object-contain" />
             </div>
             <div>
-              <h1 className="text-lg md:text-2xl font-extrabold font-serif tracking-wide leading-tight drop-shadow-sm">राजकीय पॉलिटेक्निक, बाढ़</h1>
+              <h1 className="text-lg md:text-2xl font-extrabold font-serif tracking-wide leading-tight drop-shadow-sm">राजकीय पॉलिटेक्निक, बाढ़</h1>
               <h2 className="text-[9px] md:text-[11px] font-semibold tracking-widest uppercase opacity-95 mt-0.5">Government Polytechnic, Barh</h2>
             </div>
           </div>
@@ -184,27 +186,23 @@ function App() {
               </div>
             </div>
 
-            {/* 🌟 VIP DEVELOPER PROFILE CARD */}
+            {/* 🌟 AMIT KUMAR - DEVELOPER PROFILE CARD */}
             <div className="col-span-1 sm:col-span-2 md:col-span-1 relative overflow-hidden bg-gradient-to-br from-black/80 to-[#720e0e]/50 p-4 rounded-xl border border-yellow-500/40 shadow-[0_0_15px_rgba(234,179,8,0.15)] group">
-              <div className="absolute top-0 right-0 bg-yellow-500 text-black text-[8px] font-black px-2 py-1 rounded-bl-lg shadow-sm">
-                AI/ML DEV
-              </div>
+              <h4 className="text-gray-400 font-bold mb-1.5 uppercase tracking-widest text-[10px]">DEVELOPED BY</h4>
+              <p className="text-yellow-400 font-black text-xl tracking-wider group-hover:text-white transition-colors mb-4">AMIT KUMAR</p>
 
-              <h4 className="text-gray-400 font-bold mb-1 uppercase tracking-widest text-[9px]">Developed By</h4>
-              <p className="text-yellow-400 font-black text-base tracking-wide group-hover:text-white transition-colors">Amit Kumar</p>
-              <p className="text-[10px] text-gray-300 font-semibold mb-3">Diploma in AI & ML</p>
-
-              <div className="flex space-x-2 text-[10px] font-bold">
+              <div className="flex flex-wrap gap-2 text-[10px] font-bold">
                 <button
                   onClick={() => setShowIdCard(true)}
-                  className="bg-yellow-500 hover:bg-yellow-400 text-black px-2 py-1 rounded transition-colors shadow-sm flex items-center"
+                  className="bg-yellow-500 hover:bg-yellow-400 text-black px-2.5 py-1.5 rounded transition-colors shadow-sm flex items-center"
                 >
                   🪪 View ID
                 </button>
 
-                {/* 👉 SOCIAL LINKS: Yahan "#" hata kar apne asli links daal do */}
-                <a href="https://linkedin.com/in/YOUR_PROFILE" target="_blank" rel="noreferrer" className="bg-blue-600/80 hover:bg-blue-500 text-white px-2 py-1 rounded transition-colors">LinkedIn</a>
-                <a href="https://github.com/YOUR_GITHUB" target="_blank" rel="noreferrer" className="bg-gray-700/80 hover:bg-gray-600 text-white px-2 py-1 rounded transition-colors">GitHub</a>
+                {/* 👉 SOCIAL LINKS: "#" ki jagah apne asli link laga lena */}
+                <a href="#" target="_blank" rel="noreferrer" className="bg-blue-600/80 hover:bg-blue-500 text-white px-2.5 py-1.5 rounded transition-colors flex items-center">LinkedIn</a>
+                <a href="#" target="_blank" rel="noreferrer" className="bg-gray-700/80 hover:bg-gray-600 text-white px-2.5 py-1.5 rounded transition-colors flex items-center">GitHub</a>
+                <a href="#" target="_blank" rel="noreferrer" className="bg-pink-600/80 hover:bg-pink-500 text-white px-2.5 py-1.5 rounded transition-colors flex items-center">Portfolio</a>
               </div>
             </div>
 
@@ -233,7 +231,10 @@ function App() {
 
             <div className="bg-[#800000] p-3 flex flex-col items-center justify-center relative">
               <div className="flex items-center space-x-2 mb-1">
-                <img src={logo} alt="Logo" className="w-8 h-8 bg-white rounded-full p-0.5 shadow-sm" />
+                {/* LOGO IN WHITE CIRCLE (ID Card) */}
+                <div className="bg-white rounded-full p-1 shadow-sm h-10 w-10 flex items-center justify-center overflow-hidden">
+                  <img src={logo} alt="Logo" className="h-full w-full object-contain" />
+                </div>
                 <div className="text-center text-white">
                   <h2 className="text-[12px] font-black leading-tight uppercase font-serif tracking-wide">Govt. Polytechnic, Barh</h2>
                 </div>
