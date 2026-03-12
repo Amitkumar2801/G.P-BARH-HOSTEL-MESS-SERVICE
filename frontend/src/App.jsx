@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import './App.css';
 
-// SIRF LOGO IMPORT KARENGE (Bahar ki photo nahi chahiye)
+// ASSETS IMPORT
 import logo from './assets/logo.png.png';
+import myPic from './assets/profile.jpg.png';
 
 function App() {
-  // STATE MANAGEMENT
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showIdCard, setShowIdCard] = useState(false);
 
@@ -14,8 +14,6 @@ function App() {
 
       {/* ================= HEADER SECTION ================= */}
       <header className="w-full z-20 shadow-lg">
-
-        {/* Top Navigation Bar */}
         <div className="bg-black text-gray-300 text-[10px] md:text-xs py-2 px-4 md:px-6 flex justify-between items-center">
           <div className="flex space-x-4 items-center font-medium tracking-wide">
             <a href="#" className="hover:text-white transition-colors py-1 hidden md:block">Rules</a>
@@ -27,7 +25,6 @@ function App() {
             <a href="#" className="hover:text-white transition-colors py-1">Complaint Box</a>
           </div>
 
-          {/* Theme Toggle Button */}
           <div className="flex items-center space-x-3">
             <span className="text-[10px] font-bold tracking-widest uppercase text-yellow-400 drop-shadow-md">Theme</span>
             <button
@@ -40,14 +37,13 @@ function App() {
           </div>
         </div>
 
-        {/* Main Branding Bar */}
         <div className="bg-[#720e0e] text-white py-2.5 px-4 md:px-6 flex items-center justify-between border-b-[3px] border-yellow-500/80 shadow-md">
           <div className="flex items-center space-x-3">
             <div className="bg-white p-1 rounded-full shadow-lg">
               <img src={logo} alt="GP Barh Logo" className="h-10 w-10 md:h-12 md:w-12 object-contain" />
             </div>
             <div>
-              <h1 className="text-lg md:text-2xl font-extrabold font-serif tracking-wide leading-tight drop-shadow-sm">राजकीय पॉलिटेक्निक, बाढ़</h1>
+              <h1 className="text-lg md:text-2xl font-extrabold font-serif tracking-wide leading-tight drop-shadow-sm">राजकीय पॉलिटेक्निक, बाढ़</h1>
               <h2 className="text-[9px] md:text-[11px] font-semibold tracking-widest uppercase opacity-95 mt-0.5">Government Polytechnic, Barh</h2>
             </div>
           </div>
@@ -60,16 +56,12 @@ function App() {
 
       {/* ================= MAIN CONTENT AREA ================= */}
       <main className="flex-grow bg-campus flex items-center justify-center p-4 md:p-8 relative">
-
-        {/* Background Overlay */}
         <div className={`absolute inset-0 transition-colors duration-500 ${isDarkMode ? 'bg-black/75' : 'bg-black/40'}`}></div>
 
-        {/* Login Container */}
         <div className={`relative z-10 backdrop-blur-xl rounded-2xl shadow-2xl flex flex-col md:flex-row w-[95%] md:w-full max-w-[760px] overflow-hidden border transition-all duration-300 ${
           isDarkMode ? 'bg-[#121212]/90 border-gray-700 text-white' : 'bg-white/95 border-white/60 text-gray-900'
         }`}>
 
-          {/* ----- Left Side: Password Login Form ----- */}
           <div className="w-full md:w-[55%] p-6 md:p-8 flex flex-col justify-center">
             <div className="text-center md:text-left mb-6">
               <h2 className="text-2xl md:text-3xl font-black mb-1 tracking-tight text-blue-600 dark:text-blue-400 drop-shadow-sm">Student Login</h2>
@@ -120,7 +112,6 @@ function App() {
                 </p>
               </div>
 
-              {/* Warden / Admin Portal Access */}
               <div className="pt-3 border-t border-gray-300 dark:border-gray-700">
                 <button type="button" className={`w-full flex items-center justify-center space-x-2 font-bold py-2.5 rounded-lg transition-all text-xs border ${
                   isDarkMode ? 'bg-gray-800 text-yellow-500 border-yellow-600/50 hover:bg-gray-700' : 'bg-yellow-50 text-yellow-700 border-yellow-400 hover:bg-yellow-100 shadow-sm'
@@ -132,7 +123,6 @@ function App() {
             </form>
           </div>
 
-          {/* ----- Middle Divider (Desktop Only) ----- */}
           <div className={`hidden md:flex flex-col items-center justify-center px-0 border-l border-r ${
             isDarkMode ? 'bg-gray-900/50 border-gray-800' : 'bg-gray-100/50 border-gray-200'
           }`}>
@@ -141,7 +131,6 @@ function App() {
             <div className={`h-full w-[1px] ${isDarkMode ? 'bg-gray-700' : 'bg-gray-300'}`}></div>
           </div>
 
-          {/* ----- Right Side: QR Code Scanner (Desktop Only) ----- */}
           <div className={`hidden md:flex w-[45%] p-8 flex-col items-center justify-center ${isDarkMode ? 'bg-[#1a1a1a]/95' : 'bg-gray-50/95'}`}>
             <h3 className={`text-sm font-black mb-6 uppercase tracking-widest ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
               Fast Mobile Login
@@ -165,7 +154,6 @@ function App() {
         <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 text-xs">
 
-            {/* Contact Info */}
             <div className="col-span-1 sm:col-span-2 md:col-span-1">
               <h4 className="text-yellow-400 font-bold mb-3 uppercase tracking-widest text-[11px] border-b border-white/10 pb-1.5 inline-block">Contact Us</h4>
               <p className="leading-relaxed mb-2 text-gray-200">
@@ -176,7 +164,6 @@ function App() {
               <p><a href="mailto:info@gpbarh.in" className="hover:text-white transition-colors py-0.5 block">✉️ info@gpbarh.in</a></p>
             </div>
 
-            {/* Quick Links */}
             <div>
               <h4 className="text-yellow-400 font-bold mb-3 uppercase tracking-widest text-[11px] border-b border-white/10 pb-1.5 inline-block">Quick Links</h4>
               <ul className="space-y-2">
@@ -186,7 +173,6 @@ function App() {
               </ul>
             </div>
 
-            {/* Live Visitors Counter */}
             <div>
               <h4 className="text-yellow-400 font-bold mb-3 uppercase tracking-widest text-[11px] border-b border-white/10 pb-1.5 inline-block">Total Visitors</h4>
               <div className="flex space-x-1.5 mt-1">
@@ -198,7 +184,7 @@ function App() {
               </div>
             </div>
 
-            {/* VIP Developer Profile Card */}
+            {/* 🌟 VIP DEVELOPER PROFILE CARD */}
             <div className="col-span-1 sm:col-span-2 md:col-span-1 relative overflow-hidden bg-gradient-to-br from-black/80 to-[#720e0e]/50 p-4 rounded-xl border border-yellow-500/40 shadow-[0_0_15px_rgba(234,179,8,0.15)] group">
               <div className="absolute top-0 right-0 bg-yellow-500 text-black text-[8px] font-black px-2 py-1 rounded-bl-lg shadow-sm">
                 AI/ML DEV
@@ -209,15 +195,16 @@ function App() {
               <p className="text-[10px] text-gray-300 font-semibold mb-3">Diploma in AI & ML</p>
 
               <div className="flex space-x-2 text-[10px] font-bold">
-                {/* 🪪 View ID Button (Triggers Modal) */}
                 <button
                   onClick={() => setShowIdCard(true)}
                   className="bg-yellow-500 hover:bg-yellow-400 text-black px-2 py-1 rounded transition-colors shadow-sm flex items-center"
                 >
                   🪪 View ID
                 </button>
-                <a href="#" className="bg-blue-600/80 hover:bg-blue-500 text-white px-2 py-1 rounded transition-colors">LinkedIn</a>
-                <a href="#" className="bg-gray-700/80 hover:bg-gray-600 text-white px-2 py-1 rounded transition-colors">GitHub</a>
+
+                {/* 👉 SOCIAL LINKS: Yahan "#" hata kar apne asli links daal do */}
+                <a href="https://linkedin.com/in/YOUR_PROFILE" target="_blank" rel="noreferrer" className="bg-blue-600/80 hover:bg-blue-500 text-white px-2 py-1 rounded transition-colors">LinkedIn</a>
+                <a href="https://github.com/YOUR_GITHUB" target="_blank" rel="noreferrer" className="bg-gray-700/80 hover:bg-gray-600 text-white px-2 py-1 rounded transition-colors">GitHub</a>
               </div>
             </div>
 
@@ -233,12 +220,10 @@ function App() {
       {showIdCard && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in px-4" onClick={() => setShowIdCard(false)}>
 
-          {/* Virtual ID Card Container */}
           <div
             className="bg-white w-full max-w-[320px] rounded-xl overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.5)] relative animate-scale-in border border-gray-300"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close Button */}
             <button
               onClick={() => setShowIdCard(false)}
               className="absolute top-2 right-2 bg-black/20 text-white rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold hover:bg-red-600 transition-colors z-10"
@@ -246,7 +231,6 @@ function App() {
               X
             </button>
 
-            {/* ID Card Header (College Name) */}
             <div className="bg-[#800000] p-3 flex flex-col items-center justify-center relative">
               <div className="flex items-center space-x-2 mb-1">
                 <img src={logo} alt="Logo" className="w-8 h-8 bg-white rounded-full p-0.5 shadow-sm" />
@@ -257,23 +241,19 @@ function App() {
               <p className="text-[7px] text-gray-200 uppercase tracking-widest text-center mt-1">Science Technology & Technical Education Dept.</p>
             </div>
 
-            {/* Identity Card Tag */}
             <div className="bg-red-600 text-white text-[9px] font-bold text-center py-1 uppercase tracking-[0.3em] shadow-sm">
               Identity Card
             </div>
 
-            {/* ID Card Body (Details) */}
             <div className="p-5 flex flex-col items-center bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-gray-50">
 
-              {/* Photo Placeholder */}
-              <div className="w-20 h-24 bg-gray-200 border-2 border-[#800000] mb-3 flex items-center justify-center rounded shadow-inner overflow-hidden">
-                <span className="text-gray-400 text-[10px] font-bold tracking-widest uppercase">Photo</span>
+              {/* 👉 TUMHARI PHOTO */}
+              <div className="w-20 h-24 bg-white border-2 border-[#800000] mb-3 flex items-center justify-center rounded shadow-md overflow-hidden p-0.5">
+                <img src={myPic} alt="Amit Kumar" className="w-full h-full object-cover rounded-sm" />
               </div>
 
-              {/* Student Name */}
               <h3 className="text-xl font-black text-[#800000] uppercase tracking-wide mb-3">Amit Kumar</h3>
 
-              {/* Data Table */}
               <div className="w-full text-left space-y-2 text-[11px]">
                 <div className="flex border-b border-gray-200 pb-1">
                   <span className="w-20 font-bold text-gray-600 uppercase text-[9px]">Branch</span>
@@ -295,7 +275,6 @@ function App() {
 
             </div>
 
-            {/* ID Card Bottom Strip */}
             <div className="bg-yellow-500 h-2 w-full"></div>
             <div className="bg-[#800000] h-1 w-full"></div>
 
