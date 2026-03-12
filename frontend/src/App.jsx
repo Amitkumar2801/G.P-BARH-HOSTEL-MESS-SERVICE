@@ -3,7 +3,7 @@ import './App.css';
 
 // ASSETS IMPORT
 import logo from './assets/logo.png.png';
-import myPic from './assets/profile.jpg.png';
+import myPic from './assets/profile.jpg.jpg';
 
 function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
