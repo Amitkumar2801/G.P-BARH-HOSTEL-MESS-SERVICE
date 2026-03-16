@@ -1,9 +1,13 @@
+# backend/main.py
 from fastapi import FastAPI
+import models
+from database import engine
 
-# Engine start ho raha hai
+# Engine start hote hi database mein saari tables (jaise Student) bana do
+models.Base.metadata.create_all(bind=engine)
+
 app = FastAPI()
 
-# Jab koi humari API ke main raste ("/") par aayega, toh ye message milega
 @app.get("/")
 def read_root():
-    return {"message": "Welcome to GP Barh Hostel API! 🚀", "status": "Engine is Running!"}
+    return {"message": "Welcome to GP Barh Hostel API! 🚀", "status": "Database Connected & Tables Created!"}
