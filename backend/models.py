@@ -2,11 +2,18 @@
 from sqlalchemy import Column, Integer, String
 from database import Base
 
-# Ye humari Student table ka naksha (blueprint) hai
-class Student(Base):
-    __tablename__ = "students"
 
-    id = Column(Integer, primary_key=True, index=True) # Har student ka ek unique ID (1, 2, 3...)
-    full_name = Column(String, index=True)             # Student ka poora naam
-    reg_no = Column(String, unique=True, index=True)   # Registration No. (Ye unique hona chahiye)
-    password = Column(String)                          # Password (Aage chalkar hum isko hack-proof banayenge)
+# Humne 'Student' ki jagah 'User' kar diya taaki Faculty aur Admin bhi aa sakein
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    full_name = Column(String, index=True)
+
+    # Students ke liye Reg No. aur Faculty/Admin ke liye Email ID
+    reg_no_email = Column(String, unique=True, index=True)
+
+    password = Column(String)
+
+    # Ye sabse zaroori column hai: 'student', 'faculty', ya 'admin'
+    role = Column(String, default="student")
