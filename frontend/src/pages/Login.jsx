@@ -1,14 +1,64 @@
+// src/pages/Login.jsx
 import React, { useState } from 'react';
-import '../App.css'; // Path updated
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios'; // 🌟 NAYA: API Call ke liye Postman
+import '../App.css';
 
-// ASSETS IMPORT (Path updated with ../)
+// ASSETS IMPORT
 import logo from '../assets/logo.png.png';
 import myPic from '../assets/profile.jpg.jpg';
 
 function Login() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showIdCard, setShowIdCard] = useState(false);
+
+  // ---------------------------------------------------------
+  // FORM STATES (Data store karne ke liye)
+  // ---------------------------------------------------------
+  const [userId, setUserId] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false); // Button loading state
+
+  const navigate = useNavigate();
+
+  // ---------------------------------------------------------
+  // API CALL: HANDLE LOGIN
+  // ---------------------------------------------------------
+  const handleLogin = async (e) => {
+    e.preventDefault(); // Page reload rokne ke liye
+
+    // Basic validation
+    if (!userId || !password) {
+      alert("Bhai, ID aur Password dono daalna zaroori hai! 🛑");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Axios data lekar FastAPI ke paas ja raha hai (Port 8000)
+      const response = await axios.post("http://127.0.0.1:8000/login", {
+        reg_no_email: userId,
+        password: password
+      });
+
+      // Agar backend ne Success bola
+      alert("Success: " + response.data.message + " 🎉\nWelcome " + response.data.user.full_name);
+
+      // Aage chalkar hum yahan se Dashboard par bhejenge
+      // navigate("/dashboard");
+
+    } catch (error) {
+      // Agar backend ne error bheja (jaise galat password)
+      if (error.response && error.response.data) {
+        alert("Error: " + error.response.data.detail + " ❌");
+      } else {
+        alert("Server se connect nahi ho pa raha hai. Backend chalu hai? 🤔");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className={`min-h-screen flex flex-col font-sans transition-colors duration-500 ${isDarkMode ? 'dark bg-[#0a0a0a]' : 'bg-gray-100'}`}>
@@ -22,8 +72,6 @@ function Login() {
             <a href="#" className="hover:text-white transition-colors py-1">Mess Menu</a>
             <span className="text-gray-600">|</span>
             <a href="#" className="hover:text-white transition-colors py-1">Contact Warden</a>
-            <span className="text-gray-600">|</span>
-            <a href="#" className="hover:text-white transition-colors py-1">Complaint Box</a>
           </div>
 
           <div className="flex items-center space-x-3">
@@ -71,13 +119,16 @@ function Login() {
               </p>
             </div>
 
-            <form className="space-y-4">
+            {/* 🌟 FORM START WITH onSubmit */}
+            <form className="space-y-4" onSubmit={handleLogin}>
               <div>
                 <label className={`block text-[10px] md:text-xs font-bold uppercase tracking-widest mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>
                   Reg No. / Email
                 </label>
                 <input
                   type="text"
+                  value={userId}
+                  onChange={(e) => setUserId(e.target.value)}
                   placeholder="e.g. 1554424049"
                   className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-semibold ${
                     isDarkMode ? 'bg-gray-800/80 border-gray-600 text-white placeholder-gray-500' : 'bg-gray-50 border-gray-300 text-black placeholder-gray-400 shadow-inner'
@@ -96,6 +147,8 @@ function Login() {
                 </div>
                 <input
                   type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-semibold ${
                     isDarkMode ? 'bg-gray-800/80 border-gray-600 text-white placeholder-gray-500' : 'bg-gray-50 border-gray-300 text-black placeholder-gray-400 shadow-inner'
@@ -103,14 +156,24 @@ function Login() {
                 />
               </div>
 
-              <button type="button" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-3.5 rounded-lg transition-all shadow-lg hover:shadow-blue-500/40 text-sm tracking-widest uppercase mt-2">
-                Sign In
-              </button>
+              <div className="space-y-2 mt-2">
+                {/* 🌟 CHANGED 'SIGN IN' to 'LOGIN', WITH LOADING STATE */}
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className={`w-full font-extrabold py-3.5 rounded-lg transition-all shadow-lg text-sm tracking-widest uppercase mt-1 ${
+                    isLoading ? 'bg-blue-400 text-white cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-blue-500/40'
+                  }`}
+                >
+                  {isLoading ? 'Checking...' : 'Login'}
+                </button>
+                {/* 🌟 1-CLICK DEMO BUTTON HATAA DIYA GAYA HAI */}
+              </div>
 
               <div className="text-center mt-3 mb-2">
-              <p className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Don't have an account? <Link to="/signup" className="font-bold text-blue-600 hover:text-blue-500 hover:underline">Sign Up</Link>
-              </p>
+                <p className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Don't have an account? <Link to="/signup" className="font-bold text-blue-600 hover:text-blue-500 hover:underline">Sign Up</Link>
+                </p>
               </div>
 
               <div className="pt-3 border-t border-gray-300 dark:border-gray-700">
@@ -150,7 +213,7 @@ function Login() {
         </div>
       </main>
 
-      {/* ================= FOOTER SECTION ================= */}
+      {/* ================= 🌟 FOOTER SECTION RESTORED 🌟 ================= */}
       <footer className="bg-[#4a0404] text-gray-300 z-20 border-t-4 border-yellow-500/80 shadow-[0_-5px_15px_rgba(0,0,0,0.3)]">
         <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 text-xs">
@@ -168,7 +231,7 @@ function Login() {
             <div>
               <h4 className="text-yellow-400 font-bold mb-3 uppercase tracking-widest text-[11px] border-b border-white/10 pb-1.5 inline-block">Quick Links</h4>
               <ul className="space-y-2">
-                <li><a href="https://www.gpbarh.in/" target="_blank" className="hover:text-white font-medium transition-colors block">Official Website</a></li>
+                <li><a href="https://www.gpbarh.in/" target="_blank" rel="noreferrer" className="hover:text-white font-medium transition-colors block">Official Website</a></li>
                 <li><a href="#" className="hover:text-white font-medium transition-colors block">Hostel Notice Board</a></li>
                 <li><a href="#" className="hover:text-white font-medium transition-colors block">Student Grievance</a></li>
               </ul>
@@ -185,7 +248,7 @@ function Login() {
               </div>
             </div>
 
-            {/* 🌟 AMIT KUMAR - DEVELOPER PROFILE CARD */}
+            {/* AMIT KUMAR - DEVELOPER PROFILE CARD */}
             <div className="col-span-1 sm:col-span-2 md:col-span-1 relative overflow-hidden bg-gradient-to-br from-black/80 to-[#720e0e]/50 p-4 rounded-xl border border-yellow-500/40 shadow-[0_0_15px_rgba(234,179,8,0.15)] group">
               <h4 className="text-gray-400 font-bold mb-1.5 uppercase tracking-widest text-[10px]">DEVELOPED BY</h4>
               <p className="text-yellow-400 font-black text-xl tracking-wider group-hover:text-white transition-colors mb-4">AMIT KUMAR</p>
@@ -211,7 +274,7 @@ function Login() {
         </div>
       </footer>
 
-      {/* ================= CODE-GENERATED ID CARD MODAL ================= */}
+      {/* ================= CODE-GENERATED ID CARD MODAL (Includes photo) ================= */}
       {showIdCard && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in px-4" onClick={() => setShowIdCard(false)}>
 
@@ -228,7 +291,6 @@ function Login() {
 
             <div className="bg-[#800000] p-3 flex flex-col items-center justify-center relative">
               <div className="flex items-center space-x-2 mb-1">
-                {/* LOGO IN WHITE CIRCLE (ID Card) */}
                 <div className="bg-white rounded-full p-1 shadow-sm h-10 w-10 flex items-center justify-center overflow-hidden">
                   <img src={logo} alt="Logo" className="h-full w-full object-contain" />
                 </div>
@@ -283,4 +345,4 @@ function Login() {
   );
 }
 
-export default Login; // Yahan export default Login ho gaya!
+export default Login;
