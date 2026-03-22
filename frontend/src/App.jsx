@@ -2,9 +2,10 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
-// Apne dono pages import kar rahe hain
+// Apne teeno pages import kar rahe hain
 import Login from './pages/Login';
-import Signup from './pages/Signup'; // Ye naya page import kiya
+import Signup from './pages/Signup';
+import Dashboard from './pages/Dashboard'; // 🌟 YAHAN NAYA DASHBOARD IMPORT KIYA
 
 function App() {
   return (
@@ -13,8 +14,11 @@ function App() {
         {/* Default rasta: Login Page */}
         <Route path="/" element={<Login />} />
 
-        {/* Naya rasta: Signup Page */}
+        {/* Dusra rasta: Signup Page */}
         <Route path="/signup" element={<Signup />} />
+
+        {/* 🌟 TEESRA NAYA RASTA: Dashboard Page */}
+        <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
     </Router>
   );

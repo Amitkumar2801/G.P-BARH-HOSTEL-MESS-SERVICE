@@ -1,7 +1,7 @@
 // src/pages/Signup.jsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios'; // 🌟 NAYA: Humara Postman
+import axios from 'axios';
 import '../App.css';
 
 // ASSETS IMPORT
@@ -17,6 +17,7 @@ function Signup() {
   const [fullName, setFullName] = useState("");
   const [regNoEmail, setRegNoEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState("student"); // 🌟 NAYA: Role State (Default: student)
   const [isLoading, setIsLoading] = useState(false); // Button loading state
 
   const navigate = useNavigate(); // Signup ke baad Login par bhejne ke liye
@@ -41,7 +42,7 @@ function Signup() {
         full_name: fullName,
         reg_no_email: regNoEmail,
         password: password,
-        role: "student" // Default role
+        role: role // 🌟 NAYA: Ab user ka select kiya hua role backend jayega
       });
 
       // Agar backend ne 201 Created bhej diya
@@ -67,7 +68,6 @@ function Signup() {
 
       {/* ================= HEADER SECTION ================= */}
       <header className="w-full z-20 shadow-lg">
-        {/* ... (Header pehle jaisa hi hai) ... */}
         <div className="bg-black text-gray-300 text-[10px] md:text-xs py-2 px-4 md:px-6 flex justify-between items-center">
           <div className="flex space-x-4 items-center font-medium tracking-wide">
             <a href="#" className="hover:text-white transition-colors py-1 hidden md:block">Rules</a>
@@ -90,7 +90,7 @@ function Signup() {
               <img src={logo} alt="GP Barh Logo" className="h-full w-full object-contain" />
             </div>
             <div>
-              <h1 className="text-lg md:text-2xl font-extrabold font-serif tracking-wide leading-tight drop-shadow-sm">राजकीय पॉलिटेक्निक, बाढ़</h1>
+              <h1 className="text-lg md:text-2xl font-extrabold font-serif tracking-wide leading-tight drop-shadow-sm">राजकीय पॉलिटेक्निक, बाढ़</h1>
             </div>
           </div>
         </div>
@@ -108,11 +108,11 @@ function Signup() {
             <div className="text-center md:text-left mb-5">
               <h2 className="text-2xl md:text-3xl font-black mb-1 tracking-tight text-blue-600 dark:text-blue-400 drop-shadow-sm">Registration</h2>
               <p className={`text-[10px] md:text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                Create your student account
+                Create your hostel account
               </p>
             </div>
 
-            {/* 🌟 NAYA: onSubmit par handleSignup function call hoga */}
+            {/* 🌟 FORM WITH ROLE SELECTION */}
             <form className="space-y-3.5" onSubmit={handleSignup}>
               <div>
                 <label className={`block text-[10px] md:text-[11px] font-bold uppercase tracking-widest mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>
@@ -159,11 +159,29 @@ function Signup() {
                 />
               </div>
 
-              {/* 🌟 NAYA: type="submit" aur Loading state */}
+              {/* 🌟 NAYA: ROLE SELECTION DROPDOWN */}
+              <div>
+                <label className={`block text-[10px] md:text-[11px] font-bold uppercase tracking-widest mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>
+                  Register As
+                </label>
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  className={`w-full px-4 py-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-semibold cursor-pointer ${
+                    isDarkMode ? 'bg-gray-800/80 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-black'
+                  }`}
+                >
+                  <option value="student">👨‍🎓 Student</option>
+                  <option value="warden">🛡️ Warden / Admin</option>
+                  <option value="faculty">👨‍🏫 Faculty</option>
+                  <option value="parent">👪 Parent / Guest</option>
+                </select>
+              </div>
+
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`w-full font-extrabold py-3.5 rounded-lg transition-all shadow-lg text-sm tracking-widest uppercase mt-1 ${
+                className={`w-full font-extrabold py-3.5 rounded-lg transition-all shadow-lg text-sm tracking-widest uppercase mt-2 ${
                   isLoading ? 'bg-blue-400 text-white cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-blue-500/40'
                 }`}
               >
