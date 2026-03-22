@@ -18,9 +18,9 @@ models.Base.metadata.create_all(bind=engine)
 # FASTAPI APP INSTANCE SETUP
 # ---------------------------------------------------------
 app = FastAPI(
-    title="GP Barh Hostel Management API",
-    description="Backend REST API for the Hostel and Mess Management System.",
-    version="1.0.0"
+    title="GP Barh Hostel Management API - Pro Version",
+    description="Backend REST API for the Hostel and Mess Management System. Now with Role-Based Auth.",
+    version="1.1.0"
 )
 
 # ---------------------------------------------------------
@@ -34,7 +34,6 @@ app.add_middleware(
     allow_methods=["*"],  # Allows all HTTP methods (GET, POST, PUT, DELETE)
     allow_headers=["*"],  # Allows all headers
 )
-
 
 # ---------------------------------------------------------
 # DEPENDENCIES
@@ -50,7 +49,6 @@ def get_db() -> Session:
     finally:
         db.close()
 
-
 # ---------------------------------------------------------
 # API ENDPOINTS
 # ---------------------------------------------------------
@@ -65,11 +63,10 @@ def read_root():
         "status": "Database Connected & Server Running!"
     }
 
-
 @app.post("/signup", status_code=status.HTTP_201_CREATED, tags=["Authentication"])
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     """
-    Registers a new user (Student/Faculty/Admin) into the system.
+    Registers a new user (Student/Faculty/Admin/Parent) into the system.
     Performs validation to ensure no duplicate registration numbers or emails exist.
     """
     # Step 1: Check if the user already exists in the database
@@ -84,6 +81,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
         )
 
     # Step 2: Create a new User instance mapped to the database model
+    # 🌟 NEW: 'role' field is now properly passed and saved
     new_user = models.User(
         full_name=user.full_name,
         reg_no_email=user.reg_no_email,
@@ -101,16 +99,16 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
         "user_id": new_user.id
     }
 
-
-# backend/main.py mein ekdum aakhiri mein paste karo:
-
 @app.post("/login", tags=["Authentication"])
 def login_user(user: schemas.UserLogin, db: Session = Depends(get_db)):
     """
     Checks the user's credentials against the database.
+    Returns user details including their specific Role (student, warden, etc.).
     """
     # 1. Dhoondho ki user database mein hai ya nahi
-    db_user = db.query(models.User).filter(models.User.reg_no_email == user.reg_no_email).first()
+    db_user = db.query(models.User).filter(
+        models.User.reg_no_email == user.reg_no_email
+    ).first()
 
     # 2. Agar user nahi mila, ya password galat hai, toh error feko
     if not db_user or db_user.password != user.password:
@@ -120,9 +118,11 @@ def login_user(user: schemas.UserLogin, db: Session = Depends(get_db)):
         )
 
     # 3. Agar sab theek hai, toh success message bhej do
+    # 🌟 NEW: Now returning the user's ID and Role along with the name
     return {
         "message": "Login successful!",
         "user": {
+            "id": db_user.id,
             "full_name": db_user.full_name,
             "role": db_user.role
         }
