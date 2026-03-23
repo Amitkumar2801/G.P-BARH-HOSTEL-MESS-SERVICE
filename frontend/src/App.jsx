@@ -2,23 +2,22 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
-// Apne teeno pages import kar rahe hain
 import Login from './pages/Login';
 import Signup from './pages/Signup';
-import Dashboard from './pages/Dashboard'; // 🌟 YAHAN NAYA DASHBOARD IMPORT KIYA
+import Dashboard from './pages/Dashboard';
+import StudentDashboard from './pages/StudentDashboard';
+import WardenDashboard from './pages/WardenDashboard'; // 🌟 NAYA IMPORT
 
 function App() {
   return (
     <Router>
       <Routes>
-        {/* Default rasta: Login Page */}
         <Route path="/" element={<Login />} />
-
-        {/* Dusra rasta: Signup Page */}
         <Route path="/signup" element={<Signup />} />
-
-        {/* 🌟 TEESRA NAYA RASTA: Dashboard Page */}
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/student-dashboard" element={<StudentDashboard />} />
+        {/* 🌟 NAYA RASTA WARDEN KE LIYE */}
+        <Route path="/warden-dashboard" element={<WardenDashboard />} />
       </Routes>
     </Router>
   );
