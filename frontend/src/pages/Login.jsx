@@ -1,10 +1,10 @@
 // src/pages/Login.jsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios'; // 🌟 NAYA: API Call ke liye Postman
+import axios from 'axios';
 import '../App.css';
 
-// ASSETS IMPORT
+// 🌟 ASSETS IMPORT (Fixed as per your exact file paths)
 import logo from '../assets/logo.png.png';
 import myPic from '../assets/profile.jpg.jpg';
 
@@ -12,49 +12,36 @@ function Login() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showIdCard, setShowIdCard] = useState(false);
 
-  // ---------------------------------------------------------
-  // FORM STATES (Data store karne ke liye)
-  // ---------------------------------------------------------
+  // FORM STATES
   const [userId, setUserId] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false); // Button loading state
+  const [isLoading, setIsLoading] = useState(false);
 
   const navigate = useNavigate();
 
-  // ---------------------------------------------------------
   // API CALL: HANDLE LOGIN
-  // ---------------------------------------------------------
   const handleLogin = async (e) => {
-    e.preventDefault(); // Page reload rokne ke liye
-
-    // Basic validation
+    e.preventDefault();
     if (!userId || !password) {
       alert("Bhai, ID aur Password dono daalna zaroori hai! 🛑");
       return;
     }
-
     setIsLoading(true);
-
     try {
-      // Axios data lekar FastAPI ke paas ja raha hai (Port 8000)
       const response = await axios.post("http://127.0.0.1:8000/login", {
         reg_no_email: userId,
         password: password
       });
-
-      // Agar backend ne Success bola
       alert("Success: " + response.data.message + " 🎉\nWelcome " + response.data.user.full_name);
 
-      // 🌟 MAGIC: Backend ne jo 'role' bheja, uske sath Dashboard par bhej do!
-      navigate("/dashboard", {
-        state: {
-          userRole: response.data.user.role,
-          userName: response.data.user.full_name
-        }
-      });
+      const role = response.data.user.role;
+      if (role === 'student') {
+        navigate("/student-dashboard", { state: { userRole: role, userName: response.data.user.full_name } });
+      } else {
+        navigate("/dashboard", { state: { userRole: role, userName: response.data.user.full_name } });
+      }
 
     } catch (error) {
-      // Agar backend ne error bheja (jaise galat password)
       if (error.response && error.response.data) {
         alert("Error: " + error.response.data.detail + " ❌");
       } else {
@@ -84,7 +71,6 @@ function Login() {
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
               className="rounded-full border border-gray-600 hover:border-yellow-400 hover:scale-110 transition-transform duration-300 shadow-md bg-white h-7 w-7 flex items-center justify-center p-1 overflow-hidden"
-              title="Toggle Theme"
             >
               <img src={logo} alt="Theme Toggle" className="h-full w-full object-contain" />
             </button>
@@ -100,10 +86,6 @@ function Login() {
               <h1 className="text-lg md:text-2xl font-extrabold font-serif tracking-wide leading-tight drop-shadow-sm">राजकीय पॉलिटेक्निक, बाढ़</h1>
               <h2 className="text-[9px] md:text-[11px] font-semibold tracking-widest uppercase opacity-95 mt-0.5">Government Polytechnic, Barh</h2>
             </div>
-          </div>
-          <div className="hidden md:block text-right text-[11px] md:text-xs font-medium text-gray-100 border-l border-white/30 pl-4">
-            Science, Technology & Technical Education Dept.<br/>
-            <span className="text-yellow-400 font-bold tracking-wide drop-shadow-md">Government of Bihar</span>
           </div>
         </div>
       </header>
@@ -124,7 +106,7 @@ function Login() {
               </p>
             </div>
 
-            {/* 🌟 FORM START WITH onSubmit */}
+            {/* 🌟 FORM START */}
             <form className="space-y-4" onSubmit={handleLogin}>
               <div>
                 <label className={`block text-[10px] md:text-xs font-bold uppercase tracking-widest mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>
@@ -162,7 +144,6 @@ function Login() {
               </div>
 
               <div className="space-y-2 mt-2">
-                {/* 🌟 CHANGED 'SIGN IN' to 'LOGIN', WITH LOADING STATE */}
                 <button
                   type="submit"
                   disabled={isLoading}
@@ -174,21 +155,50 @@ function Login() {
                 </button>
               </div>
 
+              {/* 🌟 DEMO ACCESS FOR RECRUITERS/TESTERS 🌟 */}
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <p className={`text-[10px] font-bold uppercase tracking-widest text-center mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Demo Access (One-Click Login)
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => navigate("/student-dashboard", { state: { userRole: 'student', userName: 'Dummy Student' } })}
+                    className="text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 py-2 rounded hover:bg-blue-100 transition-colors shadow-sm"
+                  >
+                    👨‍🎓 Student
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/dashboard", { state: { userRole: 'warden', userName: 'Chief Warden' } })}
+                    className="text-[10px] font-bold bg-red-50 text-red-700 border border-red-200 py-2 rounded hover:bg-red-100 transition-colors shadow-sm"
+                  >
+                    🛡️ Warden
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/dashboard", { state: { userRole: 'parent', userName: 'Dummy Parent' } })}
+                    className="text-[10px] font-bold bg-orange-50 text-orange-700 border border-orange-200 py-2 rounded hover:bg-orange-100 transition-colors shadow-sm"
+                  >
+                    👪 Parent
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/dashboard", { state: { userRole: 'faculty_temp', userName: 'Dummy Faculty' } })}
+                    className="text-[10px] font-bold bg-green-50 text-green-700 border border-green-200 py-2 rounded hover:bg-green-100 transition-colors shadow-sm"
+                  >
+                    👨‍🏫 Faculty
+                  </button>
+                </div>
+              </div>
+
               <div className="text-center mt-3 mb-2">
                 <p className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                   Don't have an account? <Link to="/signup" className="font-bold text-blue-600 hover:text-blue-500 hover:underline">Sign Up</Link>
                 </p>
               </div>
-
-              <div className="pt-3 border-t border-gray-300 dark:border-gray-700">
-                <button type="button" className={`w-full flex items-center justify-center space-x-2 font-bold py-2.5 rounded-lg transition-all text-xs border ${
-                  isDarkMode ? 'bg-gray-800 text-yellow-500 border-yellow-600/50 hover:bg-gray-700' : 'bg-yellow-50 text-yellow-700 border-yellow-400 hover:bg-yellow-100 shadow-sm'
-                }`}>
-                  <span>🛡️</span>
-                  <span>Warden / Admin Portal</span>
-                </button>
-              </div>
             </form>
+            {/* 🌟 FORM END */}
           </div>
 
           <div className={`hidden md:flex flex-col items-center justify-center px-0 border-l border-r ${
@@ -217,7 +227,7 @@ function Login() {
         </div>
       </main>
 
-      {/* ================= 🌟 FOOTER SECTION RESTORED 🌟 ================= */}
+      {/* ================= FOOTER SECTION RESTORED ================= */}
       <footer className="bg-[#4a0404] text-gray-300 z-20 border-t-4 border-yellow-500/80 shadow-[0_-5px_15px_rgba(0,0,0,0.3)]">
         <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 text-xs">
@@ -228,8 +238,6 @@ function Login() {
                 <span className="font-bold text-white block">Govt. Polytechnic Barh</span>
                 NH-31, Patna, Bihar 803213
               </p>
-              <p><a href="#" className="hover:text-white transition-colors py-0.5 block">📞 +91-0612-XXXXXXX</a></p>
-              <p><a href="mailto:info@gpbarh.in" className="hover:text-white transition-colors py-0.5 block">✉️ info@gpbarh.in</a></p>
             </div>
 
             <div>
@@ -252,25 +260,20 @@ function Login() {
               </div>
             </div>
 
-            {/* 🌟 AMIT KUMAR - DEVELOPER PROFILE CARD (Refined & Professional) 🌟 */}
+            {/* 🌟 AMIT KUMAR - DEVELOPER PROFILE CARD 🌟 */}
             <div className="col-span-1 sm:col-span-2 md:col-span-1 relative overflow-hidden bg-gradient-to-br from-black/80 to-[#720e0e]/50 p-4 rounded-xl border border-yellow-500/40 shadow-[0_0_15px_rgba(234,179,8,0.15)] group">
                 <h4 className="text-gray-400 font-bold mb-1.5 uppercase tracking-widest text-[10px]">Developer Profile</h4>
                 <p className="text-yellow-400 font-black text-xl tracking-wider group-hover:text-white transition-colors mb-4">AMIT KUMAR</p>
 
-                {/* 🌟 NAYA TITLE: 'CONNECT WITH ME' (Get in touch style) 🌟 */}
                 <p className="text-[11px] font-bold text-gray-200 mt-3 mb-2 uppercase tracking-wide border-b border-white/10 pb-1 inline-block">Connect With Me</p>
 
-                {/* 🌟 STRUCTURED BUTTONS IN ONE LINE (FLEX-NOWRAP FIX) 🌟 */}
                 <div className="flex flex-nowrap justify-center gap-1.5 text-[10px] font-bold w-full">
-                    {/* 1. ID CARD BUTTON */}
                     <button
                         onClick={() => setShowIdCard(true)}
                         className="bg-yellow-500 hover:bg-yellow-400 text-black px-2.5 py-1.5 rounded transition-colors shadow-sm flex items-center gap-1.5"
                     >
                         🪪 <span>View ID</span>
                     </button>
-
-                    {/* 2. PORTFOLIO LINK */}
                     <a
                         href="https://amitkumar2801.github.io/its.Portfolio/"
                         target="_blank"
@@ -279,15 +282,12 @@ function Login() {
                     >
                         🌐 <span>Portfolio</span>
                     </a>
-
-                    {/* 3. INSTAGRAM LINK (With custom Insta Gradient and SVG Logo) */}
                     <a
                         href="https://www.instagram.com/its._chamgadar?igsh=MW9tbzdseWFtOW5o"
                         target="_blank"
                         rel="noreferrer"
                         className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 text-white px-2.5 py-1.5 rounded transition-colors flex items-center gap-1.5 shadow-sm"
                     >
-                        {/* professional SVG logo */}
                         <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.919-.058-1.265-.069-1.646-.069-4.849 0-3.204.012-3.583.069-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
                         <span>Instagram</span>
                     </a>
@@ -302,7 +302,7 @@ function Login() {
         </div>
       </footer>
 
-      {/* ================= CODE-GENERATED ID CARD MODAL (Includes photo) ================= */}
+      {/* ================= ID CARD MODAL ================= */}
       {showIdCard && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in px-4" onClick={() => setShowIdCard(false)}>
 
