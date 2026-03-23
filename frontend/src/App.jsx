@@ -6,7 +6,10 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import StudentDashboard from './pages/StudentDashboard';
-import WardenDashboard from './pages/WardenDashboard'; // 🌟 NAYA IMPORT
+import WardenDashboard from './pages/WardenDashboard';
+// 🌟 NAYE IMPORTS
+import ParentDashboard from './pages/ParentDashboard';
+import FacultyDashboard from './pages/FacultyDashboard';
 
 function App() {
   return (
@@ -16,8 +19,10 @@ function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/student-dashboard" element={<StudentDashboard />} />
-        {/* 🌟 NAYA RASTA WARDEN KE LIYE */}
         <Route path="/warden-dashboard" element={<WardenDashboard />} />
+        {/* 🌟 NAYE RASTE */}
+        <Route path="/parent-dashboard" element={<ParentDashboard />} />
+        <Route path="/faculty-dashboard" element={<FacultyDashboard />} />
       </Routes>
     </Router>
   );
