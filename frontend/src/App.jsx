@@ -2,19 +2,27 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
-// Apne dono pages import kar rahe hain
 import Login from './pages/Login';
-import Signup from './pages/Signup'; // Ye naya page import kiya
+import Signup from './pages/Signup';
+import Dashboard from './pages/Dashboard';
+import StudentDashboard from './pages/StudentDashboard';
+import WardenDashboard from './pages/WardenDashboard';
+// 🌟 NAYE IMPORTS
+import ParentDashboard from './pages/ParentDashboard';
+import FacultyDashboard from './pages/FacultyDashboard';
 
 function App() {
   return (
     <Router>
       <Routes>
-        {/* Default rasta: Login Page */}
         <Route path="/" element={<Login />} />
-
-        {/* Naya rasta: Signup Page */}
         <Route path="/signup" element={<Signup />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/student-dashboard" element={<StudentDashboard />} />
+        <Route path="/warden-dashboard" element={<WardenDashboard />} />
+        {/* 🌟 NAYE RASTE */}
+        <Route path="/parent-dashboard" element={<ParentDashboard />} />
+        <Route path="/faculty-dashboard" element={<FacultyDashboard />} />
       </Routes>
     </Router>
   );
