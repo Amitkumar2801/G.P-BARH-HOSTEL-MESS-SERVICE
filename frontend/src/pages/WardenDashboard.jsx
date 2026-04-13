@@ -1,19 +1,29 @@
 // src/pages/WardenDashboard.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import logo from '../assets/logo.png.png';
 
 function WardenDashboard() {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 1024);
   const navigate = useNavigate();
 
-  const wardenAvatar = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z'/%3E%3C/svg%3E";
+  // 🌟 NAYA: Student State for Warden Control (Room Assignment & Payment Block)
+  const [students, setStudents] = useState([
+    { id: '1554424049', name: 'Amit Kumar', branch: 'AI & ML', room: '102', status: 'In Hostel', paymentBlocked: false },
+    { id: '1554424050', name: 'Rahul Singh', branch: 'Civil', room: '', status: 'On Leave', paymentBlocked: true },
+    { id: '1554424051', name: 'Vikas Sharma', branch: 'Electrical', room: '105', status: 'In Hostel', paymentBlocked: false },
+    { id: '1554424052', name: 'Priya Kumari', branch: 'Computer Sc.', room: '201', status: 'In Hostel', paymentBlocked: false },
+  ]);
 
-  const today = new Date();
-  const currentFormattedDate = today.toLocaleDateString('en-US', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-  });
+  // Toggle Payment Block logic
+  const togglePaymentBlock = (regNo) => {
+    setStudents(students.map(s => s.id === regNo ? { ...s, paymentBlocked: !s.paymentBlocked } : s));
+  };
+
+  // Update Room Number logic
+  const updateRoom = (regNo, newRoom) => {
+    setStudents(students.map(s => s.id === regNo ? { ...s, room: newRoom } : s));
+  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -25,56 +35,51 @@ function WardenDashboard() {
   }, []);
 
   const handleLogout = () => {
-    alert("Warden Logged Out Successfully!");
     navigate("/");
   };
 
   return (
-    <div className="h-screen bg-[#f3f4f6] flex font-sans overflow-hidden text-gray-900">
+    <div className="h-screen bg-[#f8fafc] flex font-sans overflow-hidden text-gray-900">
 
       {/* MOBILE OVERLAY */}
       {isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/70 z-40 lg:hidden backdrop-blur-sm transition-opacity"
-          onClick={() => setIsSidebarOpen(false)}
-        ></div>
+        <div className="fixed inset-0 bg-black/70 z-40 lg:hidden backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)}></div>
       )}
 
-      {/* ================= LEFT SIDEBAR (High Contrast Dark) ================= */}
+      {/* ================= LEFT SIDEBAR (EXACT MATCH: Deep Maroon Theme) ================= */}
       <aside
-        className={`fixed top-0 left-0 h-[100dvh] w-72 bg-[#111827] text-gray-200 shadow-2xl z-50 flex flex-col transform transition-transform duration-300 ease-in-out border-r border-[#1f2937] ${
+        className={`fixed top-0 left-0 h-[100dvh] w-64 bg-[#6f1111] text-white shadow-2xl z-50 flex flex-col transform transition-transform duration-300 ease-in-out ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="p-8 border-b border-[#1f2937] text-center flex flex-col items-center relative shrink-0">
-          <button
-            onClick={() => setIsSidebarOpen(false)}
-            className="lg:hidden absolute top-4 right-4 text-gray-400 hover:text-white bg-white/10 rounded-full h-8 w-8 flex items-center justify-center transition-colors"
-          >✕</button>
-
-          <div className="w-24 h-24 rounded-full p-4 border-2 border-yellow-500 overflow-hidden mb-4 bg-gray-800 mt-2 lg:mt-0 shadow-xl">
-             <img src={wardenAvatar} alt="Warden Profile" className="w-full h-full object-contain" />
+        {/* Sidebar Header Logo */}
+        <div className="p-6 flex items-center gap-3 border-b border-[#4f0b0b]">
+          <div className="bg-white text-[#6f1111] font-black text-xl w-12 h-12 rounded-full flex items-center justify-center shadow-lg">
+            GPB
           </div>
-          <h2 className="text-xl font-black tracking-tight text-white">Chief Warden</h2>
-          <p className="text-[10px] text-gray-300 font-bold uppercase tracking-widest bg-white/10 px-3.5 py-1.5 rounded-full mt-2.5 border border-white/20">Administrator</p>
+          <div>
+            <h2 className="font-black text-yellow-400 tracking-wider text-sm leading-tight uppercase">Hostel Portal</h2>
+            <p className="text-[10px] text-gray-200">Govt. Polytechnic, Barh</p>
+          </div>
         </div>
 
-        <nav className="flex-1 overflow-y-auto p-4 space-y-1.5 text-sm font-bold hide-scrollbar">
+        {/* Navigation Tabs */}
+        <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-2 text-sm font-bold">
           {[
-            { id: 'overview', name: 'Live Overview', icon: '📊' },
-            { id: 'students', name: 'Manage Students', icon: '🧑‍🎓' },
-            { id: 'fees', name: 'Fee Defaulters', icon: '💰' },
-            { id: 'leaves', name: 'Leave Approvals', icon: '✈️' },
-            { id: 'complaints', name: 'Resolve Complaints', icon: '📢' },
-            { id: 'settings', name: 'System Settings', icon: '⚙️' }
+            { id: 'dashboard', name: 'Dashboard Home', icon: '🏠' },
+            { id: 'directory', name: 'Student Control', icon: '🧑‍🎓' }, // New Control Tab
+            { id: 'fees', name: 'Fee & Payments', icon: '💸' },
+            { id: 'leaves', name: 'Leave & Vacate', icon: '✈️' },
+            { id: 'complaints', name: 'Complaints', icon: '📢' },
+            { id: 'settings', name: 'System Setup', icon: '⚙️' }
           ].map(tab => (
             <button
               key={tab.id}
               onClick={() => { setActiveTab(tab.id); if(window.innerWidth < 1024) setIsSidebarOpen(false); }}
-              className={`w-full text-left py-3.5 px-5 rounded-lg transition-all flex items-center gap-3.5 ${
+              className={`w-full text-left py-3.5 px-4 rounded-xl transition-all flex items-center gap-3 ${
                 activeTab === tab.id
-                ? 'bg-[#800000] text-white shadow-lg border-l-4 border-yellow-500'
-                : 'hover:bg-white/10 text-gray-300'
+                ? 'bg-[#510808] text-yellow-400 border-l-4 border-yellow-400 shadow-inner'
+                : 'hover:bg-white/10 text-gray-200'
               }`}
             >
               <span className="text-lg">{tab.icon}</span> {tab.name}
@@ -82,125 +87,130 @@ function WardenDashboard() {
           ))}
         </nav>
 
-        <div className="p-5 border-t border-[#1f2937] bg-[#0b0f19] shrink-0">
-          <button onClick={handleLogout} className="w-full py-4 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black tracking-widest uppercase transition-colors flex justify-center items-center gap-2.5 shadow-md shadow-red-900/50">
-            <span>🚪</span> Log Out
+        {/* Logout Button */}
+        <div className="p-4 bg-[#510808] shrink-0">
+          <button onClick={handleLogout} className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-black tracking-widest uppercase transition-colors shadow-md">
+            Log Out
           </button>
         </div>
       </aside>
 
       {/* ================= RIGHT MAIN CONTENT ================= */}
-      <div className={`flex-1 h-full overflow-hidden flex flex-col transition-all duration-300 ${isSidebarOpen ? 'lg:ml-72' : 'ml-0'} relative`}>
+      <div className={`flex-1 h-full overflow-hidden flex flex-col transition-all duration-300 ${isSidebarOpen ? 'lg:ml-64' : 'ml-0'} relative`}>
 
-        {/* HEADER (Deep Maroon) */}
-        <header className="bg-[#800000] text-white px-6 md:px-10 py-4 border-b border-[#5c0000] flex justify-between items-center shrink-0 shadow-md z-30">
-          <div className="flex items-center gap-5">
-            <button
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="p-2.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl transition-colors text-white lg:hidden"
-            >
+        {/* HEADER (Clean White with Role Switcher look) */}
+        <header className="bg-white px-6 md:px-10 py-4 border-b border-gray-200 flex justify-between items-center shrink-0 z-30">
+          <div className="flex items-center gap-4">
+            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 bg-gray-100 rounded-lg text-gray-600 lg:hidden">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 6h16M4 12h16M4 18h16"></path></svg>
             </button>
-            <div className="flex items-center gap-3.5">
-              <div className="bg-white p-1 h-12 w-12 rounded-full shadow-lg flex items-center justify-center overflow-hidden">
-                <img src={logo} alt="GP Barh Logo" className="h-full w-full object-contain" />
-              </div>
-              <div>
-                <h1 className="text-lg md:text-2xl font-black tracking-tight">Government Polytechnic, Barh</h1>
-                <p className="text-[10px] text-gray-300 font-bold uppercase tracking-widest">Warden Administration Portal</p>
-              </div>
+            <div>
+              <h1 className="text-2xl font-black text-gray-900 tracking-tight">Welcome to Dashboard</h1>
+              <p className="text-xs font-bold text-gray-500">Chief Warden Control Center</p>
             </div>
           </div>
-          <div className="hidden md:flex items-center gap-3">
-             <div className="bg-white/10 px-4 py-2 rounded-full flex items-center gap-2 border border-white/20">
-                <span className="text-xs font-bold uppercase tracking-widest">🛡️ Admin Access</span>
-             </div>
+          <div className="hidden md:flex items-center gap-2 bg-yellow-50 px-4 py-2 rounded-lg border border-yellow-200">
+             <span className="text-yellow-600 text-xs font-black uppercase tracking-widest">⚙️ Role: Admin</span>
           </div>
         </header>
 
         {/* MAIN SCROLLABLE CONTENT */}
-        <main className="flex-1 overflow-y-auto p-6 md:p-10">
+        <main className="flex-1 overflow-y-auto p-6 md:p-8">
           <div className="max-w-6xl mx-auto">
 
-            {/* ----------------- 1. LIVE OVERVIEW ----------------- */}
-            {activeTab === 'overview' && (
-              <div className="animate-fade-in space-y-8">
-                <div>
-                  <h2 className="text-3xl font-black text-[#800000] tracking-tight">Hostel Overview</h2>
-                  <p className="text-sm font-bold text-gray-500 mt-1">Live statistics and pending actions.</p>
-                </div>
+            {/* ----------------- 1. DASHBOARD HOME (Blue Banner Theme) ----------------- */}
+            {activeTab === 'dashboard' && (
+              <div className="animate-fade-in space-y-6">
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 border-t-4 border-t-blue-500">
-                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Total Students</p>
-                    <h3 className="text-4xl font-black text-gray-900">145<span className="text-xl text-gray-400">/150</span></h3>
-                  </div>
-                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 border-t-4 border-t-green-500">
-                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Present in Hostel</p>
-                    <h3 className="text-4xl font-black text-green-600">138</h3>
-                    <p className="text-xs font-bold text-gray-400 mt-1">7 on Approved Leave</p>
-                  </div>
-                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 border-t-4 border-t-red-500">
-                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Total Pending Dues</p>
-                    <h3 className="text-4xl font-black text-red-600">₹45.2K</h3>
-                    <p className="text-xs font-bold text-gray-400 mt-1">From 12 Defaulters</p>
-                  </div>
-                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 border-t-4 border-t-orange-500">
-                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Open Complaints</p>
-                    <h3 className="text-4xl font-black text-orange-500">3</h3>
-                    <p className="text-xs font-bold text-gray-400 mt-1">Action Required</p>
+                {/* Big Blue Banner from your screenshot */}
+                <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-3xl p-8 md:p-10 text-white shadow-lg relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl translate-x-1/3 -translate-y-1/4"></div>
+                  <div className="relative z-10">
+                    <span className="bg-yellow-400 text-[#6f1111] text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest mb-4 inline-block">Chief Warden Portal</span>
+                    <h2 className="text-4xl font-black tracking-tight mb-1">Hello, Admin!</h2>
+                    <p className="text-blue-100 font-medium">GP Barh Central Hostel Management System is active.</p>
                   </div>
                 </div>
 
-                {/* Quick Actions */}
-                <div className="bg-white rounded-3xl shadow-sm border border-gray-200 p-8">
-                   <h3 className="text-lg font-black text-gray-800 mb-6 border-b border-gray-100 pb-4">Quick Actions</h3>
-                   <div className="flex gap-4">
-                      <button onClick={() => setActiveTab('complaints')} className="bg-[#800000] text-white px-6 py-3 rounded-xl text-sm font-bold shadow-md hover:bg-[#5c0000] transition-colors">View Complaints</button>
-                      <button onClick={() => setActiveTab('leaves')} className="bg-blue-600 text-white px-6 py-3 rounded-xl text-sm font-bold shadow-md hover:bg-blue-700 transition-colors">Pending Leaves</button>
-                   </div>
+                {/* Stats Grid (Colorful Top Borders) */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 border-t-4 border-t-blue-500 flex flex-col items-center justify-center text-center">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Total Students</p>
+                    <h3 className="text-5xl font-black text-gray-900">145<span className="text-2xl text-gray-300">/150</span></h3>
+                  </div>
+                  <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 border-t-4 border-t-green-500 flex flex-col items-center justify-center text-center">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Currently in Hostel</p>
+                    <h3 className="text-5xl font-black text-green-500">138</h3>
+                    <p className="text-[10px] text-gray-400 font-bold mt-2">7 students on leave</p>
+                  </div>
+                  <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 border-t-4 border-t-red-500 flex flex-col items-center justify-center text-center">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Pending Fees (Total)</p>
+                    <h3 className="text-5xl font-black text-red-600 font-mono">₹ 45.2K</h3>
+                    <p className="text-[10px] text-gray-400 font-bold mt-2">From 12 Defaulters</p>
+                  </div>
                 </div>
+
               </div>
             )}
 
-            {/* ----------------- 2. MANAGE STUDENTS ----------------- */}
-            {activeTab === 'students' && (
+            {/* ----------------- 2. STUDENT CONTROL (Room Assign & Payment Block) ----------------- */}
+            {activeTab === 'directory' && (
               <div className="animate-fade-in space-y-6">
                 <div>
-                  <h2 className="text-3xl font-black text-[#800000] tracking-tight">Student Directory</h2>
-                  <p className="text-sm font-bold text-gray-500 mt-1">Search and manage all hostel residents.</p>
+                  <h2 className="text-3xl font-black text-gray-900 tracking-tight">Student Control Center</h2>
+                  <p className="text-sm font-bold text-gray-500 mt-1">Assign rooms, block payments, and manage access.</p>
                 </div>
 
                 <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-                  <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                    <input type="text" placeholder="Search by Name or Reg No..." className="px-4 py-2 rounded-lg border border-gray-300 w-full max-w-md text-sm outline-none focus:ring-2 focus:ring-[#800000]" />
+                  <div className="p-6 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                    <input type="text" placeholder="Search by Reg No. or Name..." className="px-5 py-3 rounded-xl border border-gray-300 w-full max-w-md text-sm outline-none focus:ring-2 focus:ring-blue-500 font-bold" />
                   </div>
-                  <div className="overflow-x-auto w-full p-2">
-                    <table className="w-full text-left border-collapse min-w-[700px]">
+                  <div className="overflow-x-auto w-full">
+                    <table className="w-full text-left border-collapse min-w-[900px]">
                       <thead>
-                        <tr className="text-gray-500 text-[10px] uppercase tracking-widest border-b border-gray-200">
-                          <th className="p-4 font-black pl-8">Reg No.</th>
-                          <th className="p-4 font-black">Student Name</th>
-                          <th className="p-4 font-black">Room</th>
-                          <th className="p-4 font-black">Status</th>
-                          <th className="p-4 font-black text-center pr-8">Action</th>
+                        <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-200 bg-white">
+                          <th className="p-5 font-black pl-8">Reg No.</th>
+                          <th className="p-5 font-black">Student Details</th>
+                          <th className="p-5 font-black">Room Allotment</th>
+                          <th className="p-5 font-black text-center">Payment Access</th>
+                          <th className="p-5 font-black text-center pr-8">Action</th>
                         </tr>
                       </thead>
                       <tbody className="text-sm">
-                        <tr className="border-b border-gray-50 hover:bg-gray-50">
-                          <td className="p-4 font-mono font-bold text-gray-600 pl-8">1554424049</td>
-                          <td className="p-4 font-black text-gray-900">Amit Kumar</td>
-                          <td className="p-4 font-bold text-gray-700">102</td>
-                          <td className="p-4"><span className="bg-green-100 text-green-700 px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-widest">In Hostel</span></td>
-                          <td className="p-4 text-center pr-8"><button className="text-blue-600 font-bold text-xs hover:underline">View Profile</button></td>
-                        </tr>
-                        <tr className="border-b border-gray-50 hover:bg-gray-50">
-                          <td className="p-4 font-mono font-bold text-gray-600 pl-8">1554424050</td>
-                          <td className="p-4 font-black text-gray-900">Rahul Singh</td>
-                          <td className="p-4 font-bold text-gray-700">105</td>
-                          <td className="p-4"><span className="bg-yellow-100 text-yellow-700 px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-widest">On Leave</span></td>
-                          <td className="p-4 text-center pr-8"><button className="text-blue-600 font-bold text-xs hover:underline">View Profile</button></td>
-                        </tr>
+                        {students.map((student) => (
+                          <tr key={student.id} className="border-b border-gray-50 hover:bg-slate-50 transition-colors">
+                            <td className="p-5 pl-8 font-mono font-black text-gray-600">{student.id}</td>
+                            <td className="p-5">
+                              <p className="font-black text-gray-900">{student.name}</p>
+                              <p className="text-[10px] font-bold text-gray-500">{student.branch}</p>
+                            </td>
+                            {/* 🌟 WARDEN CAN MANUALLY SET ROOM NUMBER */}
+                            <td className="p-5">
+                              <input
+                                type="text"
+                                value={student.room}
+                                onChange={(e) => updateRoom(student.id, e.target.value)}
+                                placeholder="Not Set"
+                                className="w-20 px-3 py-1.5 border border-gray-300 rounded-lg text-center font-bold text-blue-700 bg-blue-50 focus:bg-white focus:ring-2 outline-none transition-all"
+                              />
+                            </td>
+                            {/* 🌟 WARDEN CAN BLOCK PAYMENT ACCESS */}
+                            <td className="p-5 text-center">
+                              <button
+                                onClick={() => togglePaymentBlock(student.id)}
+                                className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors focus:outline-none shadow-inner ${student.paymentBlocked ? 'bg-red-500' : 'bg-green-500'}`}
+                              >
+                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${student.paymentBlocked ? 'translate-x-1' : 'translate-x-7'}`} />
+                              </button>
+                              <p className={`text-[9px] font-black uppercase mt-1 ${student.paymentBlocked ? 'text-red-600' : 'text-green-600'}`}>
+                                {student.paymentBlocked ? 'Blocked' : 'Active'}
+                              </p>
+                            </td>
+                            <td className="p-5 text-center pr-8">
+                              <button className="bg-blue-50 text-blue-600 border border-blue-200 px-4 py-2 rounded-lg text-xs font-black hover:bg-blue-600 hover:text-white transition-all">View Full</button>
+                            </td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>
@@ -208,122 +218,125 @@ function WardenDashboard() {
               </div>
             )}
 
-            {/* ----------------- 3. LEAVE APPROVALS ----------------- */}
-            {activeTab === 'leaves' && (
+            {/* ----------------- 3. FEE & PAYMENTS ----------------- */}
+            {activeTab === 'fees' && (
               <div className="animate-fade-in space-y-6">
-                <div>
-                  <h2 className="text-3xl font-black text-[#800000] tracking-tight">Leave Approvals</h2>
-                  <p className="text-sm font-bold text-gray-500 mt-1">Review and approve student outing and clearance requests.</p>
+                <div><h2 className="text-3xl font-black text-gray-900 tracking-tight">Fee Management</h2></div>
+                <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden p-10 text-center">
+                   <h3 className="text-xl font-black text-gray-800 mb-2">Defaulters List</h3>
+                   <p className="text-gray-500 font-bold mb-6">List of students who haven't paid this month's fee.</p>
+                   <button className="bg-red-600 text-white font-black px-6 py-3 rounded-xl shadow-lg hover:bg-red-700">Send Bulk Reminder Alert</button>
                 </div>
+              </div>
+            )}
 
-                <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-                  <div className="overflow-x-auto w-full p-2 mt-4">
+            {/* ----------------- 4. LEAVE & VACATE ----------------- */}
+            {activeTab === 'leaves' && (
+               <div className="animate-fade-in space-y-6">
+                 <div><h2 className="text-3xl font-black text-gray-900 tracking-tight">Leave & Vacate Approvals</h2></div>
+
+                 <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
                     <table className="w-full text-left border-collapse min-w-[800px]">
                       <thead>
-                        <tr className="text-gray-500 text-[10px] uppercase tracking-widest border-b border-gray-200">
-                          <th className="p-4 font-black pl-8">Student</th>
-                          <th className="p-4 font-black">Type</th>
-                          <th className="p-4 font-black">Dates / Reason</th>
-                          <th className="p-4 font-black">Proof</th>
-                          <th className="p-4 font-black text-center pr-8">Action</th>
+                        <tr className="text-gray-400 text-[10px] uppercase tracking-widest border-b border-gray-200 bg-gray-50">
+                          <th className="p-5 font-black pl-8">Student</th>
+                          <th className="p-5 font-black">Type</th>
+                          <th className="p-5 font-black">Details</th>
+                          <th className="p-5 font-black text-center pr-8">Action</th>
                         </tr>
                       </thead>
                       <tbody className="text-sm">
-                        <tr className="border-b border-gray-50 hover:bg-gray-50">
-                          <td className="p-4 pl-8">
-                            <p className="font-black text-gray-900">Ravi Kumar</p>
-                            <p className="text-xs font-mono text-gray-500">1554424088</p>
+                        <tr className="border-b border-gray-50 hover:bg-slate-50 transition-colors">
+                          <td className="p-5 pl-8">
+                            <p className="font-black text-gray-900">Rahul Singh</p>
+                            <p className="text-xs font-mono text-gray-500">1554424050</p>
                           </td>
-                          <td className="p-4"><span className="bg-orange-100 text-orange-700 px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-widest">Temporary</span></td>
-                          <td className="p-4">
+                          <td className="p-5"><span className="bg-orange-100 text-orange-700 px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest border border-orange-200">Outing</span></td>
+                          <td className="p-5">
                             <p className="font-bold text-gray-800 text-xs">24 Mar - 28 Mar</p>
-                            <p className="text-[10px] text-gray-500">Going home for Holi.</p>
+                            <p className="text-[10px] text-gray-500">Going home for holidays.</p>
                           </td>
-                          <td className="p-4">-</td>
-                          <td className="p-4 text-center pr-8 flex gap-2 justify-center">
-                             <button className="bg-green-600 text-white px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-widest hover:bg-green-700">Approve</button>
-                             <button className="bg-red-600 text-white px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-widest hover:bg-red-700">Reject</button>
+                          <td className="p-5 text-center pr-8 flex gap-2 justify-center">
+                             <button className="bg-green-600 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-green-700 shadow-md">Approve</button>
+                             <button className="bg-red-100 text-red-600 border border-red-200 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-red-200">Reject</button>
                           </td>
                         </tr>
-                        <tr className="border-b border-gray-50 hover:bg-gray-50">
-                          <td className="p-4 pl-8">
+                        <tr className="border-b border-gray-50 hover:bg-slate-50 transition-colors">
+                          <td className="p-5 pl-8">
                             <p className="font-black text-gray-900">Sohan Das</p>
                             <p className="text-xs font-mono text-gray-500">1554424012</p>
                           </td>
-                          <td className="p-4"><span className="bg-red-100 text-red-700 px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-widest">Vacate</span></td>
-                          <td className="p-4">
+                          <td className="p-5"><span className="bg-red-100 text-red-700 px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest border border-red-200">Vacate</span></td>
+                          <td className="p-5">
                             <p className="font-bold text-gray-800 text-xs">Course Completed</p>
-                            <p className="text-[10px] text-gray-500">Leaving on 30 Mar</p>
+                            <button className="text-[10px] text-blue-600 font-bold underline mt-1">View No-Dues PDF</button>
                           </td>
-                          <td className="p-4"><button className="text-blue-600 font-bold text-xs underline">View No-Dues PDF</button></td>
-                          <td className="p-4 text-center pr-8 flex gap-2 justify-center">
-                             <button className="bg-green-600 text-white px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-widest hover:bg-green-700">Clear & Refund</button>
+                          <td className="p-5 text-center pr-8">
+                             <button className="bg-[#6f1111] text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-[#4f0b0b] shadow-md w-full">Clear & Process Refund</button>
                           </td>
                         </tr>
                       </tbody>
                     </table>
                   </div>
-                </div>
-              </div>
+               </div>
             )}
 
-            {/* ----------------- 4. COMPLAINTS RESOLUTION ----------------- */}
+            {/* ----------------- 5. COMPLAINTS ----------------- */}
             {activeTab === 'complaints' && (
-              <div className="animate-fade-in space-y-6">
-                <div>
-                  <h2 className="text-3xl font-black text-[#800000] tracking-tight">Manage Complaints</h2>
-                  <p className="text-sm font-bold text-gray-500 mt-1">Review and resolve issues raised by students.</p>
-                </div>
+               <div className="animate-fade-in space-y-6">
+                 <div><h2 className="text-3xl font-black text-gray-900 tracking-tight">Complaints Resolution</h2></div>
 
-                <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
-                  <div className="overflow-x-auto w-full p-2 mt-4">
-                    <table className="w-full text-left border-collapse min-w-[800px]">
-                      <thead>
-                        <tr className="text-gray-500 text-[10px] uppercase tracking-widest border-b border-gray-200">
-                          <th className="p-4 font-black pl-8">Date / Student</th>
-                          <th className="p-4 font-black">Category</th>
-                          <th className="p-4 font-black">Issue Description</th>
-                          <th className="p-4 font-black">Proof</th>
-                          <th className="p-4 font-black text-center pr-8">Action</th>
-                        </tr>
-                      </thead>
-                      <tbody className="text-sm">
-                        <tr className="border-b border-gray-50 hover:bg-gray-50">
-                          <td className="p-4 pl-8">
-                            <p className="font-black text-gray-900">Today</p>
-                            <p className="text-xs font-bold text-gray-500">Amit (Room 102)</p>
-                          </td>
-                          <td className="p-4 font-bold text-gray-700">Plumbing</td>
-                          <td className="p-4">
-                            <p className="font-bold text-gray-800 text-sm">Water cooler not working</p>
-                          </td>
-                          <td className="p-4"><button className="text-blue-600 font-bold text-xs underline">View Photo</button></td>
-                          <td className="p-4 text-center pr-8">
-                             <button className="bg-[#800000] text-white px-4 py-2 rounded text-[10px] font-black uppercase tracking-widest hover:bg-[#5c0000]">Mark Resolved</button>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
+                 <div className="bg-white rounded-3xl shadow-sm border border-gray-200 p-6 md:p-8">
+                    <div className="border border-gray-200 rounded-2xl p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gray-50">
+                        <div>
+                           <div className="flex items-center gap-3 mb-1">
+                              <span className="bg-orange-100 text-orange-600 px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest border border-orange-200">Pending</span>
+                              <p className="font-black text-gray-900 text-lg">Water cooler not working</p>
+                           </div>
+                           <p className="text-xs font-bold text-gray-500">Reported by: Amit Kumar (Room 102) • Electrical Issue</p>
+                        </div>
+                        <div className="flex flex-col gap-2 w-full md:w-auto">
+                           <input type="text" placeholder="Add Admin Remark (e.g. Electrician assigned)" className="px-4 py-2 text-xs font-bold rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-green-500" />
+                           <button className="bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-green-700 shadow-md">Mark as Resolved</button>
+                        </div>
+                    </div>
+                 </div>
+               </div>
+            )}
+
+            {/* ----------------- 6. SYSTEM SETUP ----------------- */}
+            {activeTab === 'settings' && (
+               <div className="animate-fade-in space-y-6">
+                 <div><h2 className="text-3xl font-black text-gray-900 tracking-tight">System Setup</h2><p className="text-sm font-bold text-gray-500">Configure global base fees and late fines.</p></div>
+
+                 <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-200 max-w-2xl">
+                    <form className="space-y-5">
+                       <div className="grid grid-cols-2 gap-6">
+                         <div>
+                            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Registration Fee (₹)</label>
+                            <input type="number" defaultValue="500" className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm font-black font-mono bg-gray-50 outline-none focus:ring-2 focus:ring-[#6f1111]" />
+                         </div>
+                         <div>
+                            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Security Deposit (₹)</label>
+                            <input type="number" defaultValue="1500" className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm font-black font-mono bg-gray-50 outline-none focus:ring-2 focus:ring-[#6f1111]" />
+                         </div>
+                         <div>
+                            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Monthly Room Rent (₹)</label>
+                            <input type="number" defaultValue="750" className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm font-black font-mono bg-gray-50 outline-none focus:ring-2 focus:ring-[#6f1111]" />
+                         </div>
+                         <div>
+                            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Monthly Mess Bill (₹)</label>
+                            <input type="number" defaultValue="3400" className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm font-black font-mono bg-gray-50 outline-none focus:ring-2 focus:ring-[#6f1111]" />
+                         </div>
+                       </div>
+                       <button type="button" className="w-full bg-[#6f1111] text-white font-black text-sm tracking-widest uppercase py-4 rounded-xl hover:bg-[#4f0b0b] shadow-lg mt-4">Save Global Fees</button>
+                    </form>
+                 </div>
+               </div>
             )}
 
           </div>
         </main>
-
-        {/* 🌟 STYLISH FOOTER */}
-        <footer className="bg-[#800000] text-white py-5 px-6 md:px-10 flex flex-col md:flex-row justify-between items-center shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-30">
-          <div className="text-center md:text-left mb-3 md:mb-0">
-            <p className="font-bold tracking-wide text-sm">Government Polytechnic Barh</p>
-            <p className="text-[10px] text-gray-300 font-medium uppercase tracking-widest mt-0.5">Warden Administration Portal</p>
-          </div>
-          <div className="flex items-center gap-2 text-teal-100 bg-white/10 px-4 py-2 rounded-lg border border-white/20">
-            <span className="text-lg">📅</span>
-            <span className="font-serif italic font-bold tracking-wider text-sm">{currentFormattedDate}</span>
-          </div>
-        </footer>
-
       </div>
     </div>
   );
