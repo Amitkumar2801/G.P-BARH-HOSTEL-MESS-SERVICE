@@ -53,11 +53,11 @@ function Login() {
   };
 
   return (
-    <div className={`min-h-screen flex flex-col font-sans transition-colors duration-500 ${isDarkMode ? 'dark bg-[#0a0a0a]' : 'bg-gray-100'}`}>
+    <div className={`min-h-[100dvh] w-full flex flex-col font-sans transition-colors duration-500 overflow-x-hidden ${isDarkMode ? 'dark bg-[#0a0a0a]' : 'bg-gray-100'}`}>
 
       {/* ================= HEADER SECTION ================= */}
-      <header className="w-full z-20 shadow-lg">
-        <div className="bg-black text-gray-300 text-[10px] md:text-xs py-2 px-4 md:px-6 flex justify-between items-center">
+      <header className="w-full z-20 shadow-lg shrink-0">
+        <div className="bg-black text-gray-300 text-[10px] md:text-[11px] lg:text-xs py-1.5 md:py-2 px-4 md:px-6 flex justify-between items-center">
           <div className="flex space-x-4 items-center font-medium tracking-wide">
             <a href="#" className="hover:text-white transition-colors py-1 hidden md:block">Rules</a>
             <span className="hidden md:inline text-gray-600">|</span>
@@ -77,9 +77,9 @@ function Login() {
           </div>
         </div>
 
-        <div className="bg-[#720e0e] text-white py-2.5 px-4 md:px-6 flex items-center justify-between border-b-[3px] border-yellow-500/80 shadow-md">
-          <div className="flex items-center space-x-3">
-            <div className="bg-white p-1.5 h-12 w-12 md:h-14 md:w-14 rounded-full shadow-lg flex items-center justify-center overflow-hidden">
+        <div className="bg-[#720e0e] text-white py-2 px-4 md:px-6 flex items-center justify-between border-b-[3px] border-yellow-500/80 shadow-md">
+          <div className="flex items-center space-x-3 md:space-x-4">
+            <div className="bg-white p-1 h-10 w-10 md:h-12 md:w-12 lg:h-14 lg:w-14 rounded-full shadow-lg flex items-center justify-center overflow-hidden">
               <img src={logo} alt="GP Barh Logo" className="h-full w-full object-contain" />
             </div>
             <div>
@@ -91,15 +91,15 @@ function Login() {
       </header>
 
       {/* ================= MAIN CONTENT AREA ================= */}
-      <main className="flex-grow bg-campus flex items-center justify-center p-4 md:p-8 relative">
+      <main className="flex-grow bg-campus flex items-center justify-center p-3 md:p-6 lg:p-8 relative">
         <div className={`absolute inset-0 transition-colors duration-500 ${isDarkMode ? 'bg-black/75' : 'bg-black/40'}`}></div>
 
         <div className={`relative z-10 backdrop-blur-xl rounded-2xl shadow-2xl flex flex-col md:flex-row w-[95%] md:w-full max-w-[760px] overflow-hidden border transition-all duration-300 ${
           isDarkMode ? 'bg-[#121212]/90 border-gray-700 text-white' : 'bg-white/95 border-white/60 text-gray-900'
         }`}>
 
-          <div className="w-full md:w-[55%] p-6 md:p-8 flex flex-col justify-center">
-            <div className="text-center md:text-left mb-6">
+          <div className="w-full md:w-[55%] p-5 md:p-6 lg:p-8 flex flex-col justify-center">
+            <div className="text-center md:text-left mb-4 md:mb-5 lg:mb-6">
               <h2 className="text-2xl md:text-3xl font-black mb-1 tracking-tight text-blue-600 dark:text-blue-400 drop-shadow-sm">Student Login</h2>
               <p className={`text-[10px] md:text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                 Access Hostel & Mess Dashboard
@@ -117,7 +117,7 @@ function Login() {
                   value={userId}
                   onChange={(e) => setUserId(e.target.value)}
                   placeholder="e.g. 1554424049"
-                  className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-semibold ${
+                  className={`w-full px-4 py-2.5 md:py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-semibold ${
                     isDarkMode ? 'bg-gray-800/80 border-gray-600 text-white placeholder-gray-500' : 'bg-gray-50 border-gray-300 text-black placeholder-gray-400 shadow-inner'
                   }`}
                 />
@@ -137,7 +137,7 @@ function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-semibold ${
+                  className={`w-full px-4 py-2.5 md:py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-semibold ${
                     isDarkMode ? 'bg-gray-800/80 border-gray-600 text-white placeholder-gray-500' : 'bg-gray-50 border-gray-300 text-black placeholder-gray-400 shadow-inner'
                   }`}
                 />
@@ -147,7 +147,7 @@ function Login() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className={`w-full font-extrabold py-3.5 rounded-lg transition-all shadow-lg text-sm tracking-widest uppercase mt-1 ${
+                  className={`w-full font-extrabold py-2.5 md:py-3 lg:py-3.5 rounded-lg transition-all shadow-lg text-sm tracking-widest uppercase mt-1 ${
                     isLoading ? 'bg-blue-400 text-white cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-blue-500/40'
                   }`}
                 >
@@ -156,8 +156,8 @@ function Login() {
               </div>
 
               {/* 🌟 DEMO ACCESS FOR RECRUITERS/TESTERS 🌟 */}
-              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                <p className={`text-[10px] font-bold uppercase tracking-widest text-center mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              <div className="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-gray-200 dark:border-gray-700">
+                <p className={`text-[10px] font-bold uppercase tracking-widest text-center mb-2 md:mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                   Demo Access (One-Click Login)
                 </p>
                 <div className="grid grid-cols-2 gap-2">
@@ -209,12 +209,12 @@ function Login() {
             <div className={`h-full w-[1px] ${isDarkMode ? 'bg-gray-700' : 'bg-gray-300'}`}></div>
           </div>
 
-          <div className={`hidden md:flex w-[45%] p-8 flex-col items-center justify-center ${isDarkMode ? 'bg-[#1a1a1a]/95' : 'bg-gray-50/95'}`}>
-            <h3 className={`text-sm font-black mb-6 uppercase tracking-widest ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+          <div className={`hidden md:flex w-[45%] p-6 lg:p-8 flex-col items-center justify-center ${isDarkMode ? 'bg-[#1a1a1a]/95' : 'bg-gray-50/95'}`}>
+            <h3 className={`text-sm font-black mb-4 lg:mb-6 uppercase tracking-widest ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
               Fast Mobile Login
             </h3>
 
-            <div className={`w-44 h-44 border-2 border-dashed rounded-3xl flex flex-col items-center justify-center mb-5 relative overflow-hidden shadow-inner ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-300'}`}>
+            <div className={`w-32 h-32 md:w-36 md:h-36 lg:w-44 lg:h-44 border-2 border-dashed rounded-3xl flex flex-col items-center justify-center mb-4 lg:mb-5 relative overflow-hidden shadow-inner ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-300'}`}>
               <div className="absolute w-full h-1 bg-blue-500 shadow-[0_0_20px_4px_rgba(59,130,246,0.8)] animate-scan"></div>
               <span className="text-5xl mb-2 opacity-90 drop-shadow-md">📱</span>
               <p className="text-[10px] text-gray-400 font-bold tracking-widest uppercase">Scan in App</p>
@@ -228,8 +228,8 @@ function Login() {
       </main>
 
       {/* ================= FOOTER SECTION RESTORED ================= */}
-      <footer className="bg-[#4a0404] text-gray-300 z-20 border-t-4 border-yellow-500/80 shadow-[0_-5px_15px_rgba(0,0,0,0.3)]">
-        <div className="max-w-7xl mx-auto px-6 py-6">
+      <footer className="bg-[#4a0404] text-gray-300 z-20 border-t-4 border-yellow-500/80 shadow-[0_-5px_15px_rgba(0,0,0,0.3)] shrink-0">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 text-xs">
 
             <div className="col-span-1 sm:col-span-2 md:col-span-1">
@@ -263,9 +263,9 @@ function Login() {
             {/* 🌟 AMIT KUMAR - DEVELOPER PROFILE CARD 🌟 */}
             <div className="col-span-1 sm:col-span-2 md:col-span-1 relative overflow-hidden bg-gradient-to-br from-black/80 to-[#720e0e]/50 p-4 rounded-xl border border-yellow-500/40 shadow-[0_0_15px_rgba(234,179,8,0.15)] group">
                 <h4 className="text-gray-400 font-bold mb-1.5 uppercase tracking-widest text-[10px]">Developer Profile</h4>
-                <p className="text-yellow-400 font-black text-xl tracking-wider group-hover:text-white transition-colors mb-4">AMIT KUMAR</p>
+                <p className="text-yellow-400 font-black text-lg md:text-xl tracking-wider group-hover:text-white transition-colors mb-2 md:mb-3">AMIT KUMAR</p>
 
-                <p className="text-[11px] font-bold text-gray-200 mt-3 mb-2 uppercase tracking-wide border-b border-white/10 pb-1 inline-block">Connect With Me</p>
+                <p className="text-[11px] font-bold text-gray-200 mt-2 mb-1.5 uppercase tracking-wide border-b border-white/10 pb-0.5 inline-block">Connect With Me</p>
 
                 <div className="flex flex-nowrap justify-center gap-1.5 text-[10px] font-bold w-full">
                     <button
