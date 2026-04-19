@@ -1,6 +1,7 @@
 // src/App.jsx
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -14,6 +15,7 @@ import FacultyDashboard from './pages/FacultyDashboard';
 function App() {
   return (
     <Router>
+      <Toaster position="top-center" toastOptions={{ className: 'font-bold text-sm' }} />
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/signup" element={<Signup />} />

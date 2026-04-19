@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 import '../App.css';
 
 // 🌟 ASSETS IMPORT (Fixed as per your exact file paths)
@@ -23,7 +24,7 @@ function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     if (!userId || !password) {
-      alert("Bhai, ID aur Password dono daalna zaroori hai! 🛑");
+      toast.error("Bhai, ID aur Password dono daalna zaroori hai! 🛑");
       return;
     }
     setIsLoading(true);
@@ -32,7 +33,10 @@ function Login() {
         reg_no_email: userId,
         password: password
       });
-      alert("Success: " + response.data.message + " 🎉\nWelcome " + response.data.user.full_name);
+      toast.success(`Success: ${response.data.message} 🎉\nWelcome ${response.data.user.full_name}`, {
+        duration: 4000,
+        style: { borderRadius: '10px', background: '#333', color: '#fff' }
+      });
 
       const role = response.data.user.role;
       if (role === 'student') {
@@ -43,9 +47,9 @@ function Login() {
 
     } catch (error) {
       if (error.response && error.response.data) {
-        alert("Error: " + error.response.data.detail + " ❌");
+        toast.error("Error: " + error.response.data.detail + " ❌");
       } else {
-        alert("Server se connect nahi ho pa raha hai. Backend chalu hai? 🤔");
+        toast.error("Server se connect nahi ho pa raha hai. Backend chalu hai? 🤔");
       }
     } finally {
       setIsLoading(false);
