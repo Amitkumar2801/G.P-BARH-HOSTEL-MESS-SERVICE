@@ -101,20 +101,28 @@ const customCSS = `
   .btn-teal { background: var(--teal); box-shadow: 0 4px 12px rgba(14, 122, 90, 0.2); }
   .btn-teal:hover { background: var(--teal-mid); box-shadow: 0 6px 16px rgba(14, 122, 90, 0.3); }
 
-  /* GP BARH REGISTRATION UI */
-  .gp-reg-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; max-width: 650px; margin: 20px auto; box-shadow: var(--shadow); }
-  .gp-reg-header { background: linear-gradient(135deg, var(--crimson-dark), var(--crimson)); padding: 32px; color: white; display: flex; align-items: center; gap: 24px; }
-  .gp-reg-logo { width: 70px; height: 70px; background: white; border-radius: 50%; padding: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-  .gp-reg-header h2 { font-size: 22px; font-weight: 800; margin-bottom: 4px; font-family: 'Fraunces', serif; }
-  .gp-reg-header p { font-size: 14px; font-weight: 600; color: #fca5a5; text-transform: uppercase; letter-spacing: 1px; }
-  .gp-reg-body { padding: 40px; }
-  .gp-reg-body h3 { font-size: 24px; font-weight: 800; color: var(--text); margin-bottom: 12px; }
-  .gp-reg-body p { font-size: 15px; color: var(--text-muted); line-height: 1.6; margin-bottom: 32px; font-weight: 500; }
-  .gp-reg-action { background: var(--input-bg); border: 1px dashed var(--border); border-radius: 16px; padding: 32px; text-align: center; margin-bottom: 32px; }
-  .gp-fee-tag { margin-bottom: 24px; }
-  .fee-amt { display: block; font-size: 48px; font-weight: 800; color: var(--text); line-height: 1; margin-bottom: 8px; }
-  .fee-desc { font-size: 14px; font-weight: 700; color: var(--crimson); text-transform: uppercase; }
-  .gp-reg-footer { font-size: 13px; color: #991b1b; background: #fef2f2; padding: 16px; border-radius: 12px; border-left: 4px solid #ef4444; line-height: 1.5; }
+  /* GP BARH REGISTRATION HERO (ENTERPRISE UI) */
+  .gp-reg-hero { display: flex; background: var(--card); border-radius: 24px; border: 1px solid var(--border); overflow: hidden; box-shadow: var(--shadow-md); min-height: 540px; margin-top: 16px; }
+  .gp-reg-left { flex: 1.2; padding: 56px 48px; display: flex; flex-direction: column; justify-content: center; }
+  .gp-reg-right { flex: 0.8; background: linear-gradient(135deg, var(--crimson-dark), var(--crimson)); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px; color: white; position: relative; overflow: hidden; }
+  
+  .gp-reg-badge { background: #fee2e2; color: #991b1b; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 800; display: inline-block; margin-bottom: 24px; letter-spacing: 1px; text-transform: uppercase; width: max-content; border: 1px solid #fca5a5; }
+  .gp-reg-title { font-size: 40px; font-weight: 800; color: var(--text); line-height: 1.1; margin-bottom: 16px; font-family: 'Fraunces', serif; }
+  .gp-reg-desc { font-size: 16px; color: var(--text-muted); line-height: 1.6; margin-bottom: 32px; font-weight: 500; }
+  
+  .gp-reg-features { list-style: none; margin-bottom: 40px; }
+  .gp-reg-features li { display: flex; align-items: center; gap: 12px; font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 16px; }
+  .gp-reg-features li svg { width: 24px; height: 24px; color: var(--crimson); flex-shrink: 0; background: #fee2e2; border-radius: 50%; padding: 4px; }
+  
+  .gp-reg-action-bar { border-top: 1px solid var(--border); padding-top: 32px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+  .gp-price-block { display: flex; flex-direction: column; }
+  .gp-price { font-size: 48px; font-weight: 800; color: var(--text); display: flex; align-items: baseline; gap: 4px; line-height: 1; margin-bottom: 4px; }
+  .gp-price span { font-size: 14px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+  
+  .btn-pay-hero { padding: 18px 40px; background: var(--teal); color: white; border: none; border-radius: 14px; font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; transition: 0.2s; box-shadow: 0 8px 20px rgba(14, 122, 90, 0.25); white-space: nowrap; }
+  .btn-pay-hero:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(14, 122, 90, 0.35); background: var(--teal-mid); }
+  
+  .glass-security-card { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); border-radius: 20px; padding: 40px 32px; text-align: center; max-width: 320px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
 
   /* PROFILE HEADER (SIMPLE DP ONLY) */
   .prof-header-simple { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 32px; display: flex; align-items: center; gap: 32px; margin-bottom: 24px; box-shadow: var(--shadow-sm); }
@@ -217,6 +225,11 @@ const customCSS = `
     
     .prof-header-simple { flex-direction: column; text-align: center; gap: 16px; padding: 24px; }
     .prof-header-simple .prof-name-area p { justify-content: center; }
+
+    .gp-reg-hero { flex-direction: column; min-height: auto; }
+    .gp-reg-left { padding: 32px 24px; }
+    .gp-reg-right { padding: 40px 24px; }
+    .gp-reg-action-bar { flex-direction: column; align-items: stretch; gap: 16px; }
   }
   @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7); } 70% { box-shadow: 0 0 0 6px rgba(255, 255, 255, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); } }
 `;
@@ -361,43 +374,50 @@ function StudentDashboard() {
           <section className="scroll-content">
             <div className="content-wrapper">
 
-              {/* 0. GP BARH INSTITUTIONAL REGISTRATION */}
+              {/* 0. GP BARH TWO-SIDED REGISTRATION */}
               {activeTab === 'registration' && (
-                <div className="gp-reg-card">
-                  <div className="gp-reg-header">
-                     <img src={logo} alt="GP Barh Logo" className="gp-reg-logo" />
-                     <div>
-                       <h2>Government Polytechnic, Barh</h2>
-                       <p>Hostel & Mess Administration</p>
-                     </div>
-                  </div>
-                  <div className="gp-reg-body">
-                    <h3>Student Portal Registration</h3>
-                    <p>Dear student, to activate your digital profile, hostel passbook, and mess services, please complete the mandatory one-time portal registration.</p>
+                <div className="gp-reg-hero">
+                  <div className="gp-reg-left">
+                    <div className="gp-reg-badge">Mandatory Action</div>
+                    <h2 className="gp-reg-title">Unlock Your<br/>GP Barh Workspace</h2>
+                    <p className="gp-reg-desc">Complete your preliminary registration to access your full profile dashboard, live passbooks, automated payments, and priority grievance redressal.</p>
+                    
+                    <ul className="gp-reg-features">
+                      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Dynamic Profile Photo & Info sync</li>
+                      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Real-time Hostel & Mess Passbooks</li>
+                      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Instant Automated Clearance Processing</li>
+                    </ul>
                     
                     {!isRegistered ? (
-                      <div className="gp-reg-action">
-                        <div className="gp-fee-tag">
-                          <span className="fee-amt">₹ 500</span>
-                          <span className="fee-desc">Registration Fee (Non-Refundable)</span>
-                        </div>
-                        <button className="btn-primary" style={{ padding: '16px 32px', fontSize: '16px', background: 'var(--crimson)' }} onClick={() => { 
-                          alert("Redirecting to GP Barh Secure Gateway... Processing ₹500..."); 
-                          setIsRegistered(true); 
-                          setTimeout(() => { setActiveTab('profile'); }, 500);
-                        }}>Pay via Gateway & Activate</button>
-                      </div>
+                       <div className="gp-reg-action-bar">
+                         <div className="gp-price-block">
+                           <div className="gp-price">₹500 <span>/ one-time</span></div>
+                           <div style={{fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600}}>*Non-refundable portal fee</div>
+                         </div>
+                         <button className="btn-pay-hero" onClick={() => { 
+                           alert("Redirecting to GP Barh Secure Gateway... Processing ₹500 INR..."); 
+                           setIsRegistered(true); 
+                           setTimeout(() => {
+                             setActiveTab('profile'); 
+                           }, 500);
+                         }}>Pay & Unlock Now →</button>
+                       </div>
                     ) : (
-                      <div className="gp-reg-action" style={{ background: '#f0fdf4', border: '1px dashed #22c55e' }}>
-                        <h3 style={{ color: '#16a34a', marginBottom: '8px', fontSize: '20px' }}>✅ Registration Verified</h3>
-                        <p style={{ color: '#15803d', marginBottom: '16px' }}>Your GP Barh Hostel & Mess portal is now fully activated.</p>
-                        <button className="btn-primary" style={{ background: 'var(--teal)', width: 'auto' }} onClick={() => setActiveTab('profile')}>Go to Profile Dashboard →</button>
-                      </div>
+                       <div className="gp-reg-action-bar" style={{ display: 'block', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '24px', borderRadius: '16px' }}>
+                          <h3 style={{ color: '#16a34a', marginBottom: '8px', fontSize: '18px', fontWeight: 800 }}>✅ Payment Verified</h3>
+                          <p style={{ color: '#15803d', marginBottom: '16px', fontWeight: 600 }}>Your GP Barh Hostel & Mess portal is fully activated.</p>
+                          <button className="btn-pay-hero" style={{background: 'var(--teal)', width: '100%'}} onClick={() => setActiveTab('profile')}>
+                            Go to Manage Profile
+                          </button>
+                       </div>
                     )}
-                    
-                    <div className="gp-reg-footer">
-                       <strong>Notice:</strong> This portal is monitored by the Administration, Govt. Polytechnic Barh. Use of this system explicitly implies your agreement to all institutional guidelines.
-                    </div>
+                  </div>
+                  <div className="gp-reg-right">
+                     <div className="glass-security-card">
+                        <div style={{ fontSize: '64px', marginBottom: '24px' }}>🛡️</div>
+                        <h3 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '12px' }}>Institutional Grade Security</h3>
+                        <p style={{ fontSize: '14px', lineHeight: 1.6, color: 'rgba(255,255,255,0.85)' }}>All personal data, transactions, and payment portals are end-to-end encrypted under Govt. Polytechnic Barh network standards.</p>
+                     </div>
                   </div>
                 </div>
               )}
