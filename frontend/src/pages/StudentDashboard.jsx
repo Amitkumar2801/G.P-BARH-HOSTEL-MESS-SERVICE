@@ -452,7 +452,7 @@ function StudentDashboard() {
                     <div className="custom-card">
                        <h3 style={{ fontSize: '16px', fontWeight: 800, margin: '8px 0 24px', color: 'var(--text)' }}>Personal Information</h3>
                        <div className="form-row">
-                         <div className="form-group"><label className="form-label">Full Name</label><input className="form-input" type="text" value={profileData.fullName} onChange={e => setProfileData({...profileData, fullName: e.target.value})} placeholder="e.g. Amit Kumar" /></div>
+                         <div className="form-group"><label className="form-label">Full Name</label><input className="form-input" type="text" value={profileData.fullName} onChange={e => setProfileData({...profileData, fullName: e.target.value})} placeholder="e.g. Amit Sharma" /></div>
                          <div className="form-group"><label className="form-label">Registration Number</label><input className="form-input" type="text" value={profileData.regNo} disabled /></div>
                        </div>
                        <div className="form-row">
