@@ -193,7 +193,7 @@ function Signup() {
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder={role === 'parent' ? "e.g. Ramesh Kumar" : "e.g. Amit Kumar"}
+                  placeholder={role === 'parent' ? "e.g. Ramesh Kumar" : "e.g. Amit Sharma"}
                   className={inputClass}
                 />
               </div>
