@@ -98,9 +98,8 @@ function Login() {
       <main className="flex-grow bg-campus flex items-center justify-center p-3 md:p-6 lg:p-8 relative">
         <div className={`absolute inset-0 transition-colors duration-500 ${isDarkMode ? 'bg-black/75' : 'bg-black/40'}`}></div>
 
-        <div className={`relative z-10 backdrop-blur-xl rounded-2xl shadow-2xl flex flex-col md:flex-row w-[95%] md:w-full max-w-[760px] overflow-hidden border transition-all duration-300 ${
-          isDarkMode ? 'bg-[#121212]/90 border-gray-700 text-white' : 'bg-white/95 border-white/60 text-gray-900'
-        }`}>
+        <div className={`relative z-10 backdrop-blur-xl rounded-2xl shadow-2xl flex flex-col md:flex-row w-[95%] md:w-full max-w-[760px] overflow-hidden border transition-all duration-300 ${isDarkMode ? 'bg-[#121212]/90 border-gray-700 text-white' : 'bg-white/95 border-white/60 text-gray-900'
+          }`}>
 
           <div className="w-full md:w-[55%] p-5 md:p-6 lg:p-8 flex flex-col justify-center">
             <div className="text-center md:text-left mb-4 md:mb-5 lg:mb-6">
@@ -121,9 +120,8 @@ function Login() {
                   value={userId}
                   onChange={(e) => setUserId(e.target.value)}
                   placeholder="e.g. 1554424049"
-                  className={`w-full px-4 py-2.5 md:py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-semibold ${
-                    isDarkMode ? 'bg-gray-800/80 border-gray-600 text-white placeholder-gray-500' : 'bg-gray-50 border-gray-300 text-black placeholder-gray-400 shadow-inner'
-                  }`}
+                  className={`w-full px-4 py-2.5 md:py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-semibold ${isDarkMode ? 'bg-gray-800/80 border-gray-600 text-white placeholder-gray-500' : 'bg-gray-50 border-gray-300 text-black placeholder-gray-400 shadow-inner'
+                    }`}
                 />
               </div>
 
@@ -141,9 +139,8 @@ function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className={`w-full px-4 py-2.5 md:py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-semibold ${
-                    isDarkMode ? 'bg-gray-800/80 border-gray-600 text-white placeholder-gray-500' : 'bg-gray-50 border-gray-300 text-black placeholder-gray-400 shadow-inner'
-                  }`}
+                  className={`w-full px-4 py-2.5 md:py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-semibold ${isDarkMode ? 'bg-gray-800/80 border-gray-600 text-white placeholder-gray-500' : 'bg-gray-50 border-gray-300 text-black placeholder-gray-400 shadow-inner'
+                    }`}
                 />
               </div>
 
@@ -151,9 +148,8 @@ function Login() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className={`w-full font-extrabold py-2.5 md:py-3 lg:py-3.5 rounded-lg transition-all shadow-lg text-sm tracking-widest uppercase mt-1 ${
-                    isLoading ? 'bg-blue-400 text-white cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-blue-500/40'
-                  }`}
+                  className={`w-full font-extrabold py-2.5 md:py-3 lg:py-3.5 rounded-lg transition-all shadow-lg text-sm tracking-widest uppercase mt-1 ${isLoading ? 'bg-blue-400 text-white cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-blue-500/40'
+                    }`}
                 >
                   {isLoading ? 'Checking...' : 'Login'}
                 </button>
@@ -205,9 +201,8 @@ function Login() {
             {/* 🌟 FORM END */}
           </div>
 
-          <div className={`hidden md:flex flex-col items-center justify-center px-0 border-l border-r ${
-            isDarkMode ? 'bg-gray-900/50 border-gray-800' : 'bg-gray-100/50 border-gray-200'
-          }`}>
+          <div className={`hidden md:flex flex-col items-center justify-center px-0 border-l border-r ${isDarkMode ? 'bg-gray-900/50 border-gray-800' : 'bg-gray-100/50 border-gray-200'
+            }`}>
             <div className={`h-full w-[1px] ${isDarkMode ? 'bg-gray-700' : 'bg-gray-300'}`}></div>
             <span className={`py-3 px-2 text-[10px] font-bold uppercase rounded-full my-2 ${isDarkMode ? 'bg-gray-800 text-gray-500' : 'bg-white text-gray-400 shadow-sm'}`}>OR</span>
             <div className={`h-full w-[1px] ${isDarkMode ? 'bg-gray-700' : 'bg-gray-300'}`}></div>
@@ -256,7 +251,7 @@ function Login() {
             <div>
               <h4 className="text-yellow-400 font-bold mb-3 uppercase tracking-widest text-[11px] border-b border-white/10 pb-1.5 inline-block">Total Visitors</h4>
               <div className="flex space-x-1.5 mt-1">
-                {['0','1','5','4','4','2'].map((num, i) => (
+                {['0', '1', '5', '4', '4', '2'].map((num, i) => (
                   <div key={i} className="bg-black/40 border border-white/20 text-white font-mono px-2 py-1 rounded shadow-inner text-sm font-bold">
                     {num}
                   </div>
@@ -264,38 +259,38 @@ function Login() {
               </div>
             </div>
 
-            {/* 🌟 AMIT KUMAR - DEVELOPER PROFILE CARD 🌟 */}
+            {/* 🌟 AMIT SHARMA - DEVELOPER PROFILE CARD 🌟 */}
             <div className="col-span-1 sm:col-span-2 md:col-span-1 relative overflow-hidden bg-gradient-to-br from-black/80 to-[#720e0e]/50 p-4 rounded-xl border border-yellow-500/40 shadow-[0_0_15px_rgba(234,179,8,0.15)] group">
-                <h4 className="text-gray-400 font-bold mb-1.5 uppercase tracking-widest text-[10px]">Developer Profile</h4>
-                <p className="text-yellow-400 font-black text-lg md:text-xl tracking-wider group-hover:text-white transition-colors mb-2 md:mb-3">AMIT KUMAR</p>
+              <h4 className="text-gray-400 font-bold mb-1.5 uppercase tracking-widest text-[10px]">Developer Profile</h4>
+              <p className="text-yellow-400 font-black text-lg md:text-xl tracking-wider group-hover:text-white transition-colors mb-2 md:mb-3">AMIT KUMAR SHARMA</p>
 
-                <p className="text-[11px] font-bold text-gray-200 mt-2 mb-1.5 uppercase tracking-wide border-b border-white/10 pb-0.5 inline-block">Connect With Me</p>
+              <p className="text-[11px] font-bold text-gray-200 mt-2 mb-1.5 uppercase tracking-wide border-b border-white/10 pb-0.5 inline-block">Connect With Me</p>
 
-                <div className="flex flex-nowrap justify-center gap-1.5 text-[10px] font-bold w-full">
-                    <button
-                        onClick={() => setShowIdCard(true)}
-                        className="bg-yellow-500 hover:bg-yellow-400 text-black px-2.5 py-1.5 rounded transition-colors shadow-sm flex items-center gap-1.5"
-                    >
-                        🪪 <span>View ID</span>
-                    </button>
-                    <a
-                        href="https://amitkumar2801.github.io/its.Portfolio/"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="bg-blue-600/90 hover:bg-blue-500 text-white px-2.5 py-1.5 rounded transition-colors flex items-center gap-1.5 shadow-sm"
-                    >
-                        🌐 <span>Portfolio</span>
-                    </a>
-                    <a
-                        href="https://www.instagram.com/its._chamgadar?igsh=MW9tbzdseWFtOW5o"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 text-white px-2.5 py-1.5 rounded transition-colors flex items-center gap-1.5 shadow-sm"
-                    >
-                        <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.919-.058-1.265-.069-1.646-.069-4.849 0-3.204.012-3.583.069-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
-                        <span>Instagram</span>
-                    </a>
-                </div>
+              <div className="flex flex-nowrap justify-center gap-1.5 text-[10px] font-bold w-full">
+                <button
+                  onClick={() => setShowIdCard(true)}
+                  className="bg-yellow-500 hover:bg-yellow-400 text-black px-2.5 py-1.5 rounded transition-colors shadow-sm flex items-center gap-1.5"
+                >
+                  🪪 <span>View ID</span>
+                </button>
+                <a
+                  href="https://amitkumar2801.github.io/its.Portfolio/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="bg-blue-600/90 hover:bg-blue-500 text-white px-2.5 py-1.5 rounded transition-colors flex items-center gap-1.5 shadow-sm"
+                >
+                  🌐 <span>Portfolio</span>
+                </a>
+                <a
+                  href="https://www.instagram.com/its._chamgadar?igsh=MW9tbzdseWFtOW5o"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 text-white px-2.5 py-1.5 rounded transition-colors flex items-center gap-1.5 shadow-sm"
+                >
+                  <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.919-.058-1.265-.069-1.646-.069-4.849 0-3.204.012-3.583.069-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" /></svg>
+                  <span>Instagram</span>
+                </a>
+              </div>
             </div>
 
           </div>
@@ -340,15 +335,15 @@ function Login() {
             <div className="p-5 flex flex-col items-center bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-gray-50">
 
               <div className="w-20 h-24 bg-white border-2 border-[#800000] mb-3 flex items-center justify-center rounded shadow-md overflow-hidden p-0.5">
-                <img src={myPic} alt="Amit Kumar" className="w-full h-full object-cover rounded-sm" />
+                <img src={myPic} alt="Amit Sharma" className="w-full h-full object-cover rounded-sm" />
               </div>
 
-              <h3 className="text-xl font-black text-[#800000] uppercase tracking-wide mb-3">Amit Kumar</h3>
+              <h3 className="text-xl font-black text-[#800000] uppercase tracking-wide mb-3">Amit Sharma</h3>
 
               <div className="w-full text-left space-y-2 text-[11px]">
                 <div className="flex border-b border-gray-200 pb-1">
                   <span className="w-20 font-bold text-gray-600 uppercase text-[9px]">Branch</span>
-                  <span className="font-bold text-gray-900 leading-tight">: Artificial Intelligence <br/>& Machine Learning</span>
+                  <span className="font-bold text-gray-900 leading-tight">: Artificial Intelligence <br />& Machine Learning</span>
                 </div>
                 <div className="flex border-b border-gray-200 pb-1">
                   <span className="w-20 font-bold text-gray-600 uppercase text-[9px]">Roll No.</span>
