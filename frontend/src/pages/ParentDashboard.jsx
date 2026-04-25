@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo.png.png';
+import toast, { Toaster } from 'react-hot-toast';
 
 // Inline SVG Icons for zero-dependency
 const Icons = {
@@ -39,6 +40,30 @@ function ParentDashboard() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Payment Simulation States
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentStep, setPaymentStep] = useState(1);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentCallback, setPaymentCallback] = useState(null);
+
+  const simulatePayment = (amount, callback) => {
+    setPaymentAmount(amount);
+    setPaymentCallback(() => callback);
+    setShowPaymentModal(true);
+    setPaymentStep(1);
+    setTimeout(() => {
+      setPaymentStep(2);
+      setTimeout(() => {
+        setPaymentStep(3);
+        setTimeout(() => {
+          setShowPaymentModal(false);
+          toast.success(`Transaction of ${amount} Completed Successfully`, { style: { borderRadius: '10px', background: '#333', color: '#fff' }});
+          if (callback) callback();
+        }, 2000);
+      }, 2000);
+    }, 1500);
+  };
+
   const handleLogout = () => { navigate("/"); };
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
@@ -50,6 +75,56 @@ function ParentDashboard() {
 
   return (
     <div className="h-screen bg-[#f3f4f6] flex font-sans overflow-hidden text-gray-900">
+      <Toaster position="top-right" />
+      <style>{`
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7); } 70% { box-shadow: 0 0 0 6px rgba(255, 255, 255, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); } }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .animate-fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      `}</style>
+
+      {/* PAYMENT MODAL */}
+      {showPaymentModal && (
+        <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)'}}>
+          <div style={{background: '#ffffff', width: '90%', maxWidth: '420px', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', border: '1px solid #e2e8f0'}}>
+            <div style={{background: 'linear-gradient(135deg, #0f172a, #1e293b)', padding: '24px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+              <div style={{fontWeight: 800, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '10px', fontFamily: "'DM Sans', sans-serif"}}>
+                <div style={{width: '28px', height: '28px', background: '#2563eb', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg>
+                </div>
+                SecurePay Gateway
+              </div>
+              <div style={{fontSize: '12px', opacity: 0.7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px'}}>GP Barh</div>
+            </div>
+            <div style={{padding: '40px 32px', textAlign: 'center'}}>
+              {paymentStep === 1 && (
+                <div className="animate-fade-in">
+                  <div style={{fontSize: '56px', marginBottom: '24px', display: 'inline-block', animation: 'pulse 2s infinite'}}>🏦</div>
+                  <h3 style={{fontSize: '22px', fontWeight: 800, marginBottom: '12px', color: '#0f172a'}}>Connecting to Secure Server...</h3>
+                  <p style={{color: '#64748b', fontSize: '15px', fontWeight: 500}}>Establishing 256-bit encrypted connection to bank.</p>
+                </div>
+              )}
+              {paymentStep === 2 && (
+                <div className="animate-fade-in">
+                  <div style={{margin: '0 auto 32px', width: '64px', height: '64px', border: '5px solid #f1f5f9', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'spin 1s linear infinite'}}></div>
+                  <h3 style={{fontSize: '22px', fontWeight: 800, marginBottom: '12px', color: '#0f172a'}}>Processing Payment of {paymentAmount}</h3>
+                  <p style={{color: '#dc2626', fontSize: '14px', fontWeight: 700}}>Please do not refresh or close this window.</p>
+                </div>
+              )}
+              {paymentStep === 3 && (
+                <div className="animate-fade-in">
+                  <div style={{width: '72px', height: '72px', background: '#10b981', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', boxShadow: '0 10px 25px rgba(16,185,129,0.3)'}}>
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <h3 style={{fontSize: '24px', fontWeight: 800, marginBottom: '12px', color: '#0f172a'}}>Payment Authorized!</h3>
+                  <p style={{color: '#64748b', fontSize: '15px', fontWeight: 600}}>Redirecting back to your dashboard...</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MOBILE OVERLAY */}
       {isSidebarOpen && window.innerWidth < 1024 && (
         <div 
@@ -199,7 +274,7 @@ function ParentDashboard() {
                         <span className="text-xs font-black uppercase tracking-widest text-gray-400">Total Payable</span>
                         <span className="text-4xl font-black text-[#eab308]">₹{(stayDays * roomChargePerDay) + (mealCoupons * mealCharge)}</span>
                       </div>
-                      <button className="w-full bg-[#800000] hover:bg-[#6a0000] text-white py-4 rounded-xl font-black uppercase tracking-widest shadow-lg transition-colors">
+                      <button onClick={() => simulatePayment(`₹${(stayDays * roomChargePerDay) + (mealCoupons * mealCharge)}`, () => toast.success("Booking Request Confirmed!"))} className="w-full bg-[#800000] hover:bg-[#6a0000] text-white py-4 rounded-xl font-black uppercase tracking-widest shadow-lg transition-colors">
                          Pay & Confirm Booking
                       </button>
                       <p className="text-center text-[10px] text-gray-500 mt-4 font-bold uppercase tracking-wider">Secure Payment Gateway</p>
@@ -238,7 +313,7 @@ function ParentDashboard() {
                       </div>
                    </div>
 
-                   <button className="w-full sm:w-auto px-12 py-4 bg-[#111827] hover:bg-black text-white font-black uppercase tracking-widest rounded-xl shadow-lg transition-transform hover:-translate-y-1">
+                   <button onClick={() => simulatePayment("₹4,250", () => toast.success("Dues Cleared successfully!"))} className="w-full sm:w-auto px-12 py-4 bg-[#111827] hover:bg-black text-white font-black uppercase tracking-widest rounded-xl shadow-lg transition-transform hover:-translate-y-1">
                       Pay Now
                    </button>
                 </div>
@@ -301,7 +376,7 @@ function ParentDashboard() {
                             <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 ml-1">Message</label>
                             <textarea rows="4" placeholder="How can we help you?" className="w-full px-5 py-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#800000] text-sm font-medium bg-gray-50 outline-none transition-all resize-none"></textarea>
                          </div>
-                         <button type="button" className="bg-[#111827] hover:bg-black text-white font-black text-xs uppercase tracking-wider py-4 px-8 rounded-xl shadow-lg transition-transform hover:-translate-y-1 flex items-center justify-center gap-2 mt-2 w-full sm:w-auto">
+                         <button type="button" onClick={() => toast.success("Message officially sent to Administration. Please expect a reply within 24 hours.", { style: { borderRadius: '10px', background: '#333', color: '#fff' }})} className="bg-[#111827] hover:bg-black text-white font-black text-xs uppercase tracking-wider py-4 px-8 rounded-xl shadow-lg transition-transform hover:-translate-y-1 flex items-center justify-center gap-2 mt-2 w-full sm:w-auto">
                             <Icons.Send /> Send Message
                          </button>
                       </form>
