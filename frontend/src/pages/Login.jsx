@@ -24,7 +24,7 @@ function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     if (!userId || !password) {
-      toast.error("Bhai, ID aur Password dono daalna zaroori hai! 🛑");
+      toast.error("Authentication Error: Student ID and Password are required. Please provide valid credentials.");
       return;
     }
     setIsLoading(true);
@@ -33,7 +33,7 @@ function Login() {
         reg_no_email: userId,
         password: password
       });
-      toast.success(`Success: ${response.data.message} 🎉\nWelcome ${response.data.user.full_name}`, {
+      toast.success(`Authentication Successful: ${response.data.message}\nWelcome, ${response.data.user.full_name}. Redirecting to dashboard...`, {
         duration: 4000,
         style: { borderRadius: '10px', background: '#333', color: '#fff' }
       });
@@ -47,9 +47,9 @@ function Login() {
 
     } catch (error) {
       if (error.response && error.response.data) {
-        toast.error("Error: " + error.response.data.detail + " ❌");
+        toast.error(`Authentication Failed: ${error.response.data.detail}`);
       } else {
-        toast.error("Server se connect nahi ho pa raha hai. Backend chalu hai? 🤔");
+        toast.error("Connection Error: Unable to communicate with the server. Please check your network connection or try again later.");
       }
     } finally {
       setIsLoading(false);
