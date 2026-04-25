@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo.png.png';
+import toast, { Toaster } from 'react-hot-toast';
 
 // ================= THEME & STYLES (HUGE CSS FOR PIXEL PERFECT UI) =================
 const customCSS = `
@@ -232,6 +233,7 @@ const customCSS = `
     .gp-reg-action-bar { flex-direction: column; align-items: stretch; gap: 16px; }
   }
   @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7); } 70% { box-shadow: 0 0 0 6px rgba(255, 255, 255, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); } }
+  @keyframes spin { 100% { transform: rotate(360deg); } }
 `;
 
 function StudentDashboard() {
@@ -240,6 +242,30 @@ function StudentDashboard() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
   const navigate = useNavigate();
+
+  // Payment Simulation States
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentStep, setPaymentStep] = useState(1);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentCallback, setPaymentCallback] = useState(null);
+
+  const simulatePayment = (amount, callback) => {
+    setPaymentAmount(amount);
+    setPaymentCallback(() => callback);
+    setShowPaymentModal(true);
+    setPaymentStep(1);
+    setTimeout(() => {
+      setPaymentStep(2);
+      setTimeout(() => {
+        setPaymentStep(3);
+        setTimeout(() => {
+          setShowPaymentModal(false);
+          toast.success(`Transaction of ${amount} Completed Successfully`, { style: { borderRadius: '10px', background: '#333', color: '#fff' }});
+          if (callback) callback();
+        }, 2000);
+      }, 2000);
+    }, 1500);
+  };
 
   const defaultAvatar = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'/%3E%3C/svg%3E";
   const [profilePic, setProfilePic] = useState(defaultAvatar);
@@ -296,8 +322,51 @@ function StudentDashboard() {
 
   return (
     <>
+      <Toaster position="top-right" />
       <style dangerouslySetInnerHTML={{ __html: customCSS }} />
       <div className={`my-dashboard-wrapper ${isDarkMode ? 'dark-theme' : ''}`}>
+
+        {/* PAYMENT MODAL */}
+        {showPaymentModal && (
+          <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)'}}>
+            <div style={{background: 'var(--card)', width: '90%', maxWidth: '420px', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', border: '1px solid var(--border)'}}>
+              <div style={{background: 'linear-gradient(135deg, #0f172a, #1e293b)', padding: '24px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <div style={{fontWeight: 800, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '10px', fontFamily: "'DM Sans', sans-serif"}}>
+                  <div style={{width: '28px', height: '28px', background: '#2563eb', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg>
+                  </div>
+                  SecurePay Gateway
+                </div>
+                <div style={{fontSize: '12px', opacity: 0.7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px'}}>GP Barh</div>
+              </div>
+              <div style={{padding: '40px 32px', textAlign: 'center'}}>
+                {paymentStep === 1 && (
+                  <div className="animate-fade-in">
+                    <div style={{fontSize: '56px', marginBottom: '24px', display: 'inline-block', animation: 'pulse 2s infinite'}}>🏦</div>
+                    <h3 style={{fontSize: '22px', fontWeight: 800, marginBottom: '12px', color: 'var(--text)'}}>Connecting to Secure Server...</h3>
+                    <p style={{color: 'var(--text-muted)', fontSize: '15px', fontWeight: 500}}>Establishing 256-bit encrypted connection to bank.</p>
+                  </div>
+                )}
+                {paymentStep === 2 && (
+                  <div className="animate-fade-in">
+                    <div style={{margin: '0 auto 32px', width: '64px', height: '64px', border: '5px solid var(--hover-bg)', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'spin 1s linear infinite'}}></div>
+                    <h3 style={{fontSize: '22px', fontWeight: 800, marginBottom: '12px', color: 'var(--text)'}}>Processing Payment of {paymentAmount}</h3>
+                    <p style={{color: '#dc2626', fontSize: '14px', fontWeight: 700}}>Please do not refresh or close this window.</p>
+                  </div>
+                )}
+                {paymentStep === 3 && (
+                  <div className="animate-fade-in">
+                    <div style={{width: '72px', height: '72px', background: '#10b981', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', boxShadow: '0 10px 25px rgba(16,185,129,0.3)'}}>
+                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                    <h3 style={{fontSize: '24px', fontWeight: 800, marginBottom: '12px', color: 'var(--text)'}}>Payment Authorized!</h3>
+                    <p style={{color: 'var(--text-muted)', fontSize: '15px', fontWeight: 600}}>Redirecting back to your dashboard...</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className={`overlay ${isSidebarOpen ? 'show' : ''}`} style={{display: isSidebarOpen ? 'block' : 'none', position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 90}} onClick={() => setIsSidebarOpen(false)}></div>
 
@@ -329,7 +398,7 @@ function StudentDashboard() {
                 className={`nav-item ${activeTab === tab.id ? 'active' : ''} ${tab.className || ''}`}
                 onClick={() => { 
                   if (tab.locked) {
-                    alert("🚫 Please complete your Registration payment to unlock your Profile dashboard.");
+                    toast.error("Access Restricted: Please complete your portal registration payment to unlock this section.", { style: { borderRadius: '10px', background: '#333', color: '#fff' }});
                     setActiveTab('registration');
                   } else {
                     setActiveTab(tab.id); 
@@ -395,11 +464,10 @@ function StudentDashboard() {
                            <div style={{fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600}}>*Non-refundable portal fee</div>
                          </div>
                          <button className="btn-pay-hero" onClick={() => { 
-                           alert("Redirecting to GP Barh Secure Gateway... Processing ₹500 INR..."); 
-                           setIsRegistered(true); 
-                           setTimeout(() => {
+                           simulatePayment("₹500", () => {
+                             setIsRegistered(true); 
                              setActiveTab('profile'); 
-                           }, 500);
+                           });
                          }}>Pay & Unlock Now →</button>
                        </div>
                     ) : (
@@ -445,7 +513,7 @@ function StudentDashboard() {
                           <button className="btn-primary" style={{ padding: '12px 24px', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', boxShadow: 'none' }} onClick={() => window.print()}>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> PDF
                           </button>
-                          <button className="btn-primary" style={{ padding: '12px 32px' }} onClick={() => alert("Profile changes saved!")}>Save Profile</button>
+                          <button className="btn-primary" style={{ padding: '12px 32px' }} onClick={() => toast.success("Profile records successfully updated.", { style: { borderRadius: '10px', background: '#333', color: '#fff' }})}>Save Profile</button>
                        </div>
                     </div>
 
@@ -622,7 +690,7 @@ function StudentDashboard() {
                     <div style={{ textAlign: 'center', minWidth: '220px' }}>
                       <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>Total Amount Payable</div>
                       <div style={{ fontSize: '32px', fontWeight: 800, color: 'var(--teal)', marginBottom: '16px', fontFamily: 'DM Sans' }}>{getSelectedAmountStr()}</div>
-                      <button className="btn-teal btn-primary" disabled={!paymentSelection || ((paymentSelection?.id === 'sem_hostel' || paymentSelection?.id === 'sem_mess') && !paymentCycle)} onClick={() => alert("Redirecting to Razorpay/Billdesk Gateway...")}>Proceed & Pay securely</button>
+                      <button className="btn-teal btn-primary" disabled={!paymentSelection || ((paymentSelection?.id === 'sem_hostel' || paymentSelection?.id === 'sem_mess') && !paymentCycle)} onClick={() => simulatePayment(getSelectedAmountStr(), () => setPaymentSelection(null))}>Proceed & Pay securely</button>
                     </div>
                   </div>
                 </div>
@@ -679,7 +747,7 @@ function StudentDashboard() {
                        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Signed by Warden & Library</span>
                        <input type="file" accept=".pdf" style={{ display: 'none' }} />
                     </label>
-                    <button className="btn-primary" style={{ background: '#0f172a', width: '100%' }} onClick={() => alert("Clearance Protocol successfully engaged!")}>Submit Clearance Request</button>
+                    <button className="btn-primary" style={{ background: '#0f172a', width: '100%' }} onClick={() => toast.success("Clearance Protocol successfully engaged. Your request is now under administrative review.", { style: { borderRadius: '10px', background: '#333', color: '#fff', padding: '12px 20px', minWidth: '300px' }})}>Submit Clearance Request</button>
                   </div>
                 </div>
               )}
@@ -707,7 +775,7 @@ function StudentDashboard() {
                         )}
                         <input type="file" accept="image/*,video/*" style={{ display: 'none' }} onChange={handleComplaintProof} />
                       </label>
-                      <button className="btn-primary btn-teal" onClick={() => { alert("Complaint Submitted!"); setComplaintPreview(null); }}>Submit Complaint</button>
+                      <button className="btn-primary btn-teal" onClick={() => { toast.success("Grievance officially registered and routed to the respective authority.", { style: { borderRadius: '10px', background: '#333', color: '#fff' }}); setComplaintPreview(null); }}>Submit Complaint</button>
                     </div>
                   </div>
                 </div>
