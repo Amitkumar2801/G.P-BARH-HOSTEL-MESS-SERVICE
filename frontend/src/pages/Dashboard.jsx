@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom'; // 🌟 useLocation add kiya
+import { useNavigate, useLocation } from 'react-router-dom';
+import toast, { Toaster } from 'react-hot-toast';
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -16,13 +17,85 @@ function Dashboard() {
     else if (location.state?.userRole === 'parent') setCurrentRole('parent');
   }, [location.state]);
 
+  // Payment Simulation States
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentStep, setPaymentStep] = useState(1);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentCallback, setPaymentCallback] = useState(null);
+
+  const simulatePayment = (amount, callback) => {
+    setPaymentAmount(amount);
+    setPaymentCallback(() => callback);
+    setShowPaymentModal(true);
+    setPaymentStep(1);
+    setTimeout(() => {
+      setPaymentStep(2);
+      setTimeout(() => {
+        setPaymentStep(3);
+        setTimeout(() => {
+          setShowPaymentModal(false);
+          if (callback) callback();
+        }, 2000);
+      }, 2000);
+    }, 1500);
+  };
+
   const handleLogout = () => {
-    alert("Logged out successfully!");
-    navigate("/");
+    toast.success("Authentication session terminated successfully.", { style: { borderRadius: '10px', background: '#333', color: '#fff' }});
+    setTimeout(() => navigate("/"), 1000);
   };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row font-sans">
+      <Toaster position="top-right" />
+      <style>{`
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7); } 70% { box-shadow: 0 0 0 6px rgba(255, 255, 255, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); } }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .animate-fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      `}</style>
+
+      {/* PAYMENT MODAL */}
+      {showPaymentModal && (
+        <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)'}}>
+          <div style={{background: '#ffffff', width: '90%', maxWidth: '420px', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', border: '1px solid #e2e8f0'}}>
+            <div style={{background: 'linear-gradient(135deg, #0f172a, #1e293b)', padding: '24px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+              <div style={{fontWeight: 800, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '10px', fontFamily: "'DM Sans', sans-serif"}}>
+                <div style={{width: '28px', height: '28px', background: '#2563eb', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg>
+                </div>
+                SecurePay Gateway
+              </div>
+              <div style={{fontSize: '12px', opacity: 0.7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px'}}>GP Barh</div>
+            </div>
+            <div style={{padding: '40px 32px', textAlign: 'center'}}>
+              {paymentStep === 1 && (
+                <div className="animate-fade-in">
+                  <div style={{fontSize: '56px', marginBottom: '24px', display: 'inline-block', animation: 'pulse 2s infinite'}}>🏦</div>
+                  <h3 style={{fontSize: '22px', fontWeight: 800, marginBottom: '12px', color: '#0f172a'}}>Connecting to Secure Server...</h3>
+                  <p style={{color: '#64748b', fontSize: '15px', fontWeight: 500}}>Establishing 256-bit encrypted connection to bank.</p>
+                </div>
+              )}
+              {paymentStep === 2 && (
+                <div className="animate-fade-in">
+                  <div style={{margin: '0 auto 32px', width: '64px', height: '64px', border: '5px solid #f1f5f9', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'spin 1s linear infinite'}}></div>
+                  <h3 style={{fontSize: '22px', fontWeight: 800, marginBottom: '12px', color: '#0f172a'}}>Processing Processing: {paymentAmount}</h3>
+                  <p style={{color: '#dc2626', fontSize: '14px', fontWeight: 700}}>Please do not refresh or close this window.</p>
+                </div>
+              )}
+              {paymentStep === 3 && (
+                <div className="animate-fade-in">
+                  <div style={{width: '72px', height: '72px', background: '#10b981', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', boxShadow: '0 10px 25px rgba(16,185,129,0.3)'}}>
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <h3 style={{fontSize: '24px', fontWeight: 800, marginBottom: '12px', color: '#0f172a'}}>Transaction Authorized!</h3>
+                  <p style={{color: '#64748b', fontSize: '15px', fontWeight: 600}}>Redirecting back to your dashboard...</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ================= SIDEBAR ================= */}
       <aside className="w-full md:w-64 bg-[#4a0404] text-white shadow-xl flex flex-col">
@@ -108,7 +181,7 @@ function Dashboard() {
                   <span className="bg-green-100 text-green-700 text-[10px] px-2 py-1 rounded font-bold">Active</span>
                 </div>
                 <p className="text-xs text-gray-500 mb-4">Going home? Apply for leave to pause your daily mess charges automatically.</p>
-                <button className="w-full bg-yellow-50 text-yellow-700 font-bold text-xs py-2.5 rounded hover:bg-yellow-100 transition-colors border border-yellow-200">
+                <button onClick={() => toast.success("Leave/Rebate application submitted successfully.", { style: { borderRadius: '10px', background: '#333', color: '#fff' }})} className="w-full bg-yellow-50 text-yellow-700 font-bold text-xs py-2.5 rounded hover:bg-yellow-100 transition-colors border border-yellow-200">
                   ✈️ Apply Leave / Rebate
                 </button>
               </div>
@@ -117,7 +190,7 @@ function Dashboard() {
               <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 border-t-4 border-t-gray-700 hover:shadow-md transition-shadow">
                 <h3 className="font-bold text-gray-800 mb-2">Helpdesk & Complaints</h3>
                 <p className="text-xs text-gray-500 mb-4">Fan not working? Plumbing issue? Mess food problem? Raise a ticket here.</p>
-                <button className="w-full bg-gray-100 text-gray-800 font-bold text-xs py-2.5 rounded hover:bg-gray-200 transition-colors border border-gray-300">
+                <button onClick={() => toast.success("Complaint officially registered.", { style: { borderRadius: '10px', background: '#333', color: '#fff' }})} className="w-full bg-gray-100 text-gray-800 font-bold text-xs py-2.5 rounded hover:bg-gray-200 transition-colors border border-gray-300">
                   📢 Lodge a Complaint
                 </button>
               </div>
@@ -127,7 +200,7 @@ function Dashboard() {
                 <h3 className="font-bold text-gray-800 mb-1">Pending Mess Dues</h3>
                 <p className="text-3xl font-black text-red-600">₹ 2,450</p>
                 <p className="text-[10px] text-gray-400 mt-1 mb-3">Due date: 10th of this month</p>
-                <button className="w-full bg-red-50 text-red-600 font-bold text-xs py-2.5 rounded hover:bg-red-100 transition-colors border border-red-200">
+                <button onClick={() => simulatePayment("₹ 2,450", () => toast.success("Dues successfully cleared.", { style: { borderRadius: '10px', background: '#333', color: '#fff' }}))} className="w-full bg-red-50 text-red-600 font-bold text-xs py-2.5 rounded hover:bg-red-100 transition-colors border border-red-200">
                   💳 Pay Now
                 </button>
               </div>
@@ -153,14 +226,14 @@ function Dashboard() {
                   <span className="text-xl mb-1">🧹</span>
                   <h4 className="text-xs font-bold text-indigo-900 mb-1">Room Cleaning</h4>
                   <p className="text-[9px] text-indigo-700/70 mb-2">Request sweep & mop.</p>
-                  <button className="bg-indigo-600 text-white text-[10px] font-bold py-1.5 rounded hover:bg-indigo-700">Schedule</button>
+                  <button onClick={() => toast.success("Cleaning scheduled successfully.", { style: { borderRadius: '10px', background: '#333', color: '#fff' }})} className="bg-indigo-600 text-white text-[10px] font-bold py-1.5 rounded hover:bg-indigo-700">Schedule</button>
                 </div>
 
                 <div className="bg-cyan-50 p-3 rounded-lg border border-cyan-100 flex flex-col justify-center">
                   <span className="text-xl mb-1">🧺</span>
                   <h4 className="text-xs font-bold text-cyan-900 mb-1">Laundry Slot</h4>
                   <p className="text-[9px] text-cyan-700/70 mb-2">Book washing machine.</p>
-                  <button className="bg-cyan-600 text-white text-[10px] font-bold py-1.5 rounded hover:bg-cyan-700">Book Slot</button>
+                  <button onClick={() => toast.success("Laundry slot booked successfully.", { style: { borderRadius: '10px', background: '#333', color: '#fff' }})} className="bg-cyan-600 text-white text-[10px] font-bold py-1.5 rounded hover:bg-cyan-700">Book Slot</button>
                 </div>
               </div>
             </>
@@ -269,14 +342,14 @@ function Dashboard() {
               <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 border-t-4 border-t-orange-500">
                 <h3 className="font-bold text-gray-800 mb-2">Visitor Entry Pass</h3>
                 <p className="text-xs text-gray-500 mb-3">Pre-approve your visit to avoid delays at the main gate.</p>
-                <button className="w-full bg-orange-50 border border-orange-200 text-orange-700 font-bold text-xs py-2.5 rounded hover:bg-orange-100 transition-colors">Request Entry Pass</button>
+                <button onClick={() => toast.success("Entry pass request submitted.", { style: { borderRadius: '10px', background: '#333', color: '#fff' }})} className="w-full bg-orange-50 border border-orange-200 text-orange-700 font-bold text-xs py-2.5 rounded hover:bg-orange-100 transition-colors">Request Entry Pass</button>
               </div>
 
               <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 border-t-4 border-t-blue-500">
                 <h3 className="font-bold text-gray-800 mb-2">Pay Ward's Dues</h3>
                 <p className="text-3xl font-black text-gray-800">₹ 2,450</p>
                 <p className="text-xs text-gray-500 mt-1 mb-3">Due for Mess Bill (March)</p>
-                <button className="w-full bg-blue-600 text-white font-bold text-xs py-2.5 rounded hover:bg-blue-700 transition-colors">Secure Payment</button>
+                <button onClick={() => simulatePayment("₹ 2,450", () => toast.success("Payment securely processed.", { style: { borderRadius: '10px', background: '#333', color: '#fff' }}))} className="w-full bg-blue-600 text-white font-bold text-xs py-2.5 rounded hover:bg-blue-700 transition-colors">Secure Payment</button>
               </div>
 
               <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 border-t-4 border-t-green-500">
