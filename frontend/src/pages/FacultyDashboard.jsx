@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo.png.png';
+import toast, { Toaster } from 'react-hot-toast';
 
 // Inline SVG Icons
 const Icons = {
@@ -36,6 +37,30 @@ function FacultyDashboard() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Payment Simulation States
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentStep, setPaymentStep] = useState(1);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentCallback, setPaymentCallback] = useState(null);
+
+  const simulatePayment = (amount, callback) => {
+    setPaymentAmount(amount);
+    setPaymentCallback(() => callback);
+    setShowPaymentModal(true);
+    setPaymentStep(1);
+    setTimeout(() => {
+      setPaymentStep(2);
+      setTimeout(() => {
+        setPaymentStep(3);
+        setTimeout(() => {
+          setShowPaymentModal(false);
+          toast.success(`Transaction of ${amount} Completed Successfully`, { style: { borderRadius: '10px', background: '#333', color: '#fff' }});
+          if (callback) callback();
+        }, 2000);
+      }, 2000);
+    }, 1500);
+  };
+
   const handleLogout = () => { navigate("/"); };
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
@@ -60,6 +85,56 @@ function FacultyDashboard() {
 
   return (
     <div className="h-screen bg-[#f3f4f6] flex font-sans overflow-hidden text-gray-900">
+      <Toaster position="top-right" />
+      <style>{`
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7); } 70% { box-shadow: 0 0 0 6px rgba(255, 255, 255, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); } }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .animate-fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      `}</style>
+
+      {/* PAYMENT MODAL */}
+      {showPaymentModal && (
+        <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)'}}>
+          <div style={{background: '#ffffff', width: '90%', maxWidth: '420px', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', border: '1px solid #e2e8f0'}}>
+            <div style={{background: 'linear-gradient(135deg, #0f172a, #1e293b)', padding: '24px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+              <div style={{fontWeight: 800, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '10px', fontFamily: "'DM Sans', sans-serif"}}>
+                <div style={{width: '28px', height: '28px', background: '#2563eb', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg>
+                </div>
+                SecurePay Gateway
+              </div>
+              <div style={{fontSize: '12px', opacity: 0.7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px'}}>GP Barh</div>
+            </div>
+            <div style={{padding: '40px 32px', textAlign: 'center'}}>
+              {paymentStep === 1 && (
+                <div className="animate-fade-in">
+                  <div style={{fontSize: '56px', marginBottom: '24px', display: 'inline-block', animation: 'pulse 2s infinite'}}>🏦</div>
+                  <h3 style={{fontSize: '22px', fontWeight: 800, marginBottom: '12px', color: '#0f172a'}}>Connecting to Secure Server...</h3>
+                  <p style={{color: '#64748b', fontSize: '15px', fontWeight: 500}}>Establishing 256-bit encrypted connection to bank.</p>
+                </div>
+              )}
+              {paymentStep === 2 && (
+                <div className="animate-fade-in">
+                  <div style={{margin: '0 auto 32px', width: '64px', height: '64px', border: '5px solid #f1f5f9', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'spin 1s linear infinite'}}></div>
+                  <h3 style={{fontSize: '22px', fontWeight: 800, marginBottom: '12px', color: '#0f172a'}}>Processing Payment of {paymentAmount}</h3>
+                  <p style={{color: '#dc2626', fontSize: '14px', fontWeight: 700}}>Please do not refresh or close this window.</p>
+                </div>
+              )}
+              {paymentStep === 3 && (
+                <div className="animate-fade-in">
+                  <div style={{width: '72px', height: '72px', background: '#10b981', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', boxShadow: '0 10px 25px rgba(16,185,129,0.3)'}}>
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <h3 style={{fontSize: '24px', fontWeight: 800, marginBottom: '12px', color: '#0f172a'}}>Payment Authorized!</h3>
+                  <p style={{color: '#64748b', fontSize: '15px', fontWeight: 600}}>Redirecting back to your dashboard...</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MOBILE OVERLAY */}
       {isSidebarOpen && window.innerWidth < 1024 && (
         <div 
@@ -189,7 +264,7 @@ function FacultyDashboard() {
                       </div>
                       
                       <div className="md:col-span-2 pt-4 border-t border-gray-100 flex justify-end mt-2">
-                        <button type="button" className="bg-[#800000] hover:bg-[#6a0000] text-white font-black text-xs uppercase tracking-wider px-8 py-4 rounded-xl shadow-lg transition-colors flex items-center gap-2">
+                        <button type="button" onClick={() => toast.success("Staff Profile details successfully updated.", { style: { borderRadius: '10px', background: '#333', color: '#fff' }})} className="bg-[#800000] hover:bg-[#6a0000] text-white font-black text-xs uppercase tracking-wider px-8 py-4 rounded-xl shadow-lg transition-colors flex items-center gap-2">
                            Save Profile Data
                         </button>
                       </div>
@@ -217,7 +292,7 @@ function FacultyDashboard() {
                         <h3 className="text-4xl font-black text-[#eab308]">₹500.00</h3>
                         <p className="text-xs text-gray-400 mt-2">Available for rent & mess deductions</p>
                      </div>
-                     <button className="w-full bg-[#eab308] hover:bg-yellow-400 text-gray-900 font-black text-xs uppercase tracking-wider py-3.5 rounded-xl shadow-lg transition-colors mt-6 flex items-center justify-center gap-2 relative z-10">
+                     <button onClick={() => simulatePayment("Custom Amount", () => toast.success("Wallet Top-up Successful!"))} className="w-full bg-[#eab308] hover:bg-yellow-400 text-gray-900 font-black text-xs uppercase tracking-wider py-3.5 rounded-xl shadow-lg transition-colors mt-6 flex items-center justify-center gap-2 relative z-10">
                         <Icons.Plus /> Top-up Wallet
                      </button>
                   </div>
@@ -233,7 +308,7 @@ function FacultyDashboard() {
                            <p className="text-xs text-gray-500 mt-1 leading-relaxed">Pay your standard monthly accommodation deduction.</p>
                            <p className="text-xl font-black text-[#800000] mt-3">₹2,000</p>
                         </div>
-                        <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider py-3 rounded-xl mt-5 transition-colors shadow-md">
+                        <button onClick={() => simulatePayment("₹2,000", () => toast.success("Rent payment processed successfully!"))} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider py-3 rounded-xl mt-5 transition-colors shadow-md">
                            Pay from Wallet
                         </button>
                      </div>
@@ -247,7 +322,7 @@ function FacultyDashboard() {
                            <p className="text-xs text-gray-500 mt-1 leading-relaxed">Settle your monthly dining and mess charges.</p>
                            <p className="text-xl font-black text-[#800000] mt-3">₹2,500</p>
                         </div>
-                        <button className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs uppercase tracking-wider py-3 rounded-xl mt-5 transition-colors shadow-md">
+                        <button onClick={() => simulatePayment("₹2,500", () => toast.success("Mess bill processed successfully!"))} className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs uppercase tracking-wider py-3 rounded-xl mt-5 transition-colors shadow-md">
                            Pay from Wallet
                         </button>
                      </div>
@@ -261,7 +336,7 @@ function FacultyDashboard() {
               <div className="animate-fade-in space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <h2 className="text-2xl md:text-3xl font-black text-[#111827]">Rent Passbook</h2>
-                  <button className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold text-xs uppercase tracking-wider px-5 py-2.5 rounded-xl shadow-sm transition-colors flex items-center justify-center gap-2 w-full sm:w-auto">
+                  <button onClick={() => toast.success("Preparing PDF Document...", { style: { borderRadius: '10px', background: '#333', color: '#fff' }})} className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold text-xs uppercase tracking-wider px-5 py-2.5 rounded-xl shadow-sm transition-colors flex items-center justify-center gap-2 w-full sm:w-auto">
                      <Icons.Download /> Download PDF
                   </button>
                 </div>
@@ -343,7 +418,7 @@ function FacultyDashboard() {
                                  <input type="file" className="hidden" accept="image/*" />
                               </div>
                            </div>
-                           <button type="button" className="w-full bg-[#800000] hover:bg-[#6a0000] text-white font-black text-xs uppercase tracking-wider py-4 rounded-xl shadow-lg transition-colors mt-2">
+                           <button type="button" onClick={() => toast.success("Maintenance request has been submitted to the engineering department.", { style: { borderRadius: '10px', background: '#333', color: '#fff' }})} className="w-full bg-[#800000] hover:bg-[#6a0000] text-white font-black text-xs uppercase tracking-wider py-4 rounded-xl shadow-lg transition-colors mt-2">
                               Submit Request
                            </button>
                          </form>
