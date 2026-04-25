@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo.png.png';
+import toast, { Toaster } from 'react-hot-toast';
 
 function WardenDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -45,8 +46,8 @@ function WardenDashboard() {
   }, []);
 
   const handleLogout = () => {
-    alert("Warden Logged Out Successfully!");
-    navigate("/");
+    toast.success("Authentication Session Terminated Successfully.", { style: { borderRadius: '10px', background: '#333', color: '#fff' }});
+    setTimeout(() => navigate("/"), 1000);
   };
 
   // HANDLERS
@@ -63,13 +64,13 @@ function WardenDashboard() {
   };
 
   const markResolved = (id) => {
-    alert(`Complaint #${id} marked as resolved!`);
+    toast.success(`Grievance #${id} has been officially marked as resolved.`, { style: { borderRadius: '10px', background: '#333', color: '#fff' }});
     setComplaints(complaints.filter(c => c.id !== id));
   };
 
   const handleSettingsSave = (e) => {
     e.preventDefault();
-    alert("System Settings Updated Successfully!");
+    toast.success("Global System Configurations Updated Successfully.", { style: { borderRadius: '10px', background: '#333', color: '#fff' }});
   };
 
   const filteredStudents = students.filter(s => 
@@ -79,6 +80,7 @@ function WardenDashboard() {
 
   return (
     <div className="h-screen bg-[#f3f4f6] flex font-sans overflow-hidden text-gray-900">
+      <Toaster position="top-right" />
 
       {/* MOBILE OVERLAY */}
       {isSidebarOpen && (
