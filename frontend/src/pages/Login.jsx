@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 import '../App.css';
 
 // 🌟 ASSETS IMPORT (Fixed as per your exact file paths)
@@ -23,7 +24,7 @@ function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     if (!userId || !password) {
-      alert("Bhai, ID aur Password dono daalna zaroori hai! 🛑");
+      toast.error("Bhai, ID aur Password dono daalna zaroori hai! 🛑");
       return;
     }
     setIsLoading(true);
@@ -32,7 +33,10 @@ function Login() {
         reg_no_email: userId,
         password: password
       });
-      alert("Success: " + response.data.message + " 🎉\nWelcome " + response.data.user.full_name);
+      toast.success(`Success: ${response.data.message} 🎉\nWelcome ${response.data.user.full_name}`, {
+        duration: 4000,
+        style: { borderRadius: '10px', background: '#333', color: '#fff' }
+      });
 
       const role = response.data.user.role;
       if (role === 'student') {
@@ -43,9 +47,9 @@ function Login() {
 
     } catch (error) {
       if (error.response && error.response.data) {
-        alert("Error: " + error.response.data.detail + " ❌");
+        toast.error("Error: " + error.response.data.detail + " ❌");
       } else {
-        alert("Server se connect nahi ho pa raha hai. Backend chalu hai? 🤔");
+        toast.error("Server se connect nahi ho pa raha hai. Backend chalu hai? 🤔");
       }
     } finally {
       setIsLoading(false);
@@ -53,11 +57,11 @@ function Login() {
   };
 
   return (
-    <div className={`min-h-screen flex flex-col font-sans transition-colors duration-500 ${isDarkMode ? 'dark bg-[#0a0a0a]' : 'bg-gray-100'}`}>
+    <div className={`min-h-[100dvh] w-full flex flex-col font-sans transition-colors duration-500 overflow-x-hidden ${isDarkMode ? 'dark bg-[#0a0a0a]' : 'bg-gray-100'}`}>
 
       {/* ================= HEADER SECTION ================= */}
-      <header className="w-full z-20 shadow-lg">
-        <div className="bg-black text-gray-300 text-[10px] md:text-xs py-2 px-4 md:px-6 flex justify-between items-center">
+      <header className="w-full z-20 shadow-lg shrink-0">
+        <div className="bg-black text-gray-300 text-[10px] md:text-[11px] lg:text-xs py-1.5 md:py-2 px-4 md:px-6 flex justify-between items-center">
           <div className="flex space-x-4 items-center font-medium tracking-wide">
             <a href="#" className="hover:text-white transition-colors py-1 hidden md:block">Rules</a>
             <span className="hidden md:inline text-gray-600">|</span>
@@ -77,9 +81,9 @@ function Login() {
           </div>
         </div>
 
-        <div className="bg-[#720e0e] text-white py-2.5 px-4 md:px-6 flex items-center justify-between border-b-[3px] border-yellow-500/80 shadow-md">
-          <div className="flex items-center space-x-3">
-            <div className="bg-white p-1.5 h-12 w-12 md:h-14 md:w-14 rounded-full shadow-lg flex items-center justify-center overflow-hidden">
+        <div className="bg-[#720e0e] text-white py-2 px-4 md:px-6 flex items-center justify-between border-b-[3px] border-yellow-500/80 shadow-md">
+          <div className="flex items-center space-x-3 md:space-x-4">
+            <div className="bg-white p-1 h-10 w-10 md:h-12 md:w-12 lg:h-14 lg:w-14 rounded-full shadow-lg flex items-center justify-center overflow-hidden">
               <img src={logo} alt="GP Barh Logo" className="h-full w-full object-contain" />
             </div>
             <div>
@@ -91,15 +95,14 @@ function Login() {
       </header>
 
       {/* ================= MAIN CONTENT AREA ================= */}
-      <main className="flex-grow bg-campus flex items-center justify-center p-4 md:p-8 relative">
+      <main className="flex-grow bg-campus flex items-center justify-center p-3 md:p-6 lg:p-8 relative">
         <div className={`absolute inset-0 transition-colors duration-500 ${isDarkMode ? 'bg-black/75' : 'bg-black/40'}`}></div>
 
-        <div className={`relative z-10 backdrop-blur-xl rounded-2xl shadow-2xl flex flex-col md:flex-row w-[95%] md:w-full max-w-[760px] overflow-hidden border transition-all duration-300 ${
-          isDarkMode ? 'bg-[#121212]/90 border-gray-700 text-white' : 'bg-white/95 border-white/60 text-gray-900'
-        }`}>
+        <div className={`relative z-10 backdrop-blur-xl rounded-2xl shadow-2xl flex flex-col md:flex-row w-[95%] md:w-full max-w-[760px] overflow-hidden border transition-all duration-300 ${isDarkMode ? 'bg-[#121212]/90 border-gray-700 text-white' : 'bg-white/95 border-white/60 text-gray-900'
+          }`}>
 
-          <div className="w-full md:w-[55%] p-6 md:p-8 flex flex-col justify-center">
-            <div className="text-center md:text-left mb-6">
+          <div className="w-full md:w-[55%] p-5 md:p-6 lg:p-8 flex flex-col justify-center">
+            <div className="text-center md:text-left mb-4 md:mb-5 lg:mb-6">
               <h2 className="text-2xl md:text-3xl font-black mb-1 tracking-tight text-blue-600 dark:text-blue-400 drop-shadow-sm">Student Login</h2>
               <p className={`text-[10px] md:text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                 Access Hostel & Mess Dashboard
@@ -117,9 +120,8 @@ function Login() {
                   value={userId}
                   onChange={(e) => setUserId(e.target.value)}
                   placeholder="e.g. 1554424049"
-                  className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-semibold ${
-                    isDarkMode ? 'bg-gray-800/80 border-gray-600 text-white placeholder-gray-500' : 'bg-gray-50 border-gray-300 text-black placeholder-gray-400 shadow-inner'
-                  }`}
+                  className={`w-full px-4 py-2.5 md:py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-semibold ${isDarkMode ? 'bg-gray-800/80 border-gray-600 text-white placeholder-gray-500' : 'bg-gray-50 border-gray-300 text-black placeholder-gray-400 shadow-inner'
+                    }`}
                 />
               </div>
 
@@ -137,9 +139,8 @@ function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className={`w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-semibold ${
-                    isDarkMode ? 'bg-gray-800/80 border-gray-600 text-white placeholder-gray-500' : 'bg-gray-50 border-gray-300 text-black placeholder-gray-400 shadow-inner'
-                  }`}
+                  className={`w-full px-4 py-2.5 md:py-3 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-semibold ${isDarkMode ? 'bg-gray-800/80 border-gray-600 text-white placeholder-gray-500' : 'bg-gray-50 border-gray-300 text-black placeholder-gray-400 shadow-inner'
+                    }`}
                 />
               </div>
 
@@ -147,17 +148,16 @@ function Login() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className={`w-full font-extrabold py-3.5 rounded-lg transition-all shadow-lg text-sm tracking-widest uppercase mt-1 ${
-                    isLoading ? 'bg-blue-400 text-white cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-blue-500/40'
-                  }`}
+                  className={`w-full font-extrabold py-2.5 md:py-3 lg:py-3.5 rounded-lg transition-all shadow-lg text-sm tracking-widest uppercase mt-1 ${isLoading ? 'bg-blue-400 text-white cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-blue-500/40'
+                    }`}
                 >
                   {isLoading ? 'Checking...' : 'Login'}
                 </button>
               </div>
 
               {/* 🌟 DEMO ACCESS FOR RECRUITERS/TESTERS 🌟 */}
-              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                <p className={`text-[10px] font-bold uppercase tracking-widest text-center mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              <div className="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-gray-200 dark:border-gray-700">
+                <p className={`text-[10px] font-bold uppercase tracking-widest text-center mb-2 md:mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                   Demo Access (One-Click Login)
                 </p>
                 <div className="grid grid-cols-2 gap-2">
@@ -201,20 +201,19 @@ function Login() {
             {/* 🌟 FORM END */}
           </div>
 
-          <div className={`hidden md:flex flex-col items-center justify-center px-0 border-l border-r ${
-            isDarkMode ? 'bg-gray-900/50 border-gray-800' : 'bg-gray-100/50 border-gray-200'
-          }`}>
+          <div className={`hidden md:flex flex-col items-center justify-center px-0 border-l border-r ${isDarkMode ? 'bg-gray-900/50 border-gray-800' : 'bg-gray-100/50 border-gray-200'
+            }`}>
             <div className={`h-full w-[1px] ${isDarkMode ? 'bg-gray-700' : 'bg-gray-300'}`}></div>
             <span className={`py-3 px-2 text-[10px] font-bold uppercase rounded-full my-2 ${isDarkMode ? 'bg-gray-800 text-gray-500' : 'bg-white text-gray-400 shadow-sm'}`}>OR</span>
             <div className={`h-full w-[1px] ${isDarkMode ? 'bg-gray-700' : 'bg-gray-300'}`}></div>
           </div>
 
-          <div className={`hidden md:flex w-[45%] p-8 flex-col items-center justify-center ${isDarkMode ? 'bg-[#1a1a1a]/95' : 'bg-gray-50/95'}`}>
-            <h3 className={`text-sm font-black mb-6 uppercase tracking-widest ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+          <div className={`hidden md:flex w-[45%] p-6 lg:p-8 flex-col items-center justify-center ${isDarkMode ? 'bg-[#1a1a1a]/95' : 'bg-gray-50/95'}`}>
+            <h3 className={`text-sm font-black mb-4 lg:mb-6 uppercase tracking-widest ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
               Fast Mobile Login
             </h3>
 
-            <div className={`w-44 h-44 border-2 border-dashed rounded-3xl flex flex-col items-center justify-center mb-5 relative overflow-hidden shadow-inner ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-300'}`}>
+            <div className={`w-32 h-32 md:w-36 md:h-36 lg:w-44 lg:h-44 border-2 border-dashed rounded-3xl flex flex-col items-center justify-center mb-4 lg:mb-5 relative overflow-hidden shadow-inner ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-300'}`}>
               <div className="absolute w-full h-1 bg-blue-500 shadow-[0_0_20px_4px_rgba(59,130,246,0.8)] animate-scan"></div>
               <span className="text-5xl mb-2 opacity-90 drop-shadow-md">📱</span>
               <p className="text-[10px] text-gray-400 font-bold tracking-widest uppercase">Scan in App</p>
@@ -227,78 +226,100 @@ function Login() {
         </div>
       </main>
 
-      {/* ================= FOOTER SECTION RESTORED ================= */}
-      <footer className="bg-[#4a0404] text-gray-300 z-20 border-t-4 border-yellow-500/80 shadow-[0_-5px_15px_rgba(0,0,0,0.3)]">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 text-xs">
+      {/* ================= FOOTER SECTION (PROFESSIONAL & ATTRACTIVE) ================= */}
+      <footer className="bg-gradient-to-r from-[#220202] via-[#3a0505] to-[#220202] text-gray-300 z-20 border-t-2 border-yellow-500/80 shadow-[0_-6px_20px_rgba(0,0,0,0.4)] shrink-0">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 py-5 md:py-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-center text-xs">
 
-            <div className="col-span-1 sm:col-span-2 md:col-span-1">
-              <h4 className="text-yellow-400 font-bold mb-3 uppercase tracking-widest text-[11px] border-b border-white/10 pb-1.5 inline-block">Contact Us</h4>
-              <p className="leading-relaxed mb-2 text-gray-200">
-                <span className="font-bold text-white block">Govt. Polytechnic Barh</span>
-                NH-31, Patna, Bihar 803213
-              </p>
-            </div>
-
-            <div>
-              <h4 className="text-yellow-400 font-bold mb-3 uppercase tracking-widest text-[11px] border-b border-white/10 pb-1.5 inline-block">Quick Links</h4>
-              <ul className="space-y-2">
-                <li><a href="https://www.gpbarh.in/" target="_blank" rel="noreferrer" className="hover:text-white font-medium transition-colors block">Official Website</a></li>
-                <li><a href="#" className="hover:text-white font-medium transition-colors block">Hostel Notice Board</a></li>
-                <li><a href="#" className="hover:text-white font-medium transition-colors block">Student Grievance</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-yellow-400 font-bold mb-3 uppercase tracking-widest text-[11px] border-b border-white/10 pb-1.5 inline-block">Total Visitors</h4>
-              <div className="flex space-x-1.5 mt-1">
-                {['0','1','5','4','4','2'].map((num, i) => (
-                  <div key={i} className="bg-black/40 border border-white/20 text-white font-mono px-2 py-1 rounded shadow-inner text-sm font-bold">
-                    {num}
-                  </div>
-                ))}
+            {/* Col 1: Institute Details & Google Maps Location */}
+            <div className="flex items-start space-x-3">
+              <div className="bg-yellow-500/15 border border-yellow-500/40 p-2.5 rounded-xl text-yellow-400 text-xl shadow-inner shrink-0 mt-0.5">
+                🏛️
+              </div>
+              <div>
+                <h4 className="text-white font-black text-xs md:text-sm uppercase tracking-wide leading-tight">
+                  GOVERNMENT POLYTECHNIC BARH
+                </h4>
+                <a
+                  href="https://www.google.com/maps/place/Government+Polytechnic,+Barh/@25.4521785,85.7445965,779m/data=!3m1!1e3!4m14!1m7!3m6!1s0x39ed57cbf1604257:0x5cf19375ceeceb89!2sGovernment+Polytechnic,+Barh!8m2!3d25.4521963!4d85.7445889!16s%2Fg%2F11s7lsb2gx!3m5!1s0x39ed57cbf1604257:0x5cf19375ceeceb89!8m2!3d25.4521963!4d85.7445889!16s%2Fg%2F11s7lsb2gx?entry=ttu&g_ep=EgoyMDI2MDgwNC4wIKXMDSoASAFQAw%3D%3D"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[11px] text-gray-300 hover:text-yellow-400 transition-all inline-flex items-center gap-1 mt-1 group"
+                  title="View on Google Maps"
+                >
+                  <span className="text-red-400 group-hover:scale-125 transition-transform">📍</span>
+                  <span className="underline decoration-dotted underline-offset-2">NH-31, Barh, Patna, Bihar 803213</span>
+                </a>
               </div>
             </div>
 
-            {/* 🌟 AMIT KUMAR - DEVELOPER PROFILE CARD 🌟 */}
-            <div className="col-span-1 sm:col-span-2 md:col-span-1 relative overflow-hidden bg-gradient-to-br from-black/80 to-[#720e0e]/50 p-4 rounded-xl border border-yellow-500/40 shadow-[0_0_15px_rgba(234,179,8,0.15)] group">
-                <h4 className="text-gray-400 font-bold mb-1.5 uppercase tracking-widest text-[10px]">Developer Profile</h4>
-                <p className="text-yellow-400 font-black text-xl tracking-wider group-hover:text-white transition-colors mb-4">AMIT KUMAR</p>
+            {/* Col 2: Quick Links */}
+            <div>
+              <h4 className="text-yellow-400 font-bold uppercase tracking-widest text-[10px] mb-2 border-b border-white/10 pb-1 inline-block">Quick Links</h4>
+              <div className="flex flex-col space-y-1.5 text-[11px]">
+                <a href="https://www.gpbarh.in/" target="_blank" rel="noreferrer" className="text-gray-300 hover:text-white transition-colors flex items-center gap-1.5">
+                  <span className="text-yellow-500 text-[10px]">🔗</span> Official College Website
+                </a>
+                <a href="#" className="text-gray-300 hover:text-white transition-colors flex items-center gap-1.5">
+                  <span className="text-yellow-500 text-[10px]">📌</span> Hostel Notice Board
+                </a>
+                <a href="#" className="text-gray-300 hover:text-white transition-colors flex items-center gap-1.5">
+                  <span className="text-yellow-500 text-[10px]">✉️</span> Student Grievance Portal
+                </a>
+              </div>
+            </div>
 
-                <p className="text-[11px] font-bold text-gray-200 mt-3 mb-2 uppercase tracking-wide border-b border-white/10 pb-1 inline-block">Connect With Me</p>
+            {/* Col 3: Live Visitors Counter */}
+            <div>
+              <h4 className="text-yellow-400 font-bold uppercase tracking-widest text-[10px] mb-2 border-b border-white/10 pb-1 inline-block">Total Visitors</h4>
+              <div className="flex items-center space-x-1.5 mt-0.5">
+                {['0', '1', '5', '4', '4', '2'].map((num, i) => (
+                  <div key={i} className="bg-black/60 border border-yellow-500/40 text-yellow-300 font-mono px-2 py-1 rounded-md text-xs font-black shadow-inner">
+                    {num}
+                  </div>
+                ))}
+                <span className="text-[10px] text-emerald-400 font-bold ml-1 flex items-center gap-1 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Live
+                </span>
+              </div>
+            </div>
 
-                <div className="flex flex-nowrap justify-center gap-1.5 text-[10px] font-bold w-full">
-                    <button
-                        onClick={() => setShowIdCard(true)}
-                        className="bg-yellow-500 hover:bg-yellow-400 text-black px-2.5 py-1.5 rounded transition-colors shadow-sm flex items-center gap-1.5"
-                    >
-                        🪪 <span>View ID</span>
-                    </button>
-                    <a
-                        href="https://amitkumar2801.github.io/its.Portfolio/"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="bg-blue-600/90 hover:bg-blue-500 text-white px-2.5 py-1.5 rounded transition-colors flex items-center gap-1.5 shadow-sm"
-                    >
-                        🌐 <span>Portfolio</span>
-                    </a>
-                    <a
-                        href="https://www.instagram.com/its._chamgadar?igsh=MW9tbzdseWFtOW5o"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 text-white px-2.5 py-1.5 rounded transition-colors flex items-center gap-1.5 shadow-sm"
-                    >
-                        <svg className="w-3.5 h-3.5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.919-.058-1.265-.069-1.646-.069-4.849 0-3.204.012-3.583.069-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
-                        <span>Instagram</span>
-                    </a>
-                </div>
+            {/* Col 4: Developer Profile Card */}
+            <div className="bg-black/60 backdrop-blur-md p-3.5 rounded-2xl border border-yellow-500/40 shadow-lg flex flex-col justify-between group hover:border-yellow-400/70 transition-all">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-yellow-400 font-bold uppercase tracking-widest text-[9px] flex items-center gap-1">
+                  <span>✨</span> Connect With Me
+                </span>
+                <span className="text-[9px] font-semibold text-gray-400 bg-white/10 px-1.5 py-0.5 rounded">Developer</span>
+              </div>
+
+              <p className="text-white font-black text-sm tracking-wide mb-2">AMIT SHARMA</p>
+
+              <div className="grid grid-cols-2 gap-2 text-[10px] font-bold w-full">
+                <button
+                  onClick={() => setShowIdCard(true)}
+                  className="bg-yellow-500 hover:bg-yellow-400 text-black py-1.5 px-2 rounded-lg transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95 cursor-pointer font-bold w-full"
+                >
+                  <span>🪪</span>
+                  <span>View ID</span>
+                </button>
+                <a
+                  href="https://amitkumar2801.github.io/its.Portfolio/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="bg-blue-600 hover:bg-blue-500 text-white py-1.5 px-2 rounded-lg transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95 font-bold w-full text-center"
+                >
+                  <span>🌐</span>
+                  <span>Portfolio</span>
+                </a>
+              </div>
             </div>
 
           </div>
         </div>
 
-        <div className="bg-[#2a0202] py-3 text-center text-[10px] text-gray-400 font-semibold tracking-wide border-t border-black/20">
-          © 2026 GP Barh Hostel System. All Rights Reserved.
+        <div className="bg-black/50 py-2 text-center text-[11px] text-gray-400 font-medium tracking-wide border-t border-white/10">
+          © 2026 GP Barh Hostel System • Developed with ❤️ by <span className="text-yellow-400 font-bold">Amit Sharma</span>
         </div>
       </footer>
 
@@ -336,15 +357,15 @@ function Login() {
             <div className="p-5 flex flex-col items-center bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-gray-50">
 
               <div className="w-20 h-24 bg-white border-2 border-[#800000] mb-3 flex items-center justify-center rounded shadow-md overflow-hidden p-0.5">
-                <img src={myPic} alt="Amit Kumar" className="w-full h-full object-cover rounded-sm" />
+                <img src={myPic} alt="Amit Sharma" className="w-full h-full object-cover rounded-sm" />
               </div>
 
-              <h3 className="text-xl font-black text-[#800000] uppercase tracking-wide mb-3">Amit Kumar</h3>
+              <h3 className="text-xl font-black text-[#800000] uppercase tracking-wide mb-3">Amit Sharma</h3>
 
               <div className="w-full text-left space-y-2 text-[11px]">
                 <div className="flex border-b border-gray-200 pb-1">
                   <span className="w-20 font-bold text-gray-600 uppercase text-[9px]">Branch</span>
-                  <span className="font-bold text-gray-900 leading-tight">: Artificial Intelligence <br/>& Machine Learning</span>
+                  <span className="font-bold text-gray-900 leading-tight">: Artificial Intelligence <br />& Machine Learning</span>
                 </div>
                 <div className="flex border-b border-gray-200 pb-1">
                   <span className="w-20 font-bold text-gray-600 uppercase text-[9px]">Roll No.</span>

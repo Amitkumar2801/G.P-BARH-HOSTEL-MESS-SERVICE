@@ -14,54 +14,100 @@ function Signup() {
   // ---------------------------------------------------------
   // FORM STATES (Data store karne ke liye)
   // ---------------------------------------------------------
+  const [role, setRole] = useState("student"); // Default role
   const [fullName, setFullName] = useState("");
-  const [regNoEmail, setRegNoEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("student"); // 🌟 NAYA: Role State (Default: student)
-  const [isLoading, setIsLoading] = useState(false); // Button loading state
+  
+  // Dynamic fields
+  const [regNo, setRegNo] = useState("");
+  const [email, setEmail] = useState("");
+  const [branch, setBranch] = useState("");
+  const [phone, setPhone] = useState("");
+  const [employeeId, setEmployeeId] = useState("");
+  const [secretCode, setSecretCode] = useState("");
+  const [adminId, setAdminId] = useState("");
+  const [masterKey, setMasterKey] = useState("");
 
-  const navigate = useNavigate(); // Signup ke baad Login par bhejne ke liye
+  const [isLoading, setIsLoading] = useState(false);
+
+  const navigate = useNavigate();
 
   // ---------------------------------------------------------
   // API CALL: HANDLE SIGNUP
   // ---------------------------------------------------------
   const handleSignup = async (e) => {
-    e.preventDefault(); // Page ko reload hone se rokne ke liye
+    e.preventDefault();
 
-    // Basic validation: Check agar koi field khali toh nahi chhod di
-    if (!fullName || !regNoEmail || !password) {
-      alert("Bhai, saari details bharna zaroori hai! 🛑");
+    // Basic validation based on role
+    if (!fullName || !password) {
+      alert("Please fill in the common fields (Name & Password)! 🛑");
+      return;
+    }
+    if (role === 'student' && (!regNo || !branch || !email)) {
+      alert("Student details incomplete! 🛑");
+      return;
+    }
+    if (role === 'parent' && (!phone || !regNo)) {
+      alert("Parent details incomplete! 🛑");
+      return;
+    }
+    if (role === 'faculty' && (!employeeId || !email || !secretCode)) {
+      alert("Faculty details incomplete! 🛑");
+      return;
+    }
+    if (role === 'warden' && (!adminId || !masterKey)) {
+      alert("Warden details incomplete! 🛑");
       return;
     }
 
     setIsLoading(true);
 
+    let payload = {
+      role,
+      full_name: fullName,
+      password,
+    };
+
+    if (role === 'student') {
+      payload.reg_no = regNo;
+      payload.branch = branch;
+      payload.email = email;
+      // Compatibility with backend if it expects reg_no_email
+      payload.reg_no_email = regNo; 
+    } else if (role === 'parent') {
+      payload.phone = phone;
+      payload.ward_reg_no = regNo; // Reusing regNo for ward's reg no
+    } else if (role === 'faculty') {
+      payload.employee_id = employeeId;
+      payload.email = email;
+      payload.secret_code = secretCode;
+    } else if (role === 'warden') {
+      payload.admin_id = adminId;
+      payload.master_key = masterKey;
+    }
+
     try {
-      // Axios data lekar FastAPI ke paas ja raha hai (Port 8000)
-      const response = await axios.post("http://127.0.0.1:8000/signup", {
-        full_name: fullName,
-        reg_no_email: regNoEmail,
-        password: password,
-        role: role // 🌟 NAYA: Ab user ka select kiya hua role backend jayega
-      });
+      const response = await axios.post("http://127.0.0.1:8000/signup", payload);
 
-      // Agar backend ne 201 Created bhej diya
       alert("Success: " + response.data.message + " 🎉");
-
-      // Success ke baad user ko automatically Login page par bhej do
       navigate("/");
 
     } catch (error) {
-      // Agar backend ne error bheja (jaise duplicate user)
       if (error.response && error.response.data) {
         alert("Error: " + error.response.data.detail + " ❌");
       } else {
-        alert("Server se connect nahi ho pa raha hai. Backend chalu hai? 🤔");
+        alert("Server connection failed. Is backend running? 🤔");
       }
     } finally {
       setIsLoading(false);
     }
   };
+
+  const inputClass = `w-full px-4 py-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-semibold ${
+    isDarkMode ? 'bg-gray-800/80 border-gray-600 text-white placeholder-gray-500' : 'bg-gray-50 border-gray-300 text-black placeholder-gray-400'
+  }`;
+
+  const labelClass = `block text-[10px] md:text-[11px] font-bold uppercase tracking-widest mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`;
 
   return (
     <div className={`min-h-screen flex flex-col font-sans transition-colors duration-500 ${isDarkMode ? 'dark bg-[#0a0a0a]' : 'bg-gray-100'}`}>
@@ -105,90 +151,204 @@ function Signup() {
         }`}>
 
           <div className="w-full md:w-[55%] p-6 md:p-8 flex flex-col justify-center">
-            <div className="text-center md:text-left mb-5">
+            <div className="text-center md:text-left mb-4">
               <h2 className="text-2xl md:text-3xl font-black mb-1 tracking-tight text-blue-600 dark:text-blue-400 drop-shadow-sm">Registration</h2>
               <p className={`text-[10px] md:text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                 Create your hostel account
               </p>
             </div>
 
-            {/* 🌟 FORM WITH ROLE SELECTION */}
-            <form className="space-y-3.5" onSubmit={handleSignup}>
+            {/* 🌟 DYNAMIC FORM */}
+            <form className="space-y-3" onSubmit={handleSignup}>
+              
+              {/* REGISTER AS DROPDOWN */}
               <div>
-                <label className={`block text-[10px] md:text-[11px] font-bold uppercase tracking-widest mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>
-                  Full Name
+                <label className={labelClass}>Register As</label>
+                <select
+                  value={role}
+                  onChange={(e) => {
+                    setRole(e.target.value);
+                    // Reset fields on role change
+                    setFullName(""); setPassword(""); setRegNo(""); setEmail("");
+                    setBranch(""); setPhone(""); setEmployeeId(""); setSecretCode("");
+                    setAdminId(""); setMasterKey("");
+                  }}
+                  className={`w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-bold cursor-pointer ${
+                    isDarkMode ? 'bg-gray-800 border-gray-600 text-blue-400' : 'bg-blue-50 border-blue-200 text-blue-700'
+                  }`}
+                >
+                  <option value="student">👨‍🎓 Student</option>
+                  <option value="warden">🛡️ Warden / Admin</option>
+                  <option value="parent">👪 Parent / Guest</option>
+                  <option value="faculty">👨‍🏫 Faculty / Staff</option>
+                </select>
+              </div>
+
+              {/* COMMON FIELD: FULL NAME */}
+              <div>
+                <label className={labelClass}>
+                  {role === 'parent' ? "Parent/Guest Name" : "Full Name"}
                 </label>
                 <input
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="e.g. Amit Kumar"
-                  className={`w-full px-4 py-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-semibold ${
-                    isDarkMode ? 'bg-gray-800/80 border-gray-600 text-white placeholder-gray-500' : 'bg-gray-50 border-gray-300 text-black placeholder-gray-400'
-                  }`}
+                  placeholder={role === 'parent' ? "e.g. Ramesh Kumar" : "e.g. Amit Sharma"}
+                  className={inputClass}
                 />
               </div>
 
-              <div>
-                <label className={`block text-[10px] md:text-[11px] font-bold uppercase tracking-widest mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>
-                  Reg No. / Email
-                </label>
-                <input
-                  type="text"
-                  value={regNoEmail}
-                  onChange={(e) => setRegNoEmail(e.target.value)}
-                  placeholder="e.g. 1554424049"
-                  className={`w-full px-4 py-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-semibold ${
-                    isDarkMode ? 'bg-gray-800/80 border-gray-600 text-white placeholder-gray-500' : 'bg-gray-50 border-gray-300 text-black placeholder-gray-400'
-                  }`}
-                />
-              </div>
+              {/* STUDENT FIELDS */}
+              {role === 'student' && (
+                <>
+                  <div>
+                    <label className={labelClass}>Registration Number</label>
+                    <input
+                      type="text"
+                      value={regNo}
+                      onChange={(e) => setRegNo(e.target.value)}
+                      placeholder="e.g. 1554424049"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div className="flex space-x-3">
+                    <div className="w-1/2">
+                      <label className={labelClass}>Branch</label>
+                      <input
+                        type="text"
+                        value={branch}
+                        onChange={(e) => setBranch(e.target.value)}
+                        placeholder="e.g. AI & ML"
+                        className={inputClass}
+                      />
+                    </div>
+                    <div className="w-1/2">
+                      <label className={labelClass}>Email</label>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="student@gmail.com"
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
 
+              {/* PARENT FIELDS */}
+              {role === 'parent' && (
+                <>
+                  <div>
+                    <label className={labelClass}>Phone Number</label>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="e.g. 9876543210"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Student's Reg No. (Ward)</label>
+                    <input
+                      type="text"
+                      value={regNo}
+                      onChange={(e) => setRegNo(e.target.value)}
+                      placeholder="e.g. 1554424049"
+                      className={inputClass}
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* WARDEN FIELDS */}
+              {role === 'warden' && (
+                <>
+                  <div>
+                    <label className={labelClass}>Admin ID</label>
+                    <input
+                      type="text"
+                      value={adminId}
+                      onChange={(e) => setAdminId(e.target.value)}
+                      placeholder="e.g. WARDEN-001"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Master Authorization Key</label>
+                    <input
+                      type="password"
+                      value={masterKey}
+                      onChange={(e) => setMasterKey(e.target.value)}
+                      placeholder="Secret Key"
+                      className={inputClass}
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* FACULTY FIELDS */}
+              {role === 'faculty' && (
+                <>
+                  <div className="flex space-x-3">
+                    <div className="w-1/2">
+                      <label className={labelClass}>Employee ID</label>
+                      <input
+                        type="text"
+                        value={employeeId}
+                        onChange={(e) => setEmployeeId(e.target.value)}
+                        placeholder="e.g. EMP-104"
+                        className={inputClass}
+                      />
+                    </div>
+                    <div className="w-1/2">
+                      <label className={labelClass}>Official Email</label>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="staff@gpbarh.in"
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className={labelClass}>Secret Access Code</label>
+                    <input
+                      type="password"
+                      value={secretCode}
+                      onChange={(e) => setSecretCode(e.target.value)}
+                      placeholder="Provided by College"
+                      className={inputClass}
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* COMMON FIELD: PASSWORD */}
               <div>
-                <label className={`block text-[10px] md:text-[11px] font-bold uppercase tracking-widest mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>
-                  Create Password
-                </label>
+                <label className={labelClass}>Create Password</label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className={`w-full px-4 py-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-semibold ${
-                    isDarkMode ? 'bg-gray-800/80 border-gray-600 text-white placeholder-gray-500' : 'bg-gray-50 border-gray-300 text-black placeholder-gray-400'
-                  }`}
+                  className={inputClass}
                 />
-              </div>
-
-              {/* 🌟 NAYA: ROLE SELECTION DROPDOWN */}
-              <div>
-                <label className={`block text-[10px] md:text-[11px] font-bold uppercase tracking-widest mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>
-                  Register As
-                </label>
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  className={`w-full px-4 py-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-semibold cursor-pointer ${
-                    isDarkMode ? 'bg-gray-800/80 border-gray-600 text-white' : 'bg-gray-50 border-gray-300 text-black'
-                  }`}
-                >
-                  <option value="student">👨‍🎓 Student</option>
-                  <option value="warden">🛡️ Warden / Admin</option>
-                  <option value="faculty">👨‍🏫 Faculty</option>
-                  <option value="parent">👪 Parent / Guest</option>
-                </select>
               </div>
 
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`w-full font-extrabold py-3.5 rounded-lg transition-all shadow-lg text-sm tracking-widest uppercase mt-2 ${
+                className={`w-full font-extrabold py-3 rounded-lg transition-all shadow-lg text-sm tracking-widest uppercase mt-4 ${
                   isLoading ? 'bg-blue-400 text-white cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-blue-500/40'
                 }`}
               >
                 {isLoading ? 'Creating Account...' : 'Create Account'}
               </button>
 
-              <div className="text-center mt-3">
+              <div className="text-center mt-2">
                 <p className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                   Already have an account? <Link to="/" className="font-bold text-blue-600 hover:text-blue-500 hover:underline">Sign In</Link>
                 </p>
