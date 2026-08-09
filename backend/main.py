@@ -14,6 +14,31 @@ from database import engine, SessionLocal
 # Generate database tables based on SQLAlchemy models
 models.Base.metadata.create_all(bind=engine)
 
+def seed_default_users():
+    """Seed or update default test users (including warden testing account)"""
+    db = SessionLocal()
+    try:
+        warden = db.query(models.User).filter(models.User.reg_no_email == "amitkumar.arwal28@gmail.com").first()
+        if not warden:
+            new_warden = models.User(
+                full_name="Amit Kumar Sharma (Chief Warden)",
+                reg_no_email="amitkumar.arwal28@gmail.com",
+                password="CHAMGADAR",
+                role="warden"
+            )
+            db.add(new_warden)
+            db.commit()
+        else:
+            warden.password = "CHAMGADAR"
+            warden.role = "warden"
+            db.commit()
+    except Exception as e:
+        print("Seeding error:", e)
+    finally:
+        db.close()
+
+seed_default_users()
+
 # ---------------------------------------------------------
 # FASTAPI APP INSTANCE SETUP
 # ---------------------------------------------------------
