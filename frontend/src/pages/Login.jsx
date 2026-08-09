@@ -114,9 +114,15 @@ function Login() {
         style: { borderRadius: '10px', background: '#333', color: '#fff' }
       });
 
-      const role = response.data.user.role;
-      if (role === 'student') {
+      const role = (response.data.user.role || '').toLowerCase();
+      if (role === 'warden') {
+        navigate("/warden-dashboard", { state: { userRole: role, userName: response.data.user.full_name } });
+      } else if (role === 'student') {
         navigate("/student-dashboard", { state: { userRole: role, userName: response.data.user.full_name } });
+      } else if (role === 'parent') {
+        navigate("/parent-dashboard", { state: { userRole: role, userName: response.data.user.full_name } });
+      } else if (role === 'faculty') {
+        navigate("/faculty-dashboard", { state: { userRole: role, userName: response.data.user.full_name } });
       } else {
         navigate("/dashboard", { state: { userRole: role, userName: response.data.user.full_name } });
       }
