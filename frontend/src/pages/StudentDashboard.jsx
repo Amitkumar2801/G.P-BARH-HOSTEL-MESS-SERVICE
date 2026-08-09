@@ -1062,73 +1062,20 @@ function StudentDashboard() {
                 </div>
               )}
 
-              {/* 4. PAYMENTS HUB */}
+              {/* 4. PAYMENTS HUB (SIMPLE / BLANK STANDBY) */}
               {activeTab === 'payments' && (
                 <div>
-                  <h2 className="page-title">Digital Payments Hub</h2>
+                  <h2 className="page-title">Payments Hub</h2>
                   <p className="page-sub">Direct access to pay your dues, advances, and fines.</p>
 
-                  <div className="wallet-card">
-                    <div>
-                      <div className="wallet-label">Prepaid Wallet Balance</div>
-                      <div className="wallet-amount">₹ 1,200</div>
-                      <div className="wallet-warn">Upcoming Deduction: <span>₹4,150</span> on 1st</div>
-                    </div>
-                    <button className="topup-btn-g" onClick={() => handlePaySelect('topup', 'Top-up Wallet Balance', 'Custom', false)}>Deposit Funds 💳</button>
-                  </div>
-
-                  <div className="sec-title">📌 One-Time Payments</div>
-                  <div className="pay-grid">
-                    <div className={`pay-card ${paymentSelection?.id === 'security' ? 'selected' : ''}`} onClick={() => handlePaySelect('security', 'Security Deposit', '₹1,500', false)}>
-                      <div className="pay-card-icon pi-purple">🔒</div><div className="pay-card-name">Security Deposit</div><div className="pay-card-amount">₹1,500</div><div className="pay-card-sub">Refundable corpus</div><div className="check-mark"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>
-                    </div>
-                    <div className={`pay-card ${paymentSelection?.id === 'misc' ? 'selected' : ''}`} onClick={() => handlePaySelect('misc', 'Generator & Misc', '₹500', false)}>
-                      <div className="pay-card-icon pi-amber">⚡</div><div className="pay-card-name">Generator & Misc</div><div className="pay-card-amount">₹500</div><div className="pay-card-sub">Annual maintenance</div><div className="check-mark"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>
-                    </div>
-                  </div>
-
-                  <div className="sec-title">📅 Recurring Memberships</div>
-                  <div className="fine-note">⚠️ <strong>Late fine auto-activation:</strong> Applies dynamically after the 5th of each active month.</div>
-                  <div className="pay-grid">
-                    <div className={`pay-card ${paymentSelection?.id === 'm_hostel' ? 'selected' : ''}`} onClick={() => handlePaySelect('m_hostel', 'Monthly Hostel Rent', '₹750', true)}>
-                      <div className="pay-card-icon pi-green">🏠</div><div className="pay-card-name">Monthly Hostel Rent</div><div className="pay-card-amount">₹750</div><div className="pay-card-sub">Due every 1st</div><div className="check-mark"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>
-                    </div>
-                    <div className={`pay-card ${paymentSelection?.id === 'm_mess' ? 'selected' : ''}`} onClick={() => handlePaySelect('m_mess', 'Monthly Mess Bill', '₹3,400', true)}>
-                      <div className="pay-card-icon pi-amber">🍽️</div><div className="pay-card-name">Monthly Mess Bill</div><div className="pay-card-amount">₹3,400</div><div className="pay-card-sub">Due every 1st</div><div className="check-mark"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>
-                    </div>
-                  </div>
-
-                  <div className="sec-title">🎓 Term/Semester Renewals</div>
-                  <div className="pay-grid">
-                    <div className={`pay-card ${paymentSelection?.id === 'sem_hostel' ? 'selected' : ''}`} onClick={() => { handlePaySelect('sem_hostel', 'Hostel Semester Advance', 'Full Sem', false); setPaymentCycle(""); }}>
-                      <div className="pay-card-icon pi-green">🏠</div><div className="pay-card-name">Hostel Advance</div><div className="pay-card-amount">Full Term</div><div className="pay-card-sub">Pay in full & save</div><div className="check-mark"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>
-                    </div>
-                    <div className={`pay-card ${paymentSelection?.id === 'sem_mess' ? 'selected' : ''}`} onClick={() => { handlePaySelect('sem_mess', 'Mess Semester Advance', 'Full Sem', false); setPaymentCycle(""); }}>
-                      <div className="pay-card-icon pi-amber">🍽️</div><div className="pay-card-name">Mess Advance</div><div className="pay-card-amount">Full Term</div><div className="pay-card-sub">Pay in full & save</div><div className="check-mark"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>
-                    </div>
-                  </div>
-
-                  <div className="pay-action-bar">
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Selected Invoice</div>
-                      <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text)', marginTop: '4px' }}>{paymentSelection ? paymentSelection.name : 'No selection made'}</div>
-
-                      {/* Dynamic Inputs inside Action Bar */}
-                      {paymentSelection?.id === 'topup' && (
-                        <input type="number" placeholder="Enter Custom Amount (₹)" value={customAmount} onChange={e => setCustomAmount(e.target.value)} className="form-input" style={{ marginTop: '16px', maxWidth: '300px' }} />
-                      )}
-                      {(paymentSelection?.id === 'sem_hostel' || paymentSelection?.id === 'sem_mess') && (
-                        <div style={{ display: 'flex', gap: '16px', marginTop: '16px', flexWrap: 'wrap' }}>
-                          <button onClick={() => setPaymentCycle("Jan-May")} className={`form-input ${paymentCycle === 'Jan-May' ? 'btn-teal' : ''}`} style={{ width: 'auto', cursor: 'pointer', color: paymentCycle === 'Jan-May' ? '#fff' : 'inherit' }}>Odd Term: Jan-May (5 Mths)</button>
-                          <button onClick={() => setPaymentCycle("Jul-Dec")} className={`form-input ${paymentCycle === 'Jul-Dec' ? 'btn-teal' : ''}`} style={{ width: 'auto', cursor: 'pointer', color: paymentCycle === 'Jul-Dec' ? '#fff' : 'inherit' }}>Even Term: Jul-Dec (6 Mths)</button>
-                        </div>
-                      )}
-                    </div>
-                    <div style={{ textAlign: 'center', minWidth: '220px' }}>
-                      <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>Total Amount Payable</div>
-                      <div style={{ fontSize: '32px', fontWeight: 800, color: 'var(--teal)', marginBottom: '16px', fontFamily: 'DM Sans' }}>{getSelectedAmountStr()}</div>
-                      <button className="btn-teal btn-primary" disabled={!paymentSelection || ((paymentSelection?.id === 'sem_hostel' || paymentSelection?.id === 'sem_mess') && !paymentCycle)} onClick={() => simulatePayment(getSelectedAmountStr(), () => setPaymentSelection(null))}>Proceed & Pay securely</button>
-                    </div>
+                  <div className="custom-card" style={{ textAlign: 'center', padding: '80px 24px', minHeight: '380px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ fontSize: '52px', marginBottom: '16px' }}>💳</div>
+                    <h3 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text)', marginBottom: '8px' }}>
+                      Payments Hub
+                    </h3>
+                    <p style={{ fontSize: '14px', color: 'var(--text-muted)', maxWidth: '420px', margin: '0 auto' }}>
+                      This section is currently kept blank. Aap jab bolenge, tab isse naye design ke sath customize kar denge.
+                    </p>
                   </div>
                 </div>
               )}
