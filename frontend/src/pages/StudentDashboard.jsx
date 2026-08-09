@@ -505,6 +505,8 @@ function StudentDashboard() {
               </div>
             </div>
           </div>
+        )}
+
         {/* TOP-UP WALLET MODAL */}
         {showTopupModal && (
           <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)', padding: '16px'}}>
