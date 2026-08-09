@@ -102,103 +102,81 @@ function Login() {
         <div className={`relative z-10 backdrop-blur-2xl rounded-3xl shadow-[0_25px_70px_rgba(0,0,0,0.55)] flex flex-col md:flex-row w-full max-w-[980px] min-h-[530px] overflow-hidden border transition-all duration-300 ${isDarkMode ? 'bg-[#121212]/95 border-gray-700/80 text-white' : 'bg-white/95 border-white/80 text-gray-900'
           }`}>
 
-          {/* LEFT SIDE: SPACIOUS & MODERN LOGIN FORM */}
-          <div className="w-full md:w-[56%] p-8 md:p-10 lg:p-12 flex flex-col justify-between">
-            <div>
-              {/* PORTAL BADGE */}
-              <div className="flex items-center gap-2 mb-3">
-                <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-blue-600/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                  🏛️ Digital Student Portal
-                </span>
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          {/* LEFT SIDE: CLEAN & SPACIOUS LOGIN FORM */}
+          <div className="w-full md:w-[56%] p-8 md:p-10 lg:p-12 flex flex-col justify-center">
+            <div className="text-left mb-6 md:mb-8">
+              <h2 className="text-3xl md:text-4xl lg:text-[42px] font-black tracking-tight bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-800 dark:from-blue-400 dark:via-indigo-300 dark:to-blue-200 bg-clip-text text-transparent leading-tight drop-shadow-sm">
+                Student Login
+              </h2>
+            </div>
+
+            {/* 🌟 FORM START */}
+            <form className="space-y-5" onSubmit={handleLogin}>
+              <div>
+                <label className={`block text-[11px] md:text-xs font-extrabold uppercase tracking-wider mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>
+                  Registration ID / Roll No / Email
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={userId}
+                    onChange={(e) => setUserId(e.target.value)}
+                    placeholder="e.g. 1554424049"
+                    className={`w-full px-4 py-3.5 rounded-xl border focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm font-bold ${isDarkMode ? 'bg-gray-800/90 border-gray-600 text-white placeholder-gray-500' : 'bg-gray-50/90 border-gray-300 text-black placeholder-gray-400 shadow-inner'
+                      }`}
+                  />
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-base">🆔</span>
+                </div>
               </div>
 
-              <div className="text-left mb-6 md:mb-7">
-                <h2 className="text-3xl md:text-4xl lg:text-[40px] font-black tracking-tight bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-800 dark:from-blue-400 dark:via-indigo-300 dark:to-blue-200 bg-clip-text text-transparent leading-tight drop-shadow-sm">
-                  Student Login
-                </h2>
-                <p className={`text-xs md:text-sm font-semibold mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Sign in to manage your Hostel Passbook, Mess & Room Services
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className={`block text-[11px] md:text-xs font-extrabold uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>
+                    Account Password
+                  </label>
+                  <a href="#" className="text-[11px] font-bold text-blue-600 hover:text-blue-500 hover:underline">
+                    Forgot Password?
+                  </a>
+                </div>
+                <div className="relative">
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••••••"
+                    className={`w-full px-4 py-3.5 rounded-xl border focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm font-bold ${isDarkMode ? 'bg-gray-800/90 border-gray-600 text-white placeholder-gray-500' : 'bg-gray-50/90 border-gray-300 text-black placeholder-gray-400 shadow-inner'
+                      }`}
+                  />
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-base">🔒</span>
+                </div>
+              </div>
+
+              {/* LOGIN BUTTON */}
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className={`w-full font-black py-3.5 md:py-4 rounded-xl transition-all duration-200 shadow-lg text-sm md:text-base tracking-widest uppercase flex items-center justify-center gap-2 ${isLoading
+                    ? 'bg-blue-400 text-white cursor-not-allowed'
+                    : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-[1.01] active:scale-[0.99]'
+                    }`}
+                >
+                  <span>{isLoading ? 'Verifying Account...' : 'Sign In to Portal'}</span>
+                  {!isLoading && <span>➔</span>}
+                </button>
+              </div>
+
+              {/* SIGNUP / REGISTER LINK */}
+              <div className="text-center pt-2">
+                <p className={`text-xs md:text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  New to GP Barh Hostel?{' '}
+                  <Link to="/signup" className="font-extrabold text-blue-600 hover:text-blue-500 hover:underline">
+                    Register
+                  </Link>
                 </p>
               </div>
-
-              {/* 🌟 FORM START */}
-              <form className="space-y-4 md:space-y-5" onSubmit={handleLogin}>
-                <div>
-                  <label className={`block text-[11px] md:text-xs font-extrabold uppercase tracking-wider mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>
-                    Registration ID / Roll No / Email
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={userId}
-                      onChange={(e) => setUserId(e.target.value)}
-                      placeholder="e.g. 1554424049"
-                      className={`w-full px-4 py-3 md:py-3.5 rounded-xl border focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm font-bold ${isDarkMode ? 'bg-gray-800/90 border-gray-600 text-white placeholder-gray-500' : 'bg-gray-50/90 border-gray-300 text-black placeholder-gray-400 shadow-inner'
-                        }`}
-                    />
-                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-base">🆔</span>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between items-center mb-1.5">
-                    <label className={`block text-[11px] md:text-xs font-extrabold uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>
-                      Account Password
-                    </label>
-                    <a href="#" className="text-[11px] font-bold text-blue-600 hover:text-blue-500 hover:underline">
-                      Forgot Password?
-                    </a>
-                  </div>
-                  <div className="relative">
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••••••"
-                      className={`w-full px-4 py-3 md:py-3.5 rounded-xl border focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm font-bold ${isDarkMode ? 'bg-gray-800/90 border-gray-600 text-white placeholder-gray-500' : 'bg-gray-50/90 border-gray-300 text-black placeholder-gray-400 shadow-inner'
-                        }`}
-                    />
-                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-base">🔒</span>
-                  </div>
-                </div>
-
-                {/* LOGIN BUTTON */}
-                <div className="pt-2">
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className={`w-full font-black py-3.5 md:py-4 rounded-xl transition-all duration-200 shadow-lg text-sm md:text-base tracking-widest uppercase flex items-center justify-center gap-2 ${isLoading
-                      ? 'bg-blue-400 text-white cursor-not-allowed'
-                      : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-[1.01] active:scale-[0.99]'
-                      }`}
-                  >
-                    <span>{isLoading ? 'Verifying Account...' : 'Sign In to Portal'}</span>
-                    {!isLoading && <span>➔</span>}
-                  </button>
-                </div>
-
-                {/* SIGNUP LINK */}
-                <div className="text-center pt-2">
-                  <p className={`text-xs md:text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    New to GP Barh Hostel?{' '}
-                    <Link to="/signup" className="font-extrabold text-blue-600 hover:text-blue-500 hover:underline">
-                      Create Student Account
-                    </Link>
-                  </p>
-                </div>
-              </form>
-              {/* 🌟 FORM END */}
-            </div>
-
-            {/* SECURITY TRUST PILLS */}
-            <div className="pt-6 mt-6 border-t border-gray-200/80 dark:border-gray-800 flex items-center justify-between text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-              <span className="flex items-center gap-1">🔒 256-Bit SSL Encrypted</span>
-              <span>•</span>
-              <span className="flex items-center gap-1">⚡ Instant Passbook Sync</span>
-              <span>•</span>
-              <span className="flex items-center gap-1">🏛️ GP Barh</span>
-            </div>
+            </form>
+            {/* 🌟 FORM END */}
           </div>
 
           {/* DIVIDER */}
@@ -209,42 +187,26 @@ function Login() {
             <div className={`h-full w-[1px] ${isDarkMode ? 'bg-gray-700' : 'bg-gray-300'}`}></div>
           </div>
 
-          {/* RIGHT SIDE: MODERN QR MOBILE LOGIN & FEATURES */}
-          <div className={`hidden md:flex w-[44%] p-8 lg:p-10 flex-col items-center justify-between text-center relative ${isDarkMode ? 'bg-gradient-to-b from-[#18181b] to-[#0f0f12]' : 'bg-gradient-to-b from-gray-50 to-slate-100'}`}>
-            <div className="w-full">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10.5px] font-extrabold uppercase tracking-wider border border-emerald-500/20 mb-4">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                <span>Fast Mobile App Login</span>
+          {/* RIGHT SIDE: CLEAN & ELEGANT QR MOBILE LOGIN */}
+          <div className={`hidden md:flex w-[44%] p-8 lg:p-10 flex-col items-center justify-center text-center relative ${isDarkMode ? 'bg-gradient-to-b from-[#18181b] to-[#0f0f12]' : 'bg-gradient-to-b from-gray-50 to-slate-100'}`}>
+            <h3 className={`text-base lg:text-lg font-black uppercase tracking-wider mb-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+              Scan to Login Instantly
+            </h3>
+            <p className={`text-xs font-semibold leading-relaxed mb-6 px-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              Open the official <strong>GP Barh Mobile App</strong> on your phone and point the camera at this QR code.
+            </p>
+
+            {/* QR SCANNER CONTAINER */}
+            <div className="relative mx-auto w-48 h-48 lg:w-52 lg:h-52 flex items-center justify-center">
+              <div className={`w-full h-full border-2 border-dashed rounded-3xl flex flex-col items-center justify-center relative overflow-hidden shadow-xl transition-transform hover:scale-105 duration-300 ${isDarkMode ? 'bg-gray-900 border-blue-500/40' : 'bg-white border-blue-400/50'}`}>
+                {/* SCANNING LASER */}
+                <div className="absolute w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent shadow-[0_0_20px_4px_rgba(59,130,246,0.9)] animate-scan"></div>
+                
+                <span className="text-6xl lg:text-7xl mb-2 opacity-95 drop-shadow-md">📱</span>
+                <span className="text-[10.5px] text-blue-600 dark:text-blue-400 font-extrabold tracking-widest uppercase">
+                  Scan in GP Barh App
+                </span>
               </div>
-
-              <h3 className={`text-base lg:text-lg font-black uppercase tracking-wider mb-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-                Scan to Login Instantly
-              </h3>
-              <p className={`text-xs font-semibold leading-relaxed mb-6 px-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                Open the official <strong>GP Barh Mobile App</strong> on your phone and point the camera at this QR code.
-              </p>
-
-              {/* QR SCANNER CONTAINER WITH CORNERS */}
-              <div className="relative mx-auto w-48 h-48 lg:w-52 lg:h-52 flex items-center justify-center">
-                <div className={`w-full h-full border-2 border-dashed rounded-3xl flex flex-col items-center justify-center relative overflow-hidden shadow-xl transition-transform hover:scale-105 duration-300 ${isDarkMode ? 'bg-gray-900 border-blue-500/40' : 'bg-white border-blue-400/50'}`}>
-                  {/* SCANNING LASER */}
-                  <div className="absolute w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent shadow-[0_0_20px_4px_rgba(59,130,246,0.9)] animate-scan"></div>
-                  
-                  <span className="text-6xl lg:text-7xl mb-2 opacity-95 drop-shadow-md">📱</span>
-                  <span className="text-[10.5px] text-blue-600 dark:text-blue-400 font-extrabold tracking-widest uppercase">
-                    Scan in GP Barh App
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* LIVE QR STATUS */}
-            <div className="w-full pt-4 mt-4 border-t border-gray-200/80 dark:border-gray-800 flex items-center justify-between text-[11px] font-bold">
-              <span className="text-gray-400 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>QR Session Live</span>
-              </span>
-              <span className="text-blue-600 dark:text-blue-400 font-mono">Auto-Refresh 🔄</span>
             </div>
           </div>
         </div>
