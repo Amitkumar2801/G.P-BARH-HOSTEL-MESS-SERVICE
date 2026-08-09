@@ -136,7 +136,7 @@ const customCSS = `
   .prof-header-simple h2 { font-size: 24px; font-weight: 800; color: var(--text); margin-bottom: 6px; font-family: 'Fraunces', serif; }
   .prof-header-simple p { font-size: 14px; color: var(--text-muted); font-weight: 500; display: flex; align-items: center; gap: 6px; }
 
-  /* PASSBOOK UI (CLEAN TABLE STYLE) */
+  /* PASSBOOK UI (CLEAN TABLE STYLE & BANK STATEMENT) */
   .pb-wrapper { background: var(--card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-sm); }
   .pb-top { background: linear-gradient(135deg, var(--crimson-dark), var(--crimson)); padding: 24px 32px; color: white; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
   .pb-top.mess { background: linear-gradient(135deg, var(--teal), #059669); }
@@ -153,6 +153,31 @@ const customCSS = `
   .txt-red { color: #dc2626; font-weight: 800; }
   .txt-green { color: #16a34a; font-weight: 800; }
   .txt-muted { color: var(--text-muted); font-weight: 500; font-size: 13px; }
+
+  /* BANK STATEMENT SPECIFIC STYLES */
+  .bank-passbook-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; box-shadow: var(--shadow); }
+  .bank-header-banner { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: white; padding: 24px 30px; border-bottom: 3px solid var(--crimson); position: relative; }
+  .bank-header-banner.dark-mode { background: linear-gradient(135deg, #090e17 0%, #172033 100%); }
+  .bank-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin: 20px 0; }
+  .bank-stat-item { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; box-shadow: var(--shadow-sm); }
+  .bank-stat-item .bs-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 4px; }
+  .bank-stat-item .bs-value { font-size: 24px; font-weight: 800; color: var(--text); }
+  .bank-filter-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 20px; background: var(--input-bg); border-bottom: 1px solid var(--border); }
+  .filter-pill-group { display: flex; gap: 6px; flex-wrap: wrap; }
+  .filter-pill { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; transition: 0.2s; }
+  .filter-pill:hover { border-color: var(--crimson); }
+  .filter-pill.active { background: var(--crimson); color: white; border-color: var(--crimson); box-shadow: 0 2px 8px rgba(139, 13, 13, 0.3); }
+  .stmt-table { width: 100%; border-collapse: collapse; min-width: 780px; }
+  .stmt-table th { background: var(--hover-bg); padding: 12px 18px; font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; border-bottom: 1px solid var(--border); text-align: left; }
+  .stmt-table td { padding: 14px 18px; font-size: 13px; font-weight: 600; color: var(--text); border-bottom: 1px solid var(--border); }
+  .stmt-table tr:hover { background: var(--hover-bg); }
+  .badge-dr { background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 8px; font-size: 10px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; }
+  .badge-cr { background: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 8px; font-size: 10px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; }
+  .month-tracker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); gap: 8px; margin-top: 10px; }
+  .month-tracker-chip { padding: 8px 4px; border-radius: 10px; text-align: center; border: 1px solid var(--border); font-size: 11px; font-weight: 700; transition: 0.2s; }
+  .month-tracker-chip.settled { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+  .month-tracker-chip.upcoming { background: #fefce8; color: #854d0e; border-color: #fef08a; }
+  .month-tracker-chip.future { background: var(--input-bg); color: var(--text-muted); opacity: 0.7; }
 
   /* PAYMENTS HUB SPECIFIC */
   .wallet-card { background: linear-gradient(135deg, var(--teal) 0%, #059669 100%); border-radius: 20px; padding: 32px 40px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; color: #fff; box-shadow: 0 10px 25px rgba(14,122,90,0.2); }
@@ -278,6 +303,10 @@ function StudentDashboard() {
   const [paymentSelection, setPaymentSelection] = useState(null);
   const [customAmount, setCustomAmount] = useState("");
   const [paymentCycle, setPaymentCycle] = useState("");
+  
+  // 🌟 HOSTEL BANK STATEMENT STATES
+  const [hostelFilter, setHostelFilter] = useState('all'); // 'all', 'debit', 'credit'
+  const [hostelSearch, setHostelSearch] = useState('');
 
   const today = new Date();
   const formattedDate = today.toLocaleDateString('en-IN', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' });
@@ -577,17 +606,425 @@ function StudentDashboard() {
                 </div>
               )}
 
-              {/* 2 & 3. PASSBOOKS (CLEAN TABLE UI) */}
-              {(activeTab === 'hostel' || activeTab === 'mess') && (
+              {/* 🌟 2. HOSTEL PASSBOOK (BANK STATEMENT & AUTO-DEDUCTION LEDGER) 🌟 */}
+              {activeTab === 'hostel' && (() => {
+                const rawTransactions = [
+                  {
+                    id: 'TXN-HST-20260801',
+                    date: '01-Aug-2026',
+                    time: '12:01 AM',
+                    title: 'Monthly Room Rent (August 2026)',
+                    desc: 'Scheduled System Auto-Deduction • Room #204',
+                    category: 'Monthly Rent',
+                    mode: 'Auto Debit',
+                    type: 'debit',
+                    amount: 500,
+                    balance: 4000,
+                    status: 'Settled'
+                  },
+                  {
+                    id: 'TXN-HST-20260701',
+                    date: '01-Jul-2026',
+                    time: '12:01 AM',
+                    title: 'Monthly Room Rent (July 2026)',
+                    desc: 'Scheduled System Auto-Deduction • Room #204',
+                    category: 'Monthly Rent',
+                    mode: 'Auto Debit',
+                    type: 'debit',
+                    amount: 500,
+                    balance: 4500,
+                    status: 'Settled'
+                  },
+                  {
+                    id: 'TXN-HST-20260601',
+                    date: '01-Jun-2026',
+                    time: '12:01 AM',
+                    title: 'Monthly Room Rent (June 2026)',
+                    desc: 'Scheduled System Auto-Deduction • Room #204',
+                    category: 'Monthly Rent',
+                    mode: 'Auto Debit',
+                    type: 'debit',
+                    amount: 500,
+                    balance: 5000,
+                    status: 'Settled'
+                  },
+                  {
+                    id: 'TXN-HST-20260501',
+                    date: '01-May-2026',
+                    time: '12:01 AM',
+                    title: 'Monthly Room Rent (May 2026)',
+                    desc: 'Scheduled System Auto-Deduction • Room #204',
+                    category: 'Monthly Rent',
+                    mode: 'Auto Debit',
+                    type: 'debit',
+                    amount: 500,
+                    balance: 5500,
+                    status: 'Settled'
+                  },
+                  {
+                    id: 'TXN-UPI-98421045',
+                    date: '15-Apr-2026',
+                    time: '04:30 PM',
+                    title: 'Hostel Wallet Advance Top-Up',
+                    desc: 'Instant UPI Payment (Ref: GPB/UPI/88934)',
+                    category: 'Deposit / Recharge',
+                    mode: 'UPI Online',
+                    type: 'credit',
+                    amount: 2000,
+                    balance: 6000,
+                    status: 'Success'
+                  },
+                  {
+                    id: 'TXN-HST-20260401',
+                    date: '01-Apr-2026',
+                    time: '12:01 AM',
+                    title: 'Monthly Room Rent (April 2026)',
+                    desc: 'Scheduled System Auto-Deduction • Room #204',
+                    category: 'Monthly Rent',
+                    mode: 'Auto Debit',
+                    type: 'debit',
+                    amount: 500,
+                    balance: 4000,
+                    status: 'Settled'
+                  },
+                  {
+                    id: 'TXN-HST-20260301',
+                    date: '01-Mar-2026',
+                    time: '12:01 AM',
+                    title: 'Monthly Room Rent (March 2026)',
+                    desc: 'Scheduled System Auto-Deduction • Room #204',
+                    category: 'Monthly Rent',
+                    mode: 'Auto Debit',
+                    type: 'debit',
+                    amount: 500,
+                    balance: 4500,
+                    status: 'Settled'
+                  },
+                  {
+                    id: 'TXN-HST-20260201',
+                    date: '01-Feb-2026',
+                    time: '12:01 AM',
+                    title: 'Monthly Room Rent (February 2026)',
+                    desc: 'Scheduled System Auto-Deduction • Room #204',
+                    category: 'Monthly Rent',
+                    mode: 'Auto Debit',
+                    type: 'debit',
+                    amount: 500,
+                    balance: 5000,
+                    status: 'Settled'
+                  },
+                  {
+                    id: 'TXN-DEP-20260116',
+                    date: '16-Jan-2026',
+                    time: '11:15 AM',
+                    title: 'Term Security & Advance Rent Deposit',
+                    desc: 'Initial Term Allotment Settlement via Gateway',
+                    category: 'Term Deposit',
+                    mode: 'Gateway Deposit',
+                    type: 'credit',
+                    amount: 5500,
+                    balance: 5500,
+                    status: 'Success'
+                  }
+                ];
+
+                const filtered = rawTransactions.filter(item => {
+                  if (hostelFilter === 'debit' && item.type !== 'debit') return false;
+                  if (hostelFilter === 'credit' && item.type !== 'credit') return false;
+                  if (hostelSearch) {
+                    const q = hostelSearch.toLowerCase();
+                    return item.title.toLowerCase().includes(q) || item.id.toLowerCase().includes(q) || item.date.toLowerCase().includes(q);
+                  }
+                  return true;
+                });
+
+                const monthsTimeline = [
+                  { m: 'Jan 26', status: 'settled', note: 'Advance Paid', amt: '₹500' },
+                  { m: 'Feb 26', status: 'settled', note: 'Auto Cut', amt: '₹500' },
+                  { m: 'Mar 26', status: 'settled', note: 'Auto Cut', amt: '₹500' },
+                  { m: 'Apr 26', status: 'settled', note: 'Auto Cut', amt: '₹500' },
+                  { m: 'May 26', status: 'settled', note: 'Auto Cut', amt: '₹500' },
+                  { m: 'Jun 26', status: 'settled', note: 'Auto Cut', amt: '₹500' },
+                  { m: 'Jul 26', status: 'settled', note: 'Auto Cut', amt: '₹500' },
+                  { m: 'Aug 26', status: 'settled', note: 'Auto Cut', amt: '₹500' },
+                  { m: 'Sep 26', status: 'upcoming', note: 'Due 1st Sep', amt: '₹500' },
+                  { m: 'Oct 26', status: 'future', note: 'Scheduled', amt: '₹500' },
+                  { m: 'Nov 26', status: 'future', note: 'Scheduled', amt: '₹500' },
+                  { m: 'Dec 26', status: 'future', note: 'Scheduled', amt: '₹500' }
+                ];
+
+                return (
+                  <div>
+                    {/* TOP HEADER */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
+                      <div>
+                        <h2 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span>🏛️</span> Hostel Passbook & Bank Statement
+                        </h2>
+                        <p className="page-sub" style={{ margin: 0 }}>
+                          Official Hostel Rent Ledger • Auto-deduction statement for <strong>Govt. Polytechnic Barh</strong>.
+                        </p>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <button
+                          onClick={() => {
+                            toast.success("Printing Official Statement...", { style: { borderRadius: '10px', background: '#333', color: '#fff' }});
+                            window.print();
+                          }}
+                          style={{
+                            padding: '10px 18px',
+                            background: 'var(--card)',
+                            border: '1px solid var(--border)',
+                            borderRadius: '12px',
+                            fontWeight: 700,
+                            fontSize: '13px',
+                            color: 'var(--text)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            boxShadow: 'var(--shadow-sm)'
+                          }}
+                        >
+                          <span>🖨️</span> Print Statement
+                        </button>
+                        <button
+                          onClick={() => {
+                            toast.success("Passbook Ledger Synchronized with Hostel Core Server!", { style: { borderRadius: '10px', background: '#333', color: '#fff' }});
+                          }}
+                          style={{
+                            padding: '10px 18px',
+                            background: 'var(--crimson)',
+                            border: 'none',
+                            borderRadius: '12px',
+                            fontWeight: 700,
+                            fontSize: '13px',
+                            color: '#fff',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            boxShadow: '0 4px 12px rgba(139,13,13,0.25)'
+                          }}
+                        >
+                          <span>🔄</span> Refresh Ledger
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* ACCOUNT SUMMARY BANNER (BANK STYLE) */}
+                    <div className="bank-passbook-card" style={{ marginBottom: '24px' }}>
+                      <div className="bank-header-banner">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                          <div>
+                            <div style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.5px', color: '#fca5a5', marginBottom: '4px' }}>
+                              STUDENT HOSTEL ACCOUNT (PREPAID LEDGER)
+                            </div>
+                            <div style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Fraunces', serif" }}>
+                              {profileData.fullName || 'AMIT KUMAR'}
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#cbd5e1', marginTop: '2px', fontFamily: 'monospace' }}>
+                              A/C: GPB-HST-{profileData.regNo} • Room #204 (Block-A) • IFSC: GPBARH001
+                            </div>
+                          </div>
+
+                          <div style={{ textAlign: 'right', background: 'rgba(255,255,255,0.08)', padding: '12px 20px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.15)' }}>
+                            <div style={{ fontSize: '11px', fontWeight: 700, color: '#fca5a5', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                              Available Balance
+                            </div>
+                            <div style={{ fontSize: '32px', fontWeight: 900, color: '#fff', lineHeight: 1.1, marginTop: '2px' }}>
+                              ₹ 4,000.00
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#86efac', fontWeight: 700, marginTop: '4px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                              <span>🟢</span> Status: Active & Funded
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 4 STATS CARDS */}
+                      <div style={{ padding: '20px 24px' }}>
+                        <div className="bank-stat-grid" style={{ margin: 0 }}>
+                          <div className="bank-stat-item">
+                            <div className="bs-label">Total Deposits (Credits)</div>
+                            <div className="bs-value" style={{ color: '#16a34a' }}>+ ₹7,500.00</div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>2 Total Transactions</div>
+                          </div>
+                          <div className="bank-stat-item">
+                            <div className="bs-label">Total Rent Auto-Cut (Debits)</div>
+                            <div className="bs-value" style={{ color: '#dc2626' }}>- ₹3,500.00</div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>7 Months Cleared (@ ₹500/mo)</div>
+                          </div>
+                          <div className="bank-stat-item">
+                            <div className="bs-label">Next Scheduled Cut</div>
+                            <div className="bs-value" style={{ color: '#d97706' }}>₹500.00</div>
+                            <div style={{ fontSize: '11px', color: '#d97706', fontWeight: 700, marginTop: '4px' }}>📅 Due on 01-Sep-2026</div>
+                          </div>
+                          <div className="bank-stat-item">
+                            <div className="bs-label">Auto-Debit Mechanism</div>
+                            <div className="bs-value" style={{ fontSize: '18px', color: 'var(--teal)' }}>Active ⚡</div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Cuts 1st of every month</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* MONTHLY RENT AUTO-DEDUCTION TIMELINE TRACKER */}
+                    <div className="custom-card" style={{ padding: '20px 24px', marginBottom: '24px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <h4 style={{ fontSize: '14px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span>📅</span> Academic Year Monthly Rent Deduction Cycle (2026)
+                        </h4>
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--teal)' }}>
+                          Rate: ₹500 / Month (Auto-Debited)
+                        </span>
+                      </div>
+                      <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                        Har mahine ki 1st date ko hostel wallet balance se room rent apne aap kat jata hai.
+                      </p>
+
+                      <div className="month-tracker-grid">
+                        {monthsTimeline.map((item, idx) => (
+                          <div key={idx} className={`month-tracker-chip ${item.status}`}>
+                            <div style={{ fontWeight: 800 }}>{item.m}</div>
+                            <div style={{ fontSize: '10px', marginTop: '2px', fontWeight: 700 }}>{item.amt}</div>
+                            <div style={{ fontSize: '9px', marginTop: '2px', opacity: 0.85 }}>
+                              {item.status === 'settled' ? '✅ Paid' : (item.status === 'upcoming' ? '⏳ 1st Sep' : 'Upcoming')}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* BANK STATEMENT TRANSACTION TABLE */}
+                    <div className="bank-passbook-card">
+                      {/* FILTER & SEARCH BAR */}
+                      <div className="bank-filter-bar">
+                        <div className="filter-pill-group">
+                          <button
+                            className={`filter-pill ${hostelFilter === 'all' ? 'active' : ''}`}
+                            onClick={() => setHostelFilter('all')}
+                          >
+                            All Records ({rawTransactions.length})
+                          </button>
+                          <button
+                            className={`filter-pill ${hostelFilter === 'debit' ? 'active' : ''}`}
+                            onClick={() => setHostelFilter('debit')}
+                          >
+                            Monthly Auto-Cuts (-₹500)
+                          </button>
+                          <button
+                            className={`filter-pill ${hostelFilter === 'credit' ? 'active' : ''}`}
+                            onClick={() => setHostelFilter('credit')}
+                          >
+                            Recharges & Deposits (+₹)
+                          </button>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <input
+                            type="text"
+                            placeholder="Search Ref, Date, Month..."
+                            value={hostelSearch}
+                            onChange={(e) => setHostelSearch(e.target.value)}
+                            style={{
+                              padding: '8px 14px',
+                              borderRadius: '20px',
+                              border: '1px solid var(--border)',
+                              background: 'var(--card)',
+                              color: 'var(--text)',
+                              fontSize: '12px',
+                              outline: 'none',
+                              width: '200px'
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* TABLE */}
+                      <div style={{ overflowX: 'auto' }}>
+                        <table className="stmt-table">
+                          <thead>
+                            <tr>
+                              <th>Date & Time</th>
+                              <th>Ref / Txn ID</th>
+                              <th>Particulars / Description</th>
+                              <th>Type</th>
+                              <th style={{ textAlign: 'right' }}>Debit (Dr)</th>
+                              <th style={{ textAlign: 'right' }}>Credit (Cr)</th>
+                              <th style={{ textAlign: 'right' }}>Balance</th>
+                              <th style={{ textAlign: 'center' }}>Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filtered.map((txn, idx) => (
+                              <tr key={idx}>
+                                <td>
+                                  <div style={{ fontWeight: 700, color: 'var(--text)' }}>{txn.date}</div>
+                                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{txn.time}</div>
+                                </td>
+                                <td>
+                                  <span style={{ fontFamily: 'monospace', fontSize: '11.5px', background: 'var(--input-bg)', padding: '3px 8px', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                                    {txn.id}
+                                  </span>
+                                </td>
+                                <td>
+                                  <div style={{ fontWeight: 700, color: 'var(--text)' }}>{txn.title}</div>
+                                  <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>{txn.desc}</div>
+                                </td>
+                                <td>
+                                  {txn.type === 'debit' ? (
+                                    <span className="badge-dr">🔴 Auto-Cut</span>
+                                  ) : (
+                                    <span className="badge-cr">🟢 Deposit</span>
+                                  )}
+                                </td>
+                                <td style={{ textAlign: 'right', color: txn.type === 'debit' ? '#dc2626' : 'var(--text-muted)', fontWeight: 800 }}>
+                                  {txn.type === 'debit' ? `- ₹${txn.amount.toLocaleString('en-IN')}.00` : '-'}
+                                </td>
+                                <td style={{ textAlign: 'right', color: txn.type === 'credit' ? '#16a34a' : 'var(--text-muted)', fontWeight: 800 }}>
+                                  {txn.type === 'credit' ? `+ ₹${txn.amount.toLocaleString('en-IN')}.00` : '-'}
+                                </td>
+                                <td style={{ textAlign: 'right', fontWeight: 800, color: 'var(--text)' }}>
+                                  ₹{txn.balance.toLocaleString('en-IN')}.00
+                                </td>
+                                <td style={{ textAlign: 'center' }}>
+                                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#16a34a', background: '#dcfce7', padding: '3px 8px', borderRadius: '12px' }}>
+                                    ✅ {txn.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* STATEMENT FOOTER NOTE */}
+                      <div style={{ padding: '16px 20px', background: 'var(--input-bg)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                        <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                          📌 <em>Note: Monthly room rent of ₹500 is auto-debited on the 1st of each calendar month. Certified computerized statement generated by GP Barh Accounts System.</em>
+                        </div>
+                        <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text)' }}>
+                          Verified Digital Stamp: <strong>GPB-ACC-VERIFIED</strong>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* 🌟 3. MESS PASSBOOK (UNTOUCHED) 🌟 */}
+              {activeTab === 'mess' && (
                 <div>
-                  <h2 className="page-title">{activeTab === 'hostel' ? 'Hostel Passbook' : 'Mess Passbook'}</h2>
+                  <h2 className="page-title">Mess Passbook</h2>
                   <p className="page-sub">Track your complete payment history and balances clearly.</p>
 
                   <div className="pb-wrapper">
-                    <div className={`pb-top ${activeTab === 'mess' ? 'mess' : ''}`}>
+                    <div className="pb-top mess">
                       <div>
                         <div className="pb-bal-label">Available Balance</div>
-                        <div className="pb-bal-val">{activeTab === 'hostel' ? '₹ 4,000' : '₹ 18,400'}</div>
+                        <div className="pb-bal-val">₹ 18,400</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: '12px', fontWeight: 600, opacity: 0.9 }}>Last Synchronized</div>
@@ -608,15 +1045,15 @@ function StudentDashboard() {
                           <tbody>
                              <tr>
                                 <td>01-Feb-2025</td>
-                                <td>{activeTab === 'hostel' ? 'Monthly Room Rent' : 'Monthly Mess Charge'}<br/><span className="txt-muted">System Auto Deduction</span></td>
-                                <td className="right txt-red">- ₹{activeTab === 'hostel' ? '500' : '3,200'}</td>
-                                <td className="right">₹{activeTab === 'hostel' ? '4,000' : '18,400'}</td>
+                                <td>Monthly Mess Charge<br/><span className="txt-muted">System Auto Deduction</span></td>
+                                <td className="right txt-red">- ₹3,200</td>
+                                <td className="right">₹18,400</td>
                              </tr>
                              <tr>
                                 <td>16-Jan-2025</td>
-                                <td>{activeTab === 'hostel' ? 'Term Security & Rent Deposit' : 'Six Months Mess Advance'}<br/><span className="txt-muted">Paid via Gateway</span></td>
-                                <td className="right txt-green">+ ₹{activeTab === 'hostel' ? '4,500' : '21,600'}</td>
-                                <td className="right">₹{activeTab === 'hostel' ? '4,500' : '21,600'}</td>
+                                <td>Six Months Mess Advance<br/><span className="txt-muted">Paid via Gateway</span></td>
+                                <td className="right txt-green">+ ₹21,600</td>
+                                <td className="right">₹21,600</td>
                              </tr>
                           </tbody>
                        </table>
