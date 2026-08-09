@@ -143,17 +143,17 @@ function Signup() {
       </header>
 
       {/* ================= MAIN CONTENT AREA (SIGNUP FORM) ================= */}
-      <main className="flex-grow bg-campus flex items-center justify-center p-4 md:p-8 relative">
+      <main className="flex-grow bg-campus flex items-center justify-center p-4 md:p-8 lg:p-10 relative">
         <div className={`absolute inset-0 transition-colors duration-500 ${isDarkMode ? 'bg-black/75' : 'bg-black/40'}`}></div>
 
-        <div className={`relative z-10 backdrop-blur-xl rounded-2xl shadow-2xl flex flex-col md:flex-row w-[95%] md:w-full max-w-[760px] overflow-hidden border transition-all duration-300 ${
-          isDarkMode ? 'bg-[#121212]/90 border-gray-700 text-white' : 'bg-white/95 border-white/60 text-gray-900'
+        <div className={`relative z-10 backdrop-blur-xl rounded-2xl shadow-2xl flex flex-col md:flex-row w-full max-w-[860px] overflow-hidden border transition-all duration-300 ${
+          isDarkMode ? 'bg-[#121212]/95 border-gray-700 text-white' : 'bg-white/95 border-white/60 text-gray-900'
         }`}>
 
-          <div className="w-full md:w-[55%] p-6 md:p-8 flex flex-col justify-center">
-            <div className="text-center md:text-left mb-4">
-              <h2 className="text-2xl md:text-3xl font-black mb-1 tracking-tight text-blue-600 dark:text-blue-400 drop-shadow-sm">Registration</h2>
-              <p className={`text-[10px] md:text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+          <div className="w-full md:w-[56%] p-6 md:p-8 lg:p-10 flex flex-col justify-center">
+            <div className="text-center md:text-left mb-5">
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-black mb-1 tracking-tight text-blue-600 dark:text-blue-400 drop-shadow-sm">Registration</h2>
+              <p className={`text-[11px] md:text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                 Create your hostel account
               </p>
             </div>
@@ -362,14 +362,17 @@ function Signup() {
             <div className={`h-full w-[1px] ${isDarkMode ? 'bg-gray-700' : 'bg-gray-300'}`}></div>
           </div>
 
-          <div className={`hidden md:flex w-[45%] p-8 flex-col items-center justify-center ${isDarkMode ? 'bg-[#1a1a1a]/95' : 'bg-gray-50/95'}`}>
+          <div className={`hidden md:flex w-[44%] p-8 lg:p-10 flex-col items-center justify-center ${isDarkMode ? 'bg-[#1a1a1a]/95' : 'bg-gray-50/95'}`}>
             <h3 className={`text-sm font-black mb-6 uppercase tracking-widest text-center leading-relaxed ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
               Digital<br/>Onboarding
             </h3>
-            <div className={`w-40 h-40 border-2 border-dashed rounded-full flex flex-col items-center justify-center mb-6 relative overflow-hidden shadow-inner ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-300'}`}>
+            <div className={`w-40 h-40 md:w-44 md:h-44 lg:w-48 lg:h-48 border-2 border-dashed rounded-full flex flex-col items-center justify-center mb-4 relative overflow-hidden shadow-inner ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-300'}`}>
               <div className="absolute w-full h-1 bg-green-500 shadow-[0_0_20px_4px_rgba(34,197,94,0.8)] animate-scan"></div>
-              <span className="text-5xl mb-2 opacity-90 drop-shadow-md">🎓</span>
+              <span className="text-5xl lg:text-6xl mb-2 opacity-90 drop-shadow-md">🎓</span>
             </div>
+            <p className={`text-center text-xs font-semibold leading-relaxed px-2 mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              Join the official GP Barh student & mess network seamlessly.
+            </p>
           </div>
         </div>
       </main>
