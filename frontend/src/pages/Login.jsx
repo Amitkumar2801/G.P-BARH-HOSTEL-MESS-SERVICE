@@ -156,44 +156,7 @@ function Login() {
                 </button>
               </div>
 
-              {/* 🌟 DEMO ACCESS FOR RECRUITERS/TESTERS 🌟 */}
-              <div className="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-gray-200 dark:border-gray-700">
-                <p className={`text-[10px] font-bold uppercase tracking-widest text-center mb-2 md:mb-2.5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  Demo Access (One-Click Login)
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => navigate("/student-dashboard", { state: { userRole: 'student', userName: 'Dummy Student' } })}
-                    className="text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 py-2 rounded-lg hover:bg-blue-100 transition-colors shadow-sm"
-                  >
-                    👨‍🎓 Student
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/dashboard", { state: { userRole: 'warden', userName: 'Chief Warden' } })}
-                    className="text-[10px] font-bold bg-red-50 text-red-700 border border-red-200 py-2 rounded-lg hover:bg-red-100 transition-colors shadow-sm"
-                  >
-                    🛡️ Warden
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/dashboard", { state: { userRole: 'parent', userName: 'Dummy Parent' } })}
-                    className="text-[10px] font-bold bg-orange-50 text-orange-700 border border-orange-200 py-2 rounded-lg hover:bg-orange-100 transition-colors shadow-sm"
-                  >
-                    👪 Parent
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/dashboard", { state: { userRole: 'faculty_temp', userName: 'Dummy Faculty' } })}
-                    className="text-[10px] font-bold bg-green-50 text-green-700 border border-green-200 py-2 rounded-lg hover:bg-green-100 transition-colors shadow-sm"
-                  >
-                    👨‍🏫 Faculty
-                  </button>
-                </div>
-              </div>
-
-              <div className="text-center mt-3 mb-1">
+              <div className="text-center mt-4 mb-1">
                 <p className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                   Don't have an account? <Link to="/signup" className="font-bold text-blue-600 hover:text-blue-500 hover:underline">Sign Up</Link>
                 </p>
