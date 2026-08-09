@@ -20,11 +20,14 @@ function WardenDashboard() {
     { id: 2, date: 'Yesterday', student: 'Sohan (Room 201)', category: 'Electrical', issue: 'Fan making noise', remark: '' }
   ]);
 
-  const [settings, setSettings] = useState({
-    regFee: 500,
-    securityDeposit: 2000,
-    hostelRent: 1500,
-    messBill: 3000,
+  const [settings, setSettings] = useState(() => {
+    const saved = localStorage.getItem('gpbarh_warden_settings');
+    return saved ? JSON.parse(saved) : {
+      regFee: 500,
+      securityDeposit: 2000,
+      hostelRent: 2000,
+      messBill: 2500,
+    };
   });
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -70,7 +73,8 @@ function WardenDashboard() {
 
   const handleSettingsSave = (e) => {
     e.preventDefault();
-    toast.success("Global System Configurations Updated Successfully.", { style: { borderRadius: '10px', background: '#333', color: '#fff' }});
+    localStorage.setItem('gpbarh_warden_settings', JSON.stringify(settings));
+    toast.success("Global System Configurations Updated Successfully! Student Payments Hub updated.", { style: { borderRadius: '10px', background: '#333', color: '#fff' }});
   };
 
   const filteredStudents = students.filter(s => 

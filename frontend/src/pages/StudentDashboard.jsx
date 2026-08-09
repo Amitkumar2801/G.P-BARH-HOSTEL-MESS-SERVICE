@@ -308,6 +308,116 @@ function StudentDashboard() {
   const [hostelFilter, setHostelFilter] = useState('all'); // 'all', 'debit', 'credit'
   const [hostelSearch, setHostelSearch] = useState('');
 
+  // 🌟 WARDEN CONFIGURED FEES & WALLET STATES
+  const [wardenSettings, setWardenSettings] = useState(() => {
+    const saved = localStorage.getItem('gpbarh_warden_settings');
+    return saved ? JSON.parse(saved) : {
+      regFee: 500,
+      securityDeposit: 2000,
+      hostelRent: 2000,
+      messBill: 2500,
+    };
+  });
+
+  const [walletBalance, setWalletBalance] = useState(() => {
+    const saved = localStorage.getItem('gpbarh_student_wallet');
+    return saved !== null ? parseFloat(saved) : 500;
+  });
+
+  const [showTopupModal, setShowTopupModal] = useState(false);
+  const [activeReceipt, setActiveReceipt] = useState(null);
+  const [topupInput, setTopupInput] = useState(500);
+
+  // Sync settings whenever switching tabs or loading
+  useEffect(() => {
+    const saved = localStorage.getItem('gpbarh_warden_settings');
+    if (saved) {
+      setWardenSettings(JSON.parse(saved));
+    }
+  }, [activeTab]);
+
+  const handleWalletTopup = (amount) => {
+    const addAmt = parseFloat(amount);
+    if (isNaN(addAmt) || addAmt <= 0) {
+      toast.error("Please enter a valid recharge amount!");
+      return;
+    }
+    const newBal = walletBalance + addAmt;
+    setWalletBalance(newBal);
+    localStorage.setItem('gpbarh_student_wallet', newBal);
+    setShowTopupModal(false);
+    toast.success(`Wallet successfully credited with +₹${addAmt.toLocaleString('en-IN')}! Balance: ₹${newBal.toLocaleString('en-IN')}`, {
+      duration: 4000,
+      style: { borderRadius: '10px', background: '#1e293b', color: '#fbbf24', border: '1px solid #eab308' }
+    });
+  };
+
+  const handlePayHostelRent = (mode = 'wallet') => {
+    const rentAmount = Number(wardenSettings.hostelRent || 2000);
+    if (mode === 'wallet') {
+      if (walletBalance < rentAmount) {
+        toast.error(`Insufficient Balance! You have ₹${walletBalance} in wallet, but Hostel Rent is ₹${rentAmount}. Please top-up or choose Gateway.`);
+        return;
+      }
+      const newBal = walletBalance - rentAmount;
+      setWalletBalance(newBal);
+      localStorage.setItem('gpbarh_student_wallet', newBal);
+    }
+    
+    // Generate Official Printable Receipt
+    const receiptData = {
+      receiptNo: 'REC-HST-' + Math.floor(100000 + Math.random() * 900000),
+      title: 'Monthly Hostel Rent',
+      category: 'Accommodation & Hostel Charges',
+      period: 'August 2026',
+      amount: rentAmount,
+      paidBy: profileData.fullName || 'Amit Kumar Sharma',
+      regNo: profileData.regNo || '1554424049',
+      roomNo: 'Room 102 (Block A)',
+      date: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+      time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+      paymentMethod: mode === 'wallet' ? 'Prepaid Student Wallet' : 'Secure Online Payment Gateway',
+      status: 'PAID (Verified by Chief Warden Office)'
+    };
+    setActiveReceipt(receiptData);
+    toast.success("Hostel Rent Paid Successfully! Official Receipt Generated.", {
+      style: { borderRadius: '10px', background: '#166534', color: '#fff' }
+    });
+  };
+
+  const handlePayMessBill = (mode = 'wallet') => {
+    const messAmount = Number(wardenSettings.messBill || 2500);
+    if (mode === 'wallet') {
+      if (walletBalance < messAmount) {
+        toast.error(`Insufficient Balance! You have ₹${walletBalance} in wallet, but Mess Bill is ₹${messAmount}. Please top-up or choose Gateway.`);
+        return;
+      }
+      const newBal = walletBalance - messAmount;
+      setWalletBalance(newBal);
+      localStorage.setItem('gpbarh_student_wallet', newBal);
+    }
+    
+    // Generate Official Printable Receipt
+    const receiptData = {
+      receiptNo: 'REC-MSS-' + Math.floor(100000 + Math.random() * 900000),
+      title: 'Monthly Mess Dining Bill',
+      category: 'Hostel Mess & Boarding Fee',
+      period: 'August 2026',
+      amount: messAmount,
+      paidBy: profileData.fullName || 'Amit Kumar Sharma',
+      regNo: profileData.regNo || '1554424049',
+      roomNo: 'Room 102 (Block A)',
+      date: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+      time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+      paymentMethod: mode === 'wallet' ? 'Prepaid Student Wallet' : 'Secure Online Payment Gateway',
+      status: 'PAID (Verified by Mess Committee)'
+    };
+    setActiveReceipt(receiptData);
+    toast.success("Mess Bill Paid Successfully! Official Receipt Generated.", {
+      style: { borderRadius: '10px', background: '#166534', color: '#fff' }
+    });
+  };
+
   const today = new Date();
   const formattedDate = today.toLocaleDateString('en-IN', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' });
   const isLate = today.getDate() > 5;
@@ -392,6 +502,250 @@ function StudentDashboard() {
                     <p style={{color: 'var(--text-muted)', fontSize: '15px', fontWeight: 600}}>Redirecting back to your dashboard...</p>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        {/* TOP-UP WALLET MODAL */}
+        {showTopupModal && (
+          <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)', padding: '16px'}}>
+            <div style={{background: 'var(--card)', width: '100%', maxWidth: '440px', borderRadius: '28px', overflow: 'hidden', boxShadow: '0 25px 60px rgba(0,0,0,0.5)', border: '1px solid var(--border)'}}>
+              <div style={{background: 'linear-gradient(135deg, #151c28, #0e131d)', padding: '24px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)'}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                  <div style={{width: '36px', height: '36px', background: '#fbbf24', color: '#000', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 900}}>
+                    👛
+                  </div>
+                  <div>
+                    <h3 style={{fontSize: '18px', fontWeight: 900, margin: 0, color: 'white'}}>Top-Up Prepaid Wallet</h3>
+                    <p style={{fontSize: '11px', color: '#94a3b8', margin: 0, textTransform: 'uppercase', letterSpacing: '1px'}}>Instant Balance Recharge</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowTopupModal(false)}
+                  style={{background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', fontWeight: 900}}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div style={{padding: '28px 24px'}}>
+                <div style={{background: 'var(--input-bg)', border: '1px solid var(--border)', padding: '14px 18px', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+                  <span style={{fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600}}>Current Wallet Balance</span>
+                  <span style={{fontSize: '18px', fontWeight: 900, color: '#fbbf24'}}>₹{walletBalance.toLocaleString('en-IN')}.00</span>
+                </div>
+
+                <label style={{display: 'block', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-muted)', marginBottom: '10px'}}>
+                  Select Top-Up Amount
+                </label>
+
+                {/* AMOUNT PRESETS */}
+                <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginBottom: '16px'}}>
+                  {[500, 1000, 2000, 5000].map(amt => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => setTopupInput(amt)}
+                      style={{
+                        padding: '10px 4px',
+                        borderRadius: '12px',
+                        border: topupInput === amt ? '2px solid #fbbf24' : '1px solid var(--border)',
+                        background: topupInput === amt ? 'rgba(251, 191, 36, 0.15)' : 'var(--card)',
+                        color: topupInput === amt ? '#fbbf24' : 'var(--text)',
+                        fontWeight: 800,
+                        fontSize: '13px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      +₹{amt}
+                    </button>
+                  ))}
+                </div>
+
+                {/* CUSTOM INPUT */}
+                <div style={{marginBottom: '24px'}}>
+                  <div style={{position: 'relative'}}>
+                    <span style={{position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontSize: '18px', fontWeight: 900, color: 'var(--text-muted)'}}>₹</span>
+                    <input
+                      type="number"
+                      value={topupInput}
+                      onChange={(e) => setTopupInput(Number(e.target.value))}
+                      placeholder="Custom Amount"
+                      style={{
+                        width: '100%',
+                        padding: '14px 16px 14px 36px',
+                        borderRadius: '14px',
+                        border: '2px solid var(--border)',
+                        background: 'var(--input-bg)',
+                        color: 'var(--text)',
+                        fontSize: '18px',
+                        fontWeight: 900,
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+                  <p style={{fontSize: '11px', color: 'var(--text-muted)', marginTop: '8px'}}>
+                    💡 Recharging increases wallet funds. (Wallet top-up does not generate a rent receipt).
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => handleWalletTopup(topupInput)}
+                  style={{
+                    background: '#fbbf24',
+                    color: '#000',
+                    width: '100%',
+                    padding: '16px',
+                    borderRadius: '16px',
+                    fontWeight: 900,
+                    fontSize: '14px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '1px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    boxShadow: '0 10px 25px rgba(251, 191, 36, 0.3)',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  Confirm &amp; Add ₹{Number(topupInput || 0).toLocaleString('en-IN')} to Wallet ➔
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* OFFICIAL PRINTABLE FEE RECEIPT MODAL */}
+        {activeReceipt && (
+          <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', padding: '16px'}}>
+            <div style={{background: '#ffffff', color: '#111827', width: '100%', maxWidth: '520px', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 30px 90px rgba(0,0,0,0.6)', border: '2px solid #e2e8f0', position: 'relative'}}>
+              
+              {/* TOP BRANDING BAR */}
+              <div style={{background: '#800000', color: 'white', padding: '20px 24px', textAlign: 'center', borderBottom: '3px solid #eab308'}}>
+                <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '4px'}}>
+                  <div style={{width: '36px', height: '36px', background: 'white', borderRadius: '50%', padding: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'}}>
+                    <img src={logo} alt="Logo" style={{height: '100%', width: '100%', objectFit: 'contain'}} />
+                  </div>
+                  <div>
+                    <h2 style={{fontSize: '15px', fontWeight: 900, margin: 0, fontFamily: 'serif', letterSpacing: '0.5px'}}>राजकीय पॉलिटेक्निक, बाढ़</h2>
+                    <p style={{fontSize: '9px', fontWeight: 700, margin: 0, textTransform: 'uppercase', letterSpacing: '1px', opacity: 0.9}}>Government Polytechnic, Barh</p>
+                  </div>
+                </div>
+                <div style={{background: 'rgba(0,0,0,0.25)', padding: '4px 12px', borderRadius: '20px', display: 'inline-block', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.5px', marginTop: '6px', color: '#fef08a'}}>
+                  🏛️ Official Digital E-Receipt
+                </div>
+              </div>
+
+              {/* RECEIPT BODY */}
+              <div style={{padding: '24px'}}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px dashed #cbd5e1', marginBottom: '16px'}}>
+                  <div>
+                    <div style={{fontSize: '11px', color: '#64748b', fontWeight: 700}}>RECEIPT NO.</div>
+                    <div style={{fontSize: '14px', fontWeight: 900, color: '#800000', fontFamily: 'monospace'}}>{activeReceipt.receiptNo}</div>
+                  </div>
+                  <div style={{textAlign: 'right'}}>
+                    <div style={{fontSize: '11px', color: '#64748b', fontWeight: 700}}>DATE &amp; TIME</div>
+                    <div style={{fontSize: '12px', fontWeight: 800, color: '#334155'}}>{activeReceipt.date} • {activeReceipt.time}</div>
+                  </div>
+                </div>
+
+                {/* STUDENT & FEE DETAILS */}
+                <div style={{background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '16px', marginBottom: '18px'}}>
+                  <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: '12px', columnGap: '16px', fontSize: '12px'}}>
+                    <div>
+                      <span style={{color: '#64748b', fontWeight: 700, display: 'block', fontSize: '10px', textTransform: 'uppercase'}}>Student Name</span>
+                      <strong style={{color: '#0f172a'}}>{activeReceipt.paidBy}</strong>
+                    </div>
+                    <div>
+                      <span style={{color: '#64748b', fontWeight: 700, display: 'block', fontSize: '10px', textTransform: 'uppercase'}}>Registration ID</span>
+                      <strong style={{color: '#0f172a'}}>{activeReceipt.regNo}</strong>
+                    </div>
+                    <div>
+                      <span style={{color: '#64748b', fontWeight: 700, display: 'block', fontSize: '10px', textTransform: 'uppercase'}}>Room Allocation</span>
+                      <strong style={{color: '#0f172a'}}>{activeReceipt.roomNo}</strong>
+                    </div>
+                    <div>
+                      <span style={{color: '#64748b', fontWeight: 700, display: 'block', fontSize: '10px', textTransform: 'uppercase'}}>Billing Period</span>
+                      <strong style={{color: '#0f172a'}}>{activeReceipt.period}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* BREAKDOWN TABLE */}
+                <table style={{width: '100%', borderCollapse: 'collapse', marginBottom: '18px', fontSize: '13px'}}>
+                  <thead>
+                    <tr style={{borderBottom: '2px solid #e2e8f0', color: '#64748b', fontSize: '10px', textTransform: 'uppercase', textAlign: 'left'}}>
+                      <th style={{padding: '8px 0'}}>Fee Description</th>
+                      <th style={{padding: '8px 0', textAlign: 'right'}}>Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr style={{borderBottom: '1px solid #f1f5f9'}}>
+                      <td style={{padding: '12px 0', fontWeight: 700, color: '#1e293b'}}>
+                        {activeReceipt.title}
+                        <div style={{fontSize: '11px', color: '#64748b', fontWeight: 500}}>{activeReceipt.category} • Paid via {activeReceipt.paymentMethod}</div>
+                      </td>
+                      <td style={{padding: '12px 0', textAlign: 'right', fontWeight: 900, color: '#0f172a', fontSize: '15px'}}>
+                        ₹{activeReceipt.amount.toLocaleString('en-IN')}.00
+                      </td>
+                    </tr>
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td style={{padding: '14px 0', fontWeight: 900, color: '#0f172a', fontSize: '15px'}}>TOTAL PAID AMOUNT</td>
+                      <td style={{padding: '14px 0', textAlign: 'right', fontWeight: 900, color: '#166534', fontSize: '20px'}}>
+                        ₹{activeReceipt.amount.toLocaleString('en-IN')}.00
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+
+                {/* DIGITAL VERIFICATION STAMP */}
+                <div style={{background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px'}}>
+                  <span style={{fontSize: '20px'}}>✅</span>
+                  <div>
+                    <div style={{fontSize: '11px', fontWeight: 800, color: '#166534', textTransform: 'uppercase'}}>{activeReceipt.status}</div>
+                    <div style={{fontSize: '10px', color: '#15803d'}}>Digitally generated and verified by GP Barh Hostel Authority.</div>
+                  </div>
+                </div>
+
+                {/* BUTTONS */}
+                <div style={{display: 'flex', gap: '10px'}}>
+                  <button
+                    onClick={() => window.print()}
+                    style={{
+                      flex: 1,
+                      background: '#0f172a',
+                      color: 'white',
+                      padding: '14px',
+                      borderRadius: '12px',
+                      fontWeight: 800,
+                      fontSize: '13px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <span>🖨️</span>
+                    <span>Print / Save PDF</span>
+                  </button>
+                  <button
+                    onClick={() => setActiveReceipt(null)}
+                    style={{
+                      background: '#e2e8f0',
+                      color: '#334155',
+                      padding: '14px 20px',
+                      borderRadius: '12px',
+                      fontWeight: 800,
+                      fontSize: '13px',
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1062,20 +1416,308 @@ function StudentDashboard() {
                 </div>
               )}
 
-              {/* 4. PAYMENTS HUB (SIMPLE / BLANK STANDBY) */}
+              {/* 3. PAYMENTS HUB (EXACT MATCH TO ATTACHED SCREENSHOT + WARDEN SYNC + OFFICIAL RECEIPTS) */}
               {activeTab === 'payments' && (
-                <div>
-                  <h2 className="page-title">Payments Hub</h2>
-                  <p className="page-sub">Direct access to pay your dues, advances, and fines.</p>
+                <div className="animate-fade-in space-y-6">
+                  <div>
+                    <h2 className="page-title">Quarter &amp; Hostel Rent Hub</h2>
+                    <p className="page-sub">Direct unified billing hub with dynamic monthly fee rates set by Chief Warden.</p>
+                  </div>
 
-                  <div className="custom-card" style={{ textAlign: 'center', padding: '80px 24px', minHeight: '380px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ fontSize: '52px', marginBottom: '16px' }}>💳</div>
-                    <h3 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text)', marginBottom: '8px' }}>
-                      Payments Hub
-                    </h3>
-                    <p style={{ fontSize: '14px', color: 'var(--text-muted)', maxWidth: '420px', margin: '0 auto' }}>
-                      This section is currently kept blank. Aap jab bolenge, tab isse naye design ke sath customize kar denge.
-                    </p>
+                  {/* 3-CARD GRID CONTAINER */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))',
+                    gap: '24px',
+                    marginTop: '24px',
+                    marginBottom: '32px'
+                  }}>
+                    
+                    {/* CARD 1: PREPAID WALLET BALANCE (DARK STYLED CARD MATCHING IMAGE) */}
+                    <div style={{
+                      background: '#151c28',
+                      borderRadius: '24px',
+                      padding: '28px 24px',
+                      color: 'white',
+                      boxShadow: '0 20px 40px -15px rgba(15, 23, 42, 0.6)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      minHeight: '270px',
+                      position: 'relative',
+                      overflow: 'hidden'
+                    }}>
+                      {/* WATERMARK WALLET ICON */}
+                      <div style={{
+                        position: 'absolute',
+                        right: '-10px',
+                        top: '40px',
+                        fontSize: '110px',
+                        opacity: 0.07,
+                        pointerEvents: 'none',
+                        userSelect: 'none'
+                      }}>
+                        👛
+                      </div>
+
+                      <div>
+                        <div style={{
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          letterSpacing: '1.5px',
+                          color: '#94a3b8',
+                          textTransform: 'uppercase',
+                          marginBottom: '10px'
+                        }}>
+                          PREPAID WALLET BALANCE
+                        </div>
+                        <div style={{
+                          fontSize: '38px',
+                          fontWeight: 900,
+                          color: '#fbbf24',
+                          lineHeight: 1.1,
+                          letterSpacing: '-0.5px'
+                        }}>
+                          ₹{walletBalance.toLocaleString('en-IN')}.00
+                        </div>
+                        <div style={{
+                          fontSize: '13px',
+                          color: '#94a3b8',
+                          marginTop: '8px',
+                          fontWeight: 500
+                        }}>
+                          Available for rent &amp; mess deductions
+                        </div>
+                      </div>
+
+                      <div style={{ marginTop: '24px' }}>
+                        <button
+                          onClick={() => setShowTopupModal(true)}
+                          style={{
+                            background: '#fbbf24',
+                            color: '#000000',
+                            width: '100%',
+                            padding: '14px 20px',
+                            borderRadius: '14px',
+                            fontWeight: 900,
+                            fontSize: '14px',
+                            letterSpacing: '1px',
+                            textTransform: 'uppercase',
+                            border: 'none',
+                            cursor: 'pointer',
+                            boxShadow: '0 8px 20px rgba(251, 191, 36, 0.25)',
+                            transition: 'all 0.2s',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px'
+                          }}
+                          onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.background = '#f59e0b'; }}
+                          onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = '#fbbf24'; }}
+                        >
+                          <span style={{ fontSize: '18px', lineHeight: 1 }}>+</span>
+                          <span>TOP-UP WALLET</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* CARD 2: MONTHLY HOSTEL RENT */}
+                    <div style={{
+                      background: 'var(--card)',
+                      borderRadius: '24px',
+                      padding: '28px 24px',
+                      boxShadow: '0 10px 30px rgba(0, 0, 0, 0.05)',
+                      border: '1px solid var(--border)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      minHeight: '270px',
+                      transition: 'all 0.3s'
+                    }}>
+                      <div>
+                        {/* BLUE ICON */}
+                        <div style={{
+                          width: '44px',
+                          height: '44px',
+                          background: '#eff6ff',
+                          borderRadius: '14px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#2563eb',
+                          fontSize: '22px',
+                          marginBottom: '16px',
+                          border: '1px solid #dbeafe'
+                        }}>
+                          🏠
+                        </div>
+                        <h3 style={{
+                          fontSize: '18px',
+                          fontWeight: 800,
+                          color: 'var(--text)',
+                          marginBottom: '6px'
+                        }}>
+                          Monthly Quarter Rent
+                        </h3>
+                        <p style={{
+                          fontSize: '13px',
+                          color: 'var(--text-muted)',
+                          lineHeight: 1.4,
+                          marginBottom: '16px'
+                        }}>
+                          Pay your standard monthly accommodation deduction.
+                        </p>
+                        <div style={{
+                          fontSize: '28px',
+                          fontWeight: 900,
+                          color: '#800000',
+                          letterSpacing: '-0.5px'
+                        }}>
+                          ₹{Number(wardenSettings.hostelRent || 2000).toLocaleString('en-IN')}
+                        </div>
+                      </div>
+
+                      <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <button
+                          onClick={() => handlePayHostelRent('wallet')}
+                          style={{
+                            background: '#2563eb',
+                            color: '#ffffff',
+                            width: '100%',
+                            padding: '14px 20px',
+                            borderRadius: '14px',
+                            fontWeight: 800,
+                            fontSize: '13px',
+                            letterSpacing: '1px',
+                            textTransform: 'uppercase',
+                            border: 'none',
+                            cursor: 'pointer',
+                            boxShadow: '0 8px 20px rgba(37, 99, 235, 0.25)',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.background = '#1d4ed8'; }}
+                          onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = '#2563eb'; }}
+                        >
+                          PAY FROM WALLET
+                        </button>
+                        <button
+                          onClick={() => handlePayHostelRent('gateway')}
+                          style={{
+                            background: 'transparent',
+                            color: '#2563eb',
+                            width: '100%',
+                            padding: '8px',
+                            borderRadius: '10px',
+                            fontWeight: 700,
+                            fontSize: '11px',
+                            border: '1px solid #bfdbfe',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Or Pay via Gateway (UPI/Card) ↗
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* CARD 3: MONTHLY MESS BILL */}
+                    <div style={{
+                      background: 'var(--card)',
+                      borderRadius: '24px',
+                      padding: '28px 24px',
+                      boxShadow: '0 10px 30px rgba(0, 0, 0, 0.05)',
+                      border: '1px solid var(--border)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      minHeight: '270px',
+                      transition: 'all 0.3s'
+                    }}>
+                      <div>
+                        {/* ORANGE ICON */}
+                        <div style={{
+                          width: '44px',
+                          height: '44px',
+                          background: '#fff7ed',
+                          borderRadius: '14px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#ea580c',
+                          fontSize: '22px',
+                          marginBottom: '16px',
+                          border: '1px solid #ffedd5'
+                        }}>
+                          💬
+                        </div>
+                        <h3 style={{
+                          fontSize: '18px',
+                          fontWeight: 800,
+                          color: 'var(--text)',
+                          marginBottom: '6px'
+                        }}>
+                          Monthly Mess Bill
+                        </h3>
+                        <p style={{
+                          fontSize: '13px',
+                          color: 'var(--text-muted)',
+                          lineHeight: 1.4,
+                          marginBottom: '16px'
+                        }}>
+                          Settle your monthly dining and mess charges.
+                        </p>
+                        <div style={{
+                          fontSize: '28px',
+                          fontWeight: 900,
+                          color: '#800000',
+                          letterSpacing: '-0.5px'
+                        }}>
+                          ₹{Number(wardenSettings.messBill || 2500).toLocaleString('en-IN')}
+                        </div>
+                      </div>
+
+                      <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <button
+                          onClick={() => handlePayMessBill('wallet')}
+                          style={{
+                            background: '#ea580c',
+                            color: '#ffffff',
+                            width: '100%',
+                            padding: '14px 20px',
+                            borderRadius: '14px',
+                            fontWeight: 800,
+                            fontSize: '13px',
+                            letterSpacing: '1px',
+                            textTransform: 'uppercase',
+                            border: 'none',
+                            cursor: 'pointer',
+                            boxShadow: '0 8px 20px rgba(234, 88, 12, 0.25)',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.background = '#c2410c'; }}
+                          onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = '#ea580c'; }}
+                        >
+                          PAY FROM WALLET
+                        </button>
+                        <button
+                          onClick={() => handlePayMessBill('gateway')}
+                          style={{
+                            background: 'transparent',
+                            color: '#ea580c',
+                            width: '100%',
+                            padding: '8px',
+                            borderRadius: '10px',
+                            fontWeight: 700,
+                            fontSize: '11px',
+                            border: '1px solid #fed7aa',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Or Pay via Gateway (UPI/Card) ↗
+                        </button>
+                      </div>
+                    </div>
+
                   </div>
                 </div>
               )}
