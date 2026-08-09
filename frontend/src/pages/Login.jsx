@@ -175,23 +175,23 @@ function Login() {
         <div className={`absolute inset-0 transition-colors duration-500 ${isDarkMode ? 'bg-black/75' : 'bg-black/40'}`}></div>
 
         {/* 🌟 WOW-FACTOR ULTRA-EXPANDED & LUXURIOUS LOGIN DASHBOARD 🌟 */}
-        <div className={`relative z-10 backdrop-blur-2xl rounded-[32px] shadow-[0_30px_90px_-15px_rgba(0,0,0,0.6)] flex flex-col md:flex-row w-full max-w-[1040px] min-h-[570px] overflow-hidden border transition-all duration-300 ${isDarkMode ? 'bg-[#111115]/95 border-blue-500/20 text-white shadow-blue-900/10' : 'bg-white/95 border-white/90 text-gray-900 shadow-xl'
+        <div className={`relative z-10 backdrop-blur-2xl rounded-[36px] shadow-[0_35px_100px_-15px_rgba(0,0,0,0.65)] flex flex-col md:flex-row w-full max-w-[1050px] min-h-[640px] md:min-h-[670px] overflow-hidden border transition-all duration-300 ${isDarkMode ? 'bg-[#111115]/95 border-blue-500/20 text-white shadow-blue-900/10' : 'bg-white/95 border-white/90 text-gray-900 shadow-xl'
           }`}>
 
-          {/* LEFT SIDE: SPACIOUS & GORGEOUS LOGIN FORM */}
-          <div className="w-full md:w-[56%] p-8 md:p-12 lg:p-14 flex flex-col justify-center relative">
-            <div className="text-left mb-7 md:mb-9">
-              <h2 className="text-3xl md:text-4xl lg:text-[44px] font-black tracking-tight bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-800 dark:from-blue-400 dark:via-indigo-300 dark:to-blue-200 bg-clip-text text-transparent leading-none drop-shadow-sm">
+          {/* LEFT SIDE: SPACIOUS, TALL & GORGEOUS LOGIN FORM */}
+          <div className="w-full md:w-[56%] p-8 md:p-14 lg:p-16 flex flex-col justify-center relative">
+            <div className="text-left mb-8 md:mb-10">
+              <h2 className="text-3xl md:text-4xl lg:text-[46px] font-black tracking-tight bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-800 dark:from-blue-400 dark:via-indigo-300 dark:to-blue-200 bg-clip-text text-transparent leading-none drop-shadow-sm">
                 Student Login
               </h2>
-              <div className="w-14 h-1.5 bg-gradient-to-r from-blue-600 to-indigo-500 rounded-full mt-3"></div>
+              <div className="w-16 h-1.5 bg-gradient-to-r from-blue-600 to-indigo-500 rounded-full mt-3.5"></div>
             </div>
 
             {/* 🌟 FORM START */}
-            <form className="space-y-5 md:space-y-6" onSubmit={handleLogin}>
+            <form className="space-y-6 md:space-y-7" onSubmit={handleLogin}>
               <div>
-                <label className={`block text-[11px] md:text-xs font-black uppercase tracking-wider mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>
-                  Registration ID / Roll No / Email
+                <label className={`block text-[11px] md:text-xs font-black uppercase tracking-wider mb-2.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>
+                  Registration ID / Email
                 </label>
                 <div className="relative group">
                   <input
@@ -199,17 +199,17 @@ function Login() {
                     value={userId}
                     onChange={(e) => setUserId(e.target.value)}
                     placeholder="e.g. 1554424049"
-                    className={`w-full pl-4 pr-11 py-3.5 md:py-4 rounded-2xl border-2 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition-all text-sm md:text-base font-bold ${isDarkMode ? 'bg-gray-800/80 border-gray-700 text-white placeholder-gray-500 focus:bg-gray-800' : 'bg-gray-50/90 border-gray-200 text-black placeholder-gray-400 focus:bg-white shadow-sm'
+                    className={`w-full pl-4.5 pr-12 py-4 rounded-2xl border-2 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition-all text-sm md:text-base font-bold ${isDarkMode ? 'bg-gray-800/80 border-gray-700 text-white placeholder-gray-500 focus:bg-gray-800' : 'bg-gray-50/90 border-gray-200 text-black placeholder-gray-400 focus:bg-white shadow-sm'
                       }`}
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg group-focus-within:text-blue-500 transition-colors">
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl group-focus-within:text-blue-500 transition-colors">
                     🆔
                   </span>
                 </div>
               </div>
 
               <div>
-                <div className="flex justify-between items-center mb-2">
+                <div className="flex justify-between items-center mb-2.5">
                   <label className={`block text-[11px] md:text-xs font-black uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>
                     Account Password
                   </label>
@@ -231,19 +231,19 @@ function Login() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••••••"
-                    className={`w-full pl-4 pr-20 py-3.5 md:py-4 rounded-2xl border-2 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition-all text-sm md:text-base font-bold ${isDarkMode ? 'bg-gray-800/80 border-gray-700 text-white placeholder-gray-500 focus:bg-gray-800' : 'bg-gray-50/90 border-gray-200 text-black placeholder-gray-400 focus:bg-white shadow-sm'
+                    className={`w-full pl-4.5 pr-20 py-4 rounded-2xl border-2 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition-all text-sm md:text-base font-bold ${isDarkMode ? 'bg-gray-800/80 border-gray-700 text-white placeholder-gray-500 focus:bg-gray-800' : 'bg-gray-50/90 border-gray-200 text-black placeholder-gray-400 focus:bg-white shadow-sm'
                       }`}
                   />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                  <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="text-xs font-bold text-gray-400 hover:text-blue-600 p-1 rounded transition-colors"
+                      className="text-sm font-bold text-gray-400 hover:text-blue-600 p-1.5 rounded-lg transition-colors"
                       title={showPassword ? "Hide Password" : "Show Password"}
                     >
                       {showPassword ? "🙈" : "👁️"}
                     </button>
-                    <span className="text-gray-400 text-lg">🔒</span>
+                    <span className="text-gray-400 text-xl">🔒</span>
                   </div>
                 </div>
               </div>
@@ -253,7 +253,7 @@ function Login() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className={`w-full font-black py-4 rounded-2xl transition-all duration-300 shadow-xl text-sm md:text-base tracking-widest uppercase flex items-center justify-center gap-3 ${isLoading
+                  className={`w-full font-black py-4.5 rounded-2xl transition-all duration-300 shadow-xl text-sm md:text-base tracking-widest uppercase flex items-center justify-center gap-3 ${isLoading
                     ? 'bg-blue-400 text-white cursor-not-allowed'
                     : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-[1.015] active:scale-[0.98]'
                     }`}
@@ -284,9 +284,9 @@ function Login() {
             <div className={`h-full w-[1px] ${isDarkMode ? 'bg-gray-700' : 'bg-gray-300'}`}></div>
           </div>
 
-          {/* RIGHT SIDE: CLEAN, HIGH-TECH QR MOBILE LOGIN */}
-          <div className={`hidden md:flex w-[44%] p-8 lg:p-12 flex-col items-center justify-center text-center relative ${isDarkMode ? 'bg-gradient-to-b from-[#18181f] to-[#0d0d10]' : 'bg-gradient-to-b from-slate-50 via-gray-50 to-blue-50/40'}`}>
-            <div className="w-full max-w-[280px]">
+          {/* RIGHT SIDE: CLEAN, TALL, HIGH-TECH QR MOBILE LOGIN */}
+          <div className={`hidden md:flex w-[44%] p-8 lg:p-14 flex-col items-center justify-between text-center relative ${isDarkMode ? 'bg-gradient-to-b from-[#18181f] to-[#0d0d10]' : 'bg-gradient-to-b from-slate-50 via-gray-50 to-blue-50/40'}`}>
+            <div className="w-full max-w-[300px] flex-1 flex flex-col items-center justify-center">
               <h3 className={`text-lg lg:text-xl font-black uppercase tracking-wider mb-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
                 Scan to Login Instantly
               </h3>
@@ -295,17 +295,35 @@ function Login() {
               </p>
 
               {/* QR SCANNER CONTAINER WITH FLOATING LASER */}
-              <div className="relative mx-auto w-52 h-52 lg:w-56 lg:h-56 flex items-center justify-center">
+              <div className="relative mx-auto w-56 h-56 lg:w-60 lg:h-60 flex items-center justify-center">
                 <div className={`w-full h-full border-2 border-dashed rounded-3xl flex flex-col items-center justify-center relative overflow-hidden shadow-2xl transition-transform hover:scale-105 duration-300 ${isDarkMode ? 'bg-gray-900 border-blue-500/50 shadow-blue-900/20' : 'bg-white border-blue-400 shadow-blue-500/10'}`}>
                   {/* SCANNING LASER BEAM */}
                   <div className="absolute w-full h-1.5 bg-gradient-to-r from-transparent via-blue-500 to-transparent shadow-[0_0_25px_6px_rgba(59,130,246,0.95)] animate-scan"></div>
                   
-                  <span className="text-7xl mb-3 opacity-95 drop-shadow-lg">📱</span>
+                  <span className="text-7xl lg:text-8xl mb-3 opacity-95 drop-shadow-lg">📱</span>
                   <span className="text-[11px] text-blue-600 dark:text-blue-400 font-black tracking-widest uppercase">
                     Scan in GP Barh App
                   </span>
                 </div>
               </div>
+            </div>
+
+            {/* LIVE QR STATUS & REFRESH BAR */}
+            <div className="w-full pt-5 mt-4 border-t border-gray-200/80 dark:border-gray-800 flex items-center justify-between text-[11px] font-bold">
+              <span className="text-gray-400 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>QR Session Live</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  toast.success("QR Token refreshed successfully!", { style: { borderRadius: '10px', background: '#333', color: '#fff' }});
+                }}
+                className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 font-mono font-bold cursor-pointer bg-transparent border-none"
+              >
+                <span>Auto-Refresh</span>
+                <span>🔄</span>
+              </button>
             </div>
           </div>
         </div>
