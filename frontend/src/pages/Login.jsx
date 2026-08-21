@@ -121,8 +121,6 @@ function Login() {
         navigate("/student-dashboard", { state: { userRole: role, userName: response.data.user.full_name } });
       } else if (role === 'parent') {
         navigate("/parent-dashboard", { state: { userRole: role, userName: response.data.user.full_name } });
-      } else if (role === 'faculty') {
-        navigate("/faculty-dashboard", { state: { userRole: role, userName: response.data.user.full_name } });
       } else {
         navigate("/dashboard", { state: { userRole: role, userName: response.data.user.full_name } });
       }

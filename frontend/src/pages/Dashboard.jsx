@@ -13,7 +13,7 @@ function Dashboard() {
   // Taki agar 'student' role aaye, toh hum usko apne UI ke hisaab se 'boy' me map kar dein
   useEffect(() => {
     if (location.state?.userRole === 'student') setCurrentRole('boy');
-    else if (location.state?.userRole === 'warden') setCurrentRole('faculty'); // Warden ko faculty dashboard dikhega
+    else if (location.state?.userRole === 'warden') setCurrentRole('warden');
     else if (location.state?.userRole === 'parent') setCurrentRole('parent');
   }, [location.state]);
 
@@ -144,7 +144,7 @@ function Dashboard() {
             >
               <option value="boy">👨 Boys Hostel</option>
               <option value="girl">👩 Girls Hostel</option>
-              <option value="faculty">👨‍🏫 Faculty</option>
+              <option value="warden">🛡️ Warden / Admin</option>
               <option value="parent">👪 Parents/Guest</option>
             </select>
           </div>
@@ -242,7 +242,7 @@ function Dashboard() {
           {/* ----------------------------------------------------------------- */}
           {/* 2. WARDEN / ADMIN SECTION (Supercharged) */}
           {/* ----------------------------------------------------------------- */}
-          {currentRole === 'faculty' && (
+          {currentRole === 'warden' && (
             <>
               {/* WARDEN WELCOME BANNER */}
               <div className="bg-gradient-to-br from-gray-800 to-black p-6 rounded-2xl shadow-lg text-white col-span-1 md:col-span-2 lg:col-span-3 flex justify-between items-center border-l-4 border-yellow-500">

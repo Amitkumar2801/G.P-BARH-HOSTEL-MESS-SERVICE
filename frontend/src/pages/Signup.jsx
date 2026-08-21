@@ -51,10 +51,6 @@ function Signup() {
       alert("Parent details incomplete! 🛑");
       return;
     }
-    if (role === 'faculty' && (!employeeId || !email || !secretCode)) {
-      alert("Faculty details incomplete! 🛑");
-      return;
-    }
     if (role === 'warden' && (!adminId || !masterKey)) {
       alert("Warden details incomplete! 🛑");
       return;
@@ -77,10 +73,6 @@ function Signup() {
     } else if (role === 'parent') {
       payload.phone = phone;
       payload.ward_reg_no = regNo; // Reusing regNo for ward's reg no
-    } else if (role === 'faculty') {
-      payload.employee_id = employeeId;
-      payload.email = email;
-      payload.secret_code = secretCode;
     } else if (role === 'warden') {
       payload.admin_id = adminId;
       payload.master_key = masterKey;
@@ -180,7 +172,6 @@ function Signup() {
                   <option value="student">👨‍🎓 Student</option>
                   <option value="warden">🛡️ Warden / Admin</option>
                   <option value="parent">👪 Parent / Guest</option>
-                  <option value="faculty">👨‍🏫 Faculty / Staff</option>
                 </select>
               </div>
 
@@ -288,43 +279,6 @@ function Signup() {
                 </>
               )}
 
-              {/* FACULTY FIELDS */}
-              {role === 'faculty' && (
-                <>
-                  <div className="flex space-x-3">
-                    <div className="w-1/2">
-                      <label className={labelClass}>Employee ID</label>
-                      <input
-                        type="text"
-                        value={employeeId}
-                        onChange={(e) => setEmployeeId(e.target.value)}
-                        placeholder="e.g. EMP-104"
-                        className={inputClass}
-                      />
-                    </div>
-                    <div className="w-1/2">
-                      <label className={labelClass}>Official Email</label>
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="staff@gpbarh.in"
-                        className={inputClass}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className={labelClass}>Secret Access Code</label>
-                    <input
-                      type="password"
-                      value={secretCode}
-                      onChange={(e) => setSecretCode(e.target.value)}
-                      placeholder="Provided by College"
-                      className={inputClass}
-                    />
-                  </div>
-                </>
-              )}
 
               {/* COMMON FIELD: PASSWORD */}
               <div>

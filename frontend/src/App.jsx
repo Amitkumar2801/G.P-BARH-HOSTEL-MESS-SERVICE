@@ -10,7 +10,6 @@ import StudentDashboard from './pages/StudentDashboard';
 import WardenDashboard from './pages/WardenDashboard';
 // 🌟 NAYE IMPORTS
 import ParentDashboard from './pages/ParentDashboard';
-import FacultyDashboard from './pages/FacultyDashboard';
 
 function App() {
   return (
@@ -24,7 +23,6 @@ function App() {
         <Route path="/warden-dashboard" element={<WardenDashboard />} />
         {/* 🌟 NAYE RASTE */}
         <Route path="/parent-dashboard" element={<ParentDashboard />} />
-        <Route path="/faculty-dashboard" element={<FacultyDashboard />} />
       </Routes>
     </Router>
   );
