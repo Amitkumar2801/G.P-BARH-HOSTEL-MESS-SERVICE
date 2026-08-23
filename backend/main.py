@@ -103,8 +103,8 @@ def seed_default_users():
             student_male.blood_group = "O+"
             student_male.branch = "Artificial Intelligence & Machine Learning"
             student_male.semester = "2024-27"
-            student_male.mobile = "+91 88731 42022"
-            student_male.address = "Vill - Agwanpur, P.O - Agwanpur, Dist - Patna, State - Bihar, PIN - 803213"
+            student_male.mobile = ""
+            student_male.address = ""
             student_male.password = "password123"
             db.commit()
 
@@ -123,10 +123,10 @@ def seed_default_users():
                 reg_no="1554424000",
                 branch="Artificial Intelligence & Machine Learning",
                 semester="2024-27",
-                mobile="+91 91234 56789",
-                guardian_contact="9876543222",
-                guardian_mobile="9876543222",
-                address="Vill - Saksohara, P.O - Saksohara, Dist - Patna, State - Bihar, PIN - 803213",
+                mobile="",
+                guardian_contact="",
+                guardian_mobile="",
+                address="",
                 blood_group="O+",
                 profile_completed=True
             )
@@ -139,10 +139,39 @@ def seed_default_users():
             student_female.blood_group = "O+"
             student_female.branch = "Artificial Intelligence & Machine Learning"
             student_female.semester = "2024-27"
-            student_female.mobile = "+91 91234 56789"
-            student_female.address = "Vill - Saksohara, P.O - Saksohara, Dist - Patna, State - Bihar, PIN - 803213"
+            student_female.mobile = ""
+            student_female.address = ""
             student_female.password = "SANAMIT"
             db.commit()
+
+        # Additional Sample Students for rich Directory
+        extra_students = [
+            ("RAHUL VERMA", "1554424052", "52", "MALE", "Civil Engineering (Construction Technology)", "+91 98351 99210", "B+"),
+            ("POOJA KUMARI", "1554424088", "14", "FEMALE", "Electronics (Robotics)", "+91 76543 21980", "A+"),
+            ("PRIYANSHU RAJ", "1554424018", "18", "MALE", "Mechanical Engineering (CAD/CAM)", "+91 99345 88231", "AB+"),
+            ("NEHA SINGH", "1554424031", "31", "FEMALE", "Artificial Intelligence & Machine Learning", "+91 82103 44590", "O+"),
+            ("VIKRAM ADITYA", "1554424065", "65", "MALE", "Electronics (Robotics)", "+91 94721 00342", "O-"),
+            ("ANANYA ROY", "1554424095", "22", "FEMALE", "Civil Engineering (Construction Technology)", "+91 91552 87634", "B-")
+        ]
+        for name, reg, roll, gen, br, mob, bg in extra_students:
+            exists = db.query(models.User).filter(models.User.reg_no_email == reg).first()
+            if not exists:
+                new_s = models.User(
+                    full_name=name,
+                    reg_no_email=reg,
+                    reg_no=reg,
+                    roll_no=roll,
+                    password="password123",
+                    role="student",
+                    gender=gen,
+                    branch=br,
+                    semester="2024-27",
+                    mobile=mob,
+                    blood_group=bg,
+                    profile_completed=True
+                )
+                db.add(new_s)
+                db.commit()
     except Exception as e:
         print("Seeding users error:", e)
     finally:
@@ -670,3 +699,233 @@ def get_warden_students(db: Session = Depends(get_db)):
             profile_completed=s.profile_completed or False
         ))
     return results
+
+# ==========================================
+# 💳 DYNAMIC FEE CONFIGURATION & PAYMENTS HUB ENDPOINTS
+# ==========================================
+def seed_fee_structure_and_payments():
+    """Seed initial fee rates and verified demo transaction history"""
+    db = SessionLocal()
+    try:
+        fee_config = db.query(models.FeeStructure).first()
+        if not fee_config:
+            fee_config = models.FeeStructure(
+                id=1,
+                mess_fee_per_month=3600.0,
+                hostel_maintenance_per_month=750.0,
+                caution_money=1500.0,
+                registration_fee=500.0,
+                updated_at=datetime.utcnow()
+            )
+            db.add(fee_config)
+            db.commit()
+
+        # Seed sample transactions if empty
+        if db.query(models.PaymentTransaction).count() == 0:
+            txns = [
+                models.PaymentTransaction(
+                    student_id=1,
+                    student_name="AMIT SHARMA",
+                    reg_no="1554424049",
+                    gender="MALE",
+                    fee_type="HOSTEL",
+                    amount=4500.0,
+                    utr_number="UPI/623849102849/SBIN",
+                    status="APPROVED",
+                    receipt_number="GPB/2026/HST-84921",
+                    remarks="Verified & Approved by Accounts",
+                    payment_period="Senior Batch (6 Months Maintenance)",
+                    created_at=datetime.utcnow(),
+                    verified_at=datetime.utcnow()
+                ),
+                models.PaymentTransaction(
+                    student_id=1,
+                    student_name="AMIT SHARMA",
+                    reg_no="1554424049",
+                    gender="MALE",
+                    fee_type="MESS",
+                    amount=21600.0,
+                    utr_number="HDFC/992817264810/MESS",
+                    status="APPROVED",
+                    receipt_number="GPB/2026/MSS-72105",
+                    remarks="Full 6-Month Semester Advance Verified",
+                    payment_period="6 Months (Full Semester)",
+                    created_at=datetime.utcnow(),
+                    verified_at=datetime.utcnow()
+                ),
+                models.PaymentTransaction(
+                    student_id=2,
+                    student_name="SANA SHARMA",
+                    reg_no="1554424000",
+                    gender="FEMALE",
+                    fee_type="HOSTEL",
+                    amount=4500.0,
+                    utr_number="UPI/771829304125/KKBK",
+                    status="APPROVED",
+                    receipt_number="GPB/2026/HST-90142",
+                    remarks="Verified & Approved by Accounts",
+                    payment_period="Senior Batch (6 Months Maintenance)",
+                    created_at=datetime.utcnow(),
+                    verified_at=datetime.utcnow()
+                ),
+                models.PaymentTransaction(
+                    student_id=2,
+                    student_name="SANA SHARMA",
+                    reg_no="1554424000",
+                    gender="FEMALE",
+                    fee_type="MESS",
+                    amount=21600.0,
+                    utr_number="UPI/883920194820/KKBK",
+                    status="APPROVED",
+                    receipt_number="GPB/2026/MSS-88301",
+                    remarks="Full 6-Month Semester Advance Verified",
+                    payment_period="6 Months (Full Semester)",
+                    created_at=datetime.utcnow(),
+                    verified_at=datetime.utcnow()
+                ),
+            ]
+            for t in txns:
+                db.add(t)
+            db.commit()
+    except Exception as e:
+        print("Seed fee error:", e)
+        db.rollback()
+    finally:
+        db.close()
+
+seed_fee_structure_and_payments()
+
+@app.get("/api/fees/config", response_model=schemas.FeeStructureSchema, tags=["Fee & Payments"])
+def get_fee_configuration(db: Session = Depends(get_db)):
+    """Fetch active dynamic fee structure (Mess, Maintenance, Caution, Registration)"""
+    config = db.query(models.FeeStructure).first()
+    if not config:
+        config = models.FeeStructure(
+            id=1,
+            mess_fee_per_month=3600.0,
+            hostel_maintenance_per_month=750.0,
+            caution_money=1500.0,
+            registration_fee=500.0
+        )
+        db.add(config)
+        db.commit()
+        db.refresh(config)
+    return config
+
+@app.put("/api/admin/fees/config", response_model=schemas.FeeStructureSchema, tags=["Fee & Payments"])
+def update_fee_configuration(payload: schemas.FeeStructureUpdate, db: Session = Depends(get_db)):
+    """Warden updates dynamic fee rates with instant broadcast"""
+    config = db.query(models.FeeStructure).first()
+    if not config:
+        config = models.FeeStructure(id=1)
+        db.add(config)
+
+    if payload.mess_fee_per_month is not None:
+        config.mess_fee_per_month = payload.mess_fee_per_month
+    if payload.hostel_maintenance_per_month is not None:
+        config.hostel_maintenance_per_month = payload.hostel_maintenance_per_month
+    if payload.caution_money is not None:
+        config.caution_money = payload.caution_money
+    if payload.registration_fee is not None:
+        config.registration_fee = payload.registration_fee
+
+    config.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(config)
+    return config
+
+@app.post("/api/payments/submit", response_model=schemas.PaymentTransactionSchema, tags=["Fee & Payments"])
+def submit_payment_transaction(payload: schemas.PaymentSubmitSchema, db: Session = Depends(get_db)):
+    """Submit student payment reference and proof receipt for verification"""
+    # Check for duplicate UTR
+    clean_utr = payload.utr_number.strip()
+    if not clean_utr or len(clean_utr) < 6:
+        raise HTTPException(status_code=400, detail="Invalid UTR / Transaction Reference Number.")
+
+    existing = db.query(models.PaymentTransaction).filter(models.PaymentTransaction.utr_number == clean_utr).first()
+    if existing:
+        raise HTTPException(status_code=400, detail=f"UTR Number {clean_utr} has already been submitted.")
+
+    # Find student user if exists
+    user = None
+    if payload.reg_no:
+        user = db.query(models.User).filter(
+            (models.User.reg_no == payload.reg_no) | (models.User.reg_no_email == payload.reg_no)
+        ).first()
+
+    new_txn = models.PaymentTransaction(
+        student_id=user.id if user else payload.student_id,
+        student_name=payload.student_name,
+        reg_no=payload.reg_no,
+        gender=normalize_gender(payload.gender or (user.gender if user else "MALE")),
+        fee_type=payload.fee_type.upper(),
+        amount=payload.amount,
+        utr_number=clean_utr,
+        proof_url=payload.proof_url,
+        payment_period=payload.payment_period,
+        remarks=payload.remarks,
+        status="PENDING",
+        created_at=datetime.utcnow()
+    )
+    db.add(new_txn)
+    db.commit()
+    db.refresh(new_txn)
+    return new_txn
+
+@app.get("/api/payments/my-history", response_model=List[schemas.PaymentTransactionSchema], tags=["Fee & Payments"])
+def get_student_payment_history(reg_no: Optional[str] = Query(None), student_id: Optional[int] = Query(None), db: Session = Depends(get_db)):
+    """Fetch payment transactions and approved receipts for a specific student"""
+    query = db.query(models.PaymentTransaction)
+    if reg_no:
+        query = query.filter((models.PaymentTransaction.reg_no == reg_no) | (models.PaymentTransaction.student_id == student_id))
+    elif student_id:
+        query = query.filter(models.PaymentTransaction.student_id == student_id)
+    
+    return query.order_by(models.PaymentTransaction.created_at.desc()).all()
+
+@app.get("/api/admin/payments/all", response_model=List[schemas.PaymentTransactionSchema], tags=["Fee & Payments"])
+def get_all_payment_transactions(status: Optional[str] = Query(None), db: Session = Depends(get_db)):
+    """Warden fetches all payment transactions with optional status filter"""
+    query = db.query(models.PaymentTransaction)
+    if status and status != 'ALL':
+        query = query.filter(models.PaymentTransaction.status == status.upper())
+    return query.order_by(models.PaymentTransaction.created_at.desc()).all()
+
+@app.get("/api/admin/payments/pending", response_model=List[schemas.PaymentTransactionSchema], tags=["Fee & Payments"])
+def get_pending_payments(db: Session = Depends(get_db)):
+    """Warden fetches pending payments needing audit and verification"""
+    return db.query(models.PaymentTransaction).filter(models.PaymentTransaction.status == "PENDING").order_by(models.PaymentTransaction.created_at.desc()).all()
+
+@app.put("/api/admin/payments/{transaction_id}/verify", response_model=schemas.PaymentTransactionSchema, tags=["Fee & Payments"])
+def verify_payment_transaction(transaction_id: int, payload: schemas.PaymentVerifyAction, db: Session = Depends(get_db)):
+    """Warden single-click approves payment, generates official receipt number, or rejects with remarks"""
+    txn = db.query(models.PaymentTransaction).filter(models.PaymentTransaction.id == transaction_id).first()
+    if not txn:
+        raise HTTPException(status_code=404, detail="Payment transaction not found.")
+
+    if payload.action == "approve":
+        txn.status = "APPROVED"
+        prefix = "HST" if txn.fee_type == "HOSTEL" else "MSS"
+        random_num = str(txn.id).zfill(5)
+        txn.receipt_number = f"GPB/2026/{prefix}-{random_num}"
+        txn.verified_at = datetime.utcnow()
+        txn.remarks = payload.remarks or "Verified & Digitally Approved by Chief Warden"
+
+        # Also add to user transactions if user exists
+        if txn.student_id:
+            general_txn = models.Transaction(
+                user_id=txn.student_id,
+                amount=txn.amount,
+                transaction_type="credit",
+                description=f"{txn.fee_type} Payment Approved (Ref: {txn.utr_number})",
+                date=datetime.utcnow()
+            )
+            db.add(general_txn)
+    else:
+        txn.status = "REJECTED"
+        txn.verified_at = datetime.utcnow()
+        txn.remarks = payload.remarks or "Rejected: UTR or Payment Proof unverified."
+
+    db.commit()
+    db.refresh(txn)
+    return txn
