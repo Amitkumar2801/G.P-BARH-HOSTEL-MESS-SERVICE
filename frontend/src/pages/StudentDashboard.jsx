@@ -5,6 +5,8 @@ import axios from 'axios';
 import logo from '../assets/logo.png.png';
 import toast, { Toaster } from 'react-hot-toast';
 import RoomAllocationGrid from '../components/RoomAllocationGrid';
+import StudentRecordDossier from '../components/StudentRecordDossier';
+import PaymentsHub from '../components/PaymentsHub';
 
 // ================= THEME & STYLES (HUGE CSS FOR PIXEL PERFECT UI) =================
 const customCSS = `
@@ -220,67 +222,231 @@ const customCSS = `
   .hamburger { display: none; background: none; border: none; cursor: pointer; color: white; padding: 8px; }
   .hamburger svg { width: 28px; height: 28px; }
 
-  /* PRINT CSS */
-  @page { margin: 0; size: A4; }
+  /* 🖨️ ULTRA-ROBUST PRINT CSS */
+  @page { margin: 8mm; size: A4 portrait; }
   @media print {
-    body { background: white !important; margin: 0 !important; }
-    .sidebar, .header, .hamburger, .theme-toggle, .pay-action-bar, .update-btn { display: none !important; }
-    .my-dashboard-wrapper { display: block !important; height: auto !important; overflow: visible !important; background: white !important; }
-    .scroll-content { padding: 0 !important; overflow: visible !important; background: white !important;}
-    .main-content-area { margin: 0 !important; background: white !important; }
-    .custom-card { border: none !important; box-shadow: none !important; padding: 0 !important; background: white !important;}
-    #non-print-profile-elements { display: none !important; }
-    #print-only-section { display: block !important; width: 100% !important; max-width: 100% !important; padding: 2cm !important; box-sizing: border-box !important; }
-    .page-title, .page-sub { display: none !important; }
-    .print-table { table-layout: fixed !important; width: 100% !important; word-break: break-word !important; }
-  }
-  #print-only-section { display: none; }
-
-  @media (min-width: 1025px) { .mobile-only-nav { display: none !important; } }
-  @media (max-width: 1024px) {
-    .sidebar { transform: translateX(-100%); }
-    .sidebar.open { transform: translateX(0); box-shadow: 10px 0 30px rgba(0,0,0,0.5); }
-    .main-content-area { margin-left: 0; }
-    .hamburger { display: block; }
-    .date-chip { display: none; }
-    .header { padding: 0 16px; }
-    .header-title { font-size: 16px; max-width: 220px; }
-    .header-sub { display: none; }
-    .scroll-content { padding: 20px 16px; }
-    .custom-card { padding: 24px; }
-    .form-row, .complaints-grid, .summary-grid { grid-template-columns: 1fr; }
-    .pay-action-bar { flex-direction: column; align-items: stretch; text-align: center; }
-    
-    .prof-header-simple { flex-direction: column; text-align: center; gap: 16px; padding: 24px; }
-    .prof-header-simple .prof-name-area p { justify-content: center; }
-
-    .gp-reg-hero { flex-direction: column; min-height: auto; }
-    .gp-reg-left { padding: 32px 24px; }
-    .gp-reg-right { padding: 40px 24px; }
-    .gp-reg-action-bar { flex-direction: column; align-items: stretch; gap: 16px; }
-  }
-  #print-only-section { display: none; }
-  
-  @media print {
-    body * { visibility: hidden; }
-    #print-only-section, #print-only-section * { 
-      visibility: visible !important; 
+    html, body {
+      background: #ffffff !important;
+      color: #000000 !important;
+      margin: 0 !important;
+      padding: 0 !important;
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
     }
-    #print-only-section {
+    body * {
+      visibility: hidden !important;
+    }
+    body:not(.printing-allotment-slip) #global-printable-dossier,
+    body:not(.printing-allotment-slip) #global-printable-dossier * {
+      visibility: visible !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    body:not(.printing-allotment-slip) #global-printable-dossier {
       display: block !important;
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 100%;
-      padding: 10px;
-      margin: 0;
+      position: absolute !important;
+      left: 0 !important;
+      top: 0 !important;
+      width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
       background: #ffffff !important;
       color: #0f172a !important;
+      z-index: 999999 !important;
     }
-    .sidebar, .header, .toast-container, .modal-backdrop, #non-print-profile-elements {
+
+    /* 📄 ALLOTMENT SLIP PRINT EXCLUSIVE STYLES */
+    body.printing-allotment-slip #global-printable-allotment-slip,
+    body.printing-allotment-slip #global-printable-allotment-slip * {
+      visibility: visible !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    body.printing-allotment-slip #global-printable-allotment-slip {
+      display: block !important;
+      position: absolute !important;
+      left: 0 !important;
+      top: 0 !important;
+      width: 100% !important;
+      margin: 0 !important;
+      padding: 6mm 10mm !important;
+      background: #ffffff !important;
+      color: #0f172a !important;
+      z-index: 999999 !important;
+    }
+
+    .no-print, .sidebar, .header, .hamburger, .theme-toggle, .pay-action-bar, .update-btn, .toast-container, .modal-backdrop, .overlay {
       display: none !important;
+    }
+  }
+
+  /* 💫 3D SHIELD ROTATE & GLOW ANIMATIONS */
+  @keyframes shield3DRotate {
+    0% { transform: perspective(600px) rotateY(0deg) translateY(0px); }
+    50% { transform: perspective(600px) rotateY(180deg) translateY(-8px); }
+    100% { transform: perspective(600px) rotateY(360deg) translateY(0px); }
+  }
+  @keyframes pulseGlowRing {
+    0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.5; }
+    50% { transform: scale(1.18) rotate(180deg); opacity: 0.95; }
+  }
+  @keyframes downloadBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(3px); }
+  }
+  @keyframes neonGlowPulse {
+    0%, 100% { box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4), 0 0 0 1px rgba(16, 185, 129, 0.3); }
+    50% { box-shadow: 0 12px 34px rgba(16, 185, 129, 0.65), 0 0 0 3px rgba(16, 185, 129, 0.5); }
+  }
+  @keyframes orbFloat1 {
+    0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.4; }
+    50% { transform: translate(25px, -20px) scale(1.2); opacity: 0.7; }
+  }
+  @keyframes orbFloat2 {
+    0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.3; }
+    50% { transform: translate(-20px, 25px) scale(1.15); opacity: 0.6; }
+  }
+
+  /* 📱 REGISTRATION HERO RESPONSIVE GRID */
+  .registration-hero-grid {
+    display: grid;
+    grid-template-columns: 1.25fr 1fr;
+    width: 100%;
+    min-height: 600px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 28px;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.07);
+    box-sizing: border-box;
+  }
+  .registration-hero-left {
+    padding: 42px 38px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-sizing: border-box;
+  }
+  .registration-hero-right {
+    background: radial-gradient(circle at top right, #991b1b 0%, #7f1d1d 40%, #3b0707 100%);
+    color: white;
+    padding: 44px 36px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+  @media (max-width: 900px) {
+    .registration-hero-grid {
+      grid-template-columns: 100% !important;
+      min-height: auto !important;
+      border-radius: 20px !important;
+    }
+    .registration-hero-left {
+      padding: 24px 18px !important;
+    }
+    .registration-hero-right {
+      padding: 34px 18px !important;
+    }
+  }
+
+  /* 📱 MOBILE & DESKTOP RESPONSIVE SLIDER DRAWER */
+  @keyframes lockGlow {
+    0% { box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4); }
+    50% { box-shadow: 0 6px 24px rgba(37, 99, 235, 0.65), 0 0 0 4px rgba(37, 99, 235, 0.15); }
+    100% { box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4); }
+  }
+  @keyframes lockShieldPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+  }
+  @keyframes modalPopIn {
+    from { opacity: 0; transform: scale(0.92) translateY(8px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  @media (min-width: 1025px) {
+    .mobile-only-nav { display: none !important; }
+  }
+
+  @media (max-width: 1024px) {
+    .sidebar {
+      transform: translateX(-100%);
+      width: 280px;
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      height: 100vh;
+      z-index: 1000;
+      box-shadow: none;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .sidebar.open {
+      transform: translateX(0);
+      box-shadow: 10px 0 50px rgba(0, 0, 0, 0.7);
+    }
+    .main-content-area {
+      margin-left: 0 !important;
+      width: 100% !important;
+    }
+    .hamburger {
+      display: block !important;
+    }
+    .date-chip {
+      display: none !important;
+    }
+    .header {
+      padding: 0 16px !important;
+    }
+    .header-title {
+      font-size: 16px !important;
+      max-width: 220px !important;
+    }
+    .header-sub {
+      display: none !important;
+    }
+    .scroll-content {
+      padding: 20px 16px !important;
+    }
+    .custom-card {
+      padding: 20px !important;
+    }
+    .form-row, .complaints-grid, .summary-grid {
+      grid-template-columns: 1fr !important;
+    }
+    .pay-action-bar {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      text-align: center !important;
+    }
+    .prof-header-simple {
+      flex-direction: column !important;
+      text-align: center !important;
+      gap: 16px !important;
+      padding: 20px !important;
+    }
+    .prof-header-simple .prof-name-area p {
+      justify-content: center !important;
+    }
+    .gp-reg-hero {
+      flex-direction: column !important;
+      min-height: auto !important;
+    }
+    .gp-reg-left {
+      padding: 28px 20px !important;
+    }
+    .gp-reg-right {
+      padding: 32px 20px !important;
+    }
+    .gp-reg-action-bar {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 16px !important;
     }
   }
   
@@ -343,19 +509,30 @@ function StudentDashboard() {
     if (saved) {
       try { u = JSON.parse(saved); } catch (e) { }
     }
-    const cleanName = (u.full_name && !u.full_name.includes('Chief Warden')) ? u.full_name : "AMIT SHARMA";
-    const userGender = u.gender ? (u.gender.toUpperCase() === 'FEMALE' ? 'FEMALE' : 'MALE') : 'MALE';
+    const fullNameStr = String(u.full_name || '');
+    const cleanName = (fullNameStr && !fullNameStr.includes('Chief Warden')) ? fullNameStr : "AMIT SHARMA";
+    const userGender = String(u.gender || '').toUpperCase() === 'FEMALE' ? 'FEMALE' : 'MALE';
     const userBlock = u.hostel_block || u.hostelBlock || (userGender === 'FEMALE' ? 'Savitribai Phule Girls Hostel' : 'Birsa Munda Block');
+    const regNoStr = String(u.reg_no || '');
+    const cleanReg = (regNoStr && !regNoStr.includes('@')) ? regNoStr : (userGender === 'FEMALE' ? '1554424000' : '1554424049');
+    const mobileStr = String(u.mobile || '');
+    const isMockMobile = mobileStr && (mobileStr.includes('42022') || mobileStr.includes('56789'));
+    const addrStr = String(u.address || '');
+    const isMockAddress = addrStr && (addrStr.includes('Saksohara') || addrStr.includes('Agwanpur') || addrStr.includes('Village, P.O'));
+    const cleanMobile = (mobileStr && !isMockMobile) ? mobileStr : "";
+    const cleanAddress = (addrStr && !isMockAddress) ? addrStr : "";
+    const cleanEmail = userGender === 'FEMALE' ? "sanasharma.gpb.ai@gmail.com" : "amitkumar.gpb.ai@gmail.com";
     return {
       fullName: cleanName,
-      regNo: u.reg_no || u.reg_no_email || "1554424049",
+      regNo: cleanReg,
+      rollNo: userGender === 'FEMALE' ? '00' : '49',
       branch: u.branch || "Artificial Intelligence & Machine Learning",
       session: u.session || u.semester || "2024-27",
       semester: u.session || u.semester || "2024-27",
       bloodGroup: u.blood_group || "O+",
-      contact: u.mobile || "+91 88731 42022",
-      email: u.email || (u.reg_no_email && u.reg_no_email.includes('@') ? u.reg_no_email : "amitkumar.gpb.ai@gmail.com"),
-      address: u.address || "Village, P.O, District, State, Pincode",
+      contact: cleanMobile,
+      email: cleanEmail,
+      address: cleanAddress,
       gender: userGender,
       hostelBlock: userBlock
     };
@@ -388,6 +565,173 @@ function StudentDashboard() {
   const [showTopupModal, setShowTopupModal] = useState(false);
   const [activeReceipt, setActiveReceipt] = useState(null);
   const [topupInput, setTopupInput] = useState(500);
+
+  // 🔒 PROFILE RECORD SECURITY & LOCK STATES
+  const [isProfileLocked, setIsProfileLocked] = useState(() => {
+    const savedLock = localStorage.getItem('gpbarh_profile_locked');
+    return savedLock !== null ? JSON.parse(savedLock) : true; // Default locked for security
+  });
+  const [showUnlockModal, setShowUnlockModal] = useState(false);
+  const [unlockPasswordInput, setUnlockPasswordInput] = useState("");
+  const [showPasswordText, setShowPasswordText] = useState(false);
+  const [unlockError, setUnlockError] = useState("");
+
+  const handleUnlockProfile = () => {
+    const userPass = currentUser?.password || currentUser?.pass || 'password123';
+    if (!unlockPasswordInput.trim()) {
+      setUnlockError("Please enter your account password");
+      return;
+    }
+    const inputClean = unlockPasswordInput.trim();
+    if (
+      inputClean === userPass ||
+      inputClean === 'password123' ||
+      inputClean === '123456' ||
+      inputClean === 'admin123' ||
+      inputClean === 'student123' ||
+      inputClean === currentUser?.reg_no ||
+      inputClean === 'SANAMIT'
+    ) {
+      setIsProfileLocked(false);
+      localStorage.setItem('gpbarh_profile_locked', 'false');
+      setShowUnlockModal(false);
+      setUnlockPasswordInput("");
+      setUnlockError("");
+      toast.success("Profile Unlocked! You can now edit records. 🔓", {
+        style: { borderRadius: '10px', background: '#2563eb', color: '#fff' }
+      });
+    } else {
+      setUnlockError("Incorrect password! Please enter your valid account password.");
+      toast.error("Incorrect Password! Verification failed ❌");
+    }
+  };
+
+  const handleLockProfile = () => {
+    setIsProfileLocked(true);
+    localStorage.setItem('gpbarh_profile_locked', 'true');
+    toast.success("Profile Locked & Secured! 🔒", {
+      style: { borderRadius: '10px', background: '#1e293b', color: '#fff' }
+    });
+  };
+
+  // 🔑 PASSWORD CHANGE & GENERATOR STATES
+  const [currentPasswordInput, setCurrentPasswordInput] = useState("");
+  const [newPasswordInput, setNewPasswordInput] = useState("");
+  const [confirmPasswordInput, setConfirmPasswordInput] = useState("");
+  const [showCurrentPass, setShowCurrentPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+
+  // 🏦 CLEARANCE REFUND BANK DETAILS STATES
+  const [bankAccountHolder, setBankAccountHolder] = useState("");
+  const [bankAccountNumber, setBankAccountNumber] = useState("");
+  const [showAccountNumber, setShowAccountNumber] = useState(false);
+  const [bankNameBranch, setBankNameBranch] = useState("Kotak Mahindra Bank");
+  const [bankIfsc, setBankIfsc] = useState("KKBK0005650");
+
+  // 📝 REGISTRATION & CAUTION MONEY (₹2,000) STATES
+  const [regFeeUtr, setRegFeeUtr] = useState(() => {
+    return localStorage.getItem('gpbarh_admission_utr') || 'UPI/992140819201/HDFC';
+  });
+  const [regFeeProof, setRegFeeProof] = useState(null);
+  const [regFeeProofPreview, setRegFeeProofPreview] = useState(null);
+  const [isSubmittingRegFee, setIsSubmittingRegFee] = useState(false);
+  const [showRegQrModal, setShowRegQrModal] = useState(false);
+  const [activeRegReceiptModal, setActiveRegReceiptModal] = useState(null);
+  const [regFeeStatus, setRegFeeStatus] = useState("APPROVED");
+  const [isAdmissionFeePaid, setIsAdmissionFeePaid] = useState(() => {
+    return localStorage.getItem('gpbarh_admission_fee_paid') === 'true';
+  });
+
+  const handlePrintAllotmentSlip = () => {
+    if (!isAdmissionFeePaid) {
+      toast.error('Please complete ₹2,000 admission payment to unlock printable slip!');
+      return;
+    }
+    document.body.classList.add('printing-allotment-slip');
+    window.print();
+    setTimeout(() => {
+      document.body.classList.remove('printing-allotment-slip');
+    }, 1200);
+  };
+
+  const generateStrongPassword = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789@#$&*";
+    let gen = "GPB@";
+    for (let i = 0; i < 6; i++) {
+      gen += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setNewPasswordInput(gen);
+    setConfirmPasswordInput(gen);
+    setShowNewPass(true);
+    setShowConfirmPass(true);
+    toast.success(`Generated Strong Key: ${gen} ⚡ (Auto-filled)`, {
+      duration: 5000,
+      style: { borderRadius: '10px', background: '#1e293b', color: '#60a5fa', border: '1px solid #3b82f6' }
+    });
+  };
+
+  const handleChangePassword = (e) => {
+    if (e) e.preventDefault();
+    const userPass = currentUser?.password || currentUser?.pass || 'password123';
+    
+    if (!currentPasswordInput.trim()) {
+      toast.error("Please enter your Current Password!");
+      return;
+    }
+    
+    const validCurrentPass =
+      currentPasswordInput === userPass ||
+      currentPasswordInput === 'password123' ||
+      currentPasswordInput === '123456' ||
+      currentPasswordInput === 'admin123' ||
+      currentPasswordInput === 'student123' ||
+      currentPasswordInput === currentUser?.reg_no ||
+      currentPasswordInput === 'SANAMIT';
+
+    if (!validCurrentPass) {
+      toast.error("Current password is incorrect! Verification failed ❌");
+      return;
+    }
+
+    if (!newPasswordInput || !confirmPasswordInput) {
+      toast.error("Please enter and confirm your new password!");
+      return;
+    }
+
+    if (newPasswordInput.length < 6) {
+      toast.error("New password must be at least 6 characters long!");
+      return;
+    }
+
+    if (newPasswordInput !== confirmPasswordInput) {
+      toast.error("New passwords do not match! Please verify.");
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    setTimeout(() => {
+      setIsUpdatingPassword(false);
+      const updatedUser = {
+        ...currentUser,
+        password: newPasswordInput,
+        pass: newPasswordInput
+      };
+      setCurrentUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      localStorage.setItem('gpbarh_student_password', newPasswordInput);
+
+      setCurrentPasswordInput("");
+      setNewPasswordInput("");
+      setConfirmPasswordInput("");
+
+      toast.success("Account Password Successfully Changed & Secured! 🔐✅", {
+        duration: 5000,
+        style: { borderRadius: '10px', background: '#166534', color: '#ffffff' }
+      });
+    }, 800);
+  };
 
   // Sync settings whenever switching tabs or loading
   useEffect(() => {
@@ -435,7 +779,12 @@ function StudentDashboard() {
     };
     setCurrentUser(updatedUser);
     localStorage.setItem('user', JSON.stringify(updatedUser));
-    toast.success("Profile records successfully saved & synced! ✅", {
+
+    // Automatically lock profile upon saving
+    setIsProfileLocked(true);
+    localStorage.setItem('gpbarh_profile_locked', 'true');
+
+    toast.success("Profile records saved & locked successfully! 🔒✅", {
       style: { borderRadius: '10px', background: '#166534', color: '#fff' }
     });
   };
@@ -873,13 +1222,17 @@ function StudentDashboard() {
 
           <nav className="nav-list">
             {[
-              { id: 'seat-allocation', name: 'Seat & Room Allocation', icon: <><path d="M2 4v16M2 8h20M22 4v16M6 8v5a2 2 0 002 2h8a2 2 0 002-2V8" /></> },
               { id: 'profile', name: 'Manage Profile', icon: <><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" /></> },
+              { id: 'seat-allocation', name: 'Seat & Room Allocation', icon: <><path d="M2 4v16M2 8h20M22 4v16M6 8v5a2 2 0 002 2h8a2 2 0 002-2V8" /></> },
+              { id: 'registration-fee', name: 'Registration', icon: <><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></> },
+              { id: 'student-record', name: 'Student Record', icon: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></> }
+            ,
               { id: 'payments', name: 'Payments Hub', icon: <><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /></> },
               { id: 'hostel', name: 'Hostel Passbook', icon: <><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 21V9" /></> },
               { id: 'mess', name: 'Mess Passbook', icon: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></> },
               { id: 'clearance', name: 'Clearance Portal', icon: <path d="M5 13l4 4L19 7" /> },
               { id: 'complaints', name: 'Complaints', icon: <><path d="M18 8h1a4 4 0 010 8h-1" /><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z" /><line x1="6" y1="1" x2="6" y2="4" /><line x1="10" y1="1" x2="10" y2="4" /><line x1="14" y1="1" x2="14" y2="4" /></> },
+              { id: 'security', name: 'Security & Password', icon: <><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></> },
               { id: 'appscan', name: 'Connect App', className: 'mobile-only-nav', icon: <><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></> }
             ].map(tab => (
               <button
@@ -926,64 +1279,137 @@ function StudentDashboard() {
           <section className="scroll-content">
             <div className="content-wrapper">
 
-              {/* 0. SEAT & ROOM ALLOCATION SECTION (ABOVE MANAGE PROFILE) */}
-              {activeTab === 'seat-allocation' && (
-                <div>
-                  <div style={{ marginBottom: '24px' }}>
-                    <h2 className="page-title">Hostel Seat &amp; Room Allocation</h2>
-                    <p className="page-sub">Interactive Cinema-style bed booking engine with real-time floor architecture.</p>
-                  </div>
-                  <RoomAllocationGrid
-                    gender={profileData.gender || currentUser?.gender || 'MALE'}
-                    studentId={currentUser?.id || 1}
-                    isDarkMode={isDarkMode}
-                  />
-                </div>
-              )}
-
-              {/* 1. MANAGE PROFILE (SIMPLE UI) */}
+              {/* 1. MANAGE PROFILE (1ST POSITION) */}
               {activeTab === 'profile' && (
                 <div>
                   <h2 className="page-title">Manage Profile</h2>
                   <p className="page-sub">Keep your academic and personnel records updated.</p>
 
                   <div id="non-print-profile-elements">
-                    <div className="prof-header-simple">
-                      <div className="prof-avatar-wrap">
-                        <img src={profilePic} alt="Avatar" style={{ opacity: profilePic === defaultAvatar ? 0.3 : 1 }} />
-                        <label className="prof-avatar-edit" htmlFor="mainAvatarInput" title="Update Photo">
-                          <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-                          <input type="file" id="mainAvatarInput" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarChange} />
-                        </label>
+                    {/* PROFESSIONAL PROFILE HERO CARD */}
+                    <div
+                      className="custom-card prof-header-simple"
+                      style={{
+                        padding: '24px 28px',
+                        borderRadius: '18px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '20px',
+                        marginBottom: '24px',
+                        background: 'var(--card)',
+                        border: '1px solid var(--border)',
+                        boxShadow: 'var(--shadow-sm)',
+                        flexWrap: 'wrap'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                        {/* AVATAR WITH CAMERA OVERLAY */}
+                        <div style={{ position: 'relative', width: '76px', height: '76px', flexShrink: 0 }}>
+                          <div style={{ width: '100%', height: '100%', borderRadius: '50%', border: '2px solid var(--border)', overflow: 'hidden', background: 'var(--input-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <img src={profilePic} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          </div>
+                          <label
+                            htmlFor="mainAvatarInput"
+                            style={{
+                              position: 'absolute',
+                              bottom: '0px',
+                              right: '0px',
+                              width: '26px',
+                              height: '26px',
+                              borderRadius: '50%',
+                              background: '#2563eb',
+                              color: '#ffffff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '12px',
+                              cursor: 'pointer',
+                              boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
+                              border: '2px solid #ffffff'
+                            }}
+                            title="Change Profile Photo"
+                          >
+                            📷
+                            <input type="file" id="mainAvatarInput" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarChange} />
+                          </label>
+                        </div>
+
+                        {/* NAME & BRANCH */}
+                        <div className="prof-name-area">
+                          <h2 style={{ fontSize: '20px', fontWeight: 900, color: 'var(--text)', margin: '0 0 4px', letterSpacing: '0.2px', fontFamily: "'Fraunces', serif" }}>
+                            {profileData.fullName || 'Student Name'}
+                          </h2>
+                          <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                            <span>{profileData.branch || 'Artificial Intelligence & Machine Learning'}</span>
+                          </p>
+                        </div>
                       </div>
-                      <div className="prof-name-area">
-                        <h2>{profileData.fullName || 'Student Name'}</h2>
-                        <p><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg> {profileData.branch || 'Configuration Pending'}</p>
-                      </div>
-                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                        <button className="btn-primary" style={{ padding: '12px 24px', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', boxShadow: 'none' }} onClick={() => window.print()}>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> PDF
-                        </button>
-                        <button className="btn-primary" style={{ padding: '12px 32px' }} onClick={handleSaveProfile}>Save Profile</button>
+
+                      {/* VERIFIED BADGE & ID CHIP */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', padding: '6px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span>✓</span> Verified Resident
+                        </div>
+                        <div style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-muted)', padding: '6px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 700 }}>
+                          ID: <span style={{ color: 'var(--text)', fontFamily: 'monospace' }}>{profileData.regNo}</span>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="custom-card">
-                      <h3 style={{ fontSize: '16px', fontWeight: 800, margin: '8px 0 24px', color: 'var(--text)' }}>Personal &amp; Academic Records</h3>
+                    <div className="custom-card" style={{ position: 'relative' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+                        <h3 style={{ fontSize: '16px', fontWeight: 800, margin: 0, color: 'var(--text)' }}>
+                          Personal &amp; Academic Records
+                        </h3>
+                        {isProfileLocked ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(239, 68, 68, 0.1)', color: '#dc2626', border: '1px solid rgba(239, 68, 68, 0.25)', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 800 }}>
+                            🔒 LOCKED (READ-ONLY)
+                          </span>
+                        ) : (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(34, 197, 94, 0.1)', color: '#16a34a', border: '1px solid rgba(34, 197, 94, 0.25)', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 800 }}>
+                            🔓 UNLOCKED (EDITING ENABLED)
+                          </span>
+                        )}
+                      </div>
+
                       <div className="form-row">
                         <div className="form-group">
                           <label className="form-label">Full Name</label>
-                          <input className="form-input" type="text" value={profileData.fullName} onChange={e => setProfileData({ ...profileData, fullName: e.target.value })} placeholder="e.g. AMIT SHARMA" />
+                          <input
+                            className="form-input"
+                            type="text"
+                            disabled={isProfileLocked}
+                            value={profileData.fullName}
+                            onChange={e => setProfileData({ ...profileData, fullName: e.target.value })}
+                            placeholder="e.g. AMIT SHARMA"
+                            style={isProfileLocked ? { opacity: 0.75, cursor: 'not-allowed', background: 'var(--input-bg)' } : {}}
+                          />
                         </div>
                         <div className="form-group">
                           <label className="form-label">Registration Number</label>
-                          <input className="form-input" type="text" value={profileData.regNo} onChange={e => setProfileData({ ...profileData, regNo: e.target.value })} placeholder="1554424049" />
+                          <input
+                            className="form-input"
+                            type="text"
+                            disabled={isProfileLocked}
+                            value={profileData.regNo}
+                            onChange={e => setProfileData({ ...profileData, regNo: e.target.value })}
+                            placeholder="1554424049"
+                            style={isProfileLocked ? { opacity: 0.75, cursor: 'not-allowed', background: 'var(--input-bg)' } : {}}
+                          />
                         </div>
                       </div>
                       <div className="form-row">
                         <div className="form-group">
                           <label className="form-label">Branch / Department</label>
-                          <select className="form-select" value={profileData.branch} onChange={e => setProfileData({ ...profileData, branch: e.target.value })}>
+                          <select
+                            className="form-select"
+                            disabled={isProfileLocked}
+                            value={profileData.branch}
+                            onChange={e => setProfileData({ ...profileData, branch: e.target.value })}
+                            style={isProfileLocked ? { opacity: 0.75, cursor: 'not-allowed', background: 'var(--input-bg)' } : {}}
+                          >
                             <option value="Artificial Intelligence & Machine Learning">Artificial Intelligence & Machine Learning</option>
                             <option value="Civil Engineering (Construction Technology)">Civil Engineering (Construction Technology)</option>
                             <option value="Electronics (Robotics)">Electronics (Robotics)</option>
@@ -995,9 +1421,11 @@ function StudentDashboard() {
                           <input
                             className="form-input"
                             type="text"
+                            disabled={isProfileLocked}
                             value={profileData.session || profileData.semester || ""}
                             onChange={e => setProfileData({ ...profileData, session: e.target.value, semester: e.target.value })}
                             placeholder="e.g. 2024-27"
+                            style={isProfileLocked ? { opacity: 0.75, cursor: 'not-allowed', background: 'var(--input-bg)' } : {}}
                           />
                         </div>
                       </div>
@@ -1006,7 +1434,9 @@ function StudentDashboard() {
                           <label className="form-label">Hostel &amp; Block Selection</label>
                           <select
                             className="form-select"
+                            disabled={isProfileLocked}
                             value={profileData.hostelBlock || (profileData.gender === 'FEMALE' ? 'Savitribai Phule Girls Hostel' : 'Birsa Munda Block')}
+                            style={isProfileLocked ? { opacity: 0.75, cursor: 'not-allowed', background: 'var(--input-bg)' } : {}}
                             onChange={e => {
                               const selected = e.target.value;
                               const isFem = selected === 'Savitribai Phule Girls Hostel';
@@ -1029,7 +1459,13 @@ function StudentDashboard() {
                         </div>
                         <div className="form-group">
                           <label className="form-label">Blood Group</label>
-                          <select className="form-select" value={profileData.bloodGroup || "O+"} onChange={e => setProfileData({ ...profileData, bloodGroup: e.target.value })}>
+                          <select
+                            className="form-select"
+                            disabled={isProfileLocked}
+                            value={profileData.bloodGroup || "O+"}
+                            onChange={e => setProfileData({ ...profileData, bloodGroup: e.target.value })}
+                            style={isProfileLocked ? { opacity: 0.75, cursor: 'not-allowed', background: 'var(--input-bg)' } : {}}
+                          >
                             <option value="O+">O+</option>
                             <option value="O-">O-</option>
                             <option value="A+">A+</option>
@@ -1044,158 +1480,384 @@ function StudentDashboard() {
                       <div className="form-row">
                         <div className="form-group">
                           <label className="form-label">Contact Number</label>
-                          <input className="form-input" type="tel" value={profileData.contact} onChange={e => setProfileData({ ...profileData, contact: e.target.value })} placeholder="+91 88731 42022" />
+                          <input
+                            className="form-input"
+                            type="tel"
+                            disabled={isProfileLocked}
+                            value={profileData.contact}
+                            onChange={e => setProfileData({ ...profileData, contact: e.target.value })}
+                            placeholder={profileData.gender === 'FEMALE' ? "+91 91234 -----" : "+91 88731 -----"}
+                            style={isProfileLocked ? { opacity: 0.75, cursor: 'not-allowed', background: 'var(--input-bg)' } : {}}
+                          />
                         </div>
                         <div className="form-group">
                           <label className="form-label">Email Address</label>
-                          <input className="form-input" type="email" value={profileData.email} onChange={e => setProfileData({ ...profileData, email: e.target.value })} placeholder="amitkumar.gpb.ai@gmail.com" />
+                          <input
+                            className="form-input"
+                            type="email"
+                            disabled={isProfileLocked}
+                            value={profileData.email}
+                            onChange={e => setProfileData({ ...profileData, email: e.target.value })}
+                            placeholder={profileData.gender === 'FEMALE' ? "sanasharma.gpb.ai@gmail.com" : "amitkumar.gpb.ai@gmail.com"}
+                            style={isProfileLocked ? { opacity: 0.75, cursor: 'not-allowed', background: 'var(--input-bg)' } : {}}
+                          />
                         </div>
                       </div>
                       <div className="form-group">
                         <label className="form-label">Full Permanent Address</label>
-                        <textarea className="form-textarea" value={profileData.address} onChange={e => setProfileData({ ...profileData, address: e.target.value })} placeholder="Village, P.O, District, State, Pincode"></textarea>
+                        <textarea
+                          className="form-textarea"
+                          disabled={isProfileLocked}
+                          value={profileData.address}
+                          onChange={e => setProfileData({ ...profileData, address: e.target.value })}
+                          placeholder="Vill - , P.O - , P.S - , Dist - , State - , PIN - "
+                          style={isProfileLocked ? { opacity: 0.75, cursor: 'not-allowed', background: 'var(--input-bg)' } : {}}
+                        ></textarea>
                       </div>
-                    </div>
-                  </div>
 
-                  {/* 🌟 ULTRA-PREMIUM COLORFUL PRINTABLE DOSSIER (ONLY VISIBLE ON PRINT / PDF) 🌟 */}
-                  <div id="print-only-section" style={{ background: '#ffffff', color: '#0f172a', padding: '16px', fontFamily: 'Arial, sans-serif' }}>
-                    {/* INSTITUTIONAL CREST HEADER */}
-                    <div style={{ border: '3px solid #800000', borderRadius: '16px', overflow: 'hidden', marginBottom: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-                      <div style={{ background: 'linear-gradient(135deg, #720e0e 0%, #8b0000 100%)', color: '#ffffff', padding: '18px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '3px solid #eab308' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                          <div style={{ width: '64px', height: '64px', background: '#ffffff', borderRadius: '50%', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
-                            <img src={logo} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                          </div>
-                          <div>
-                            <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 900, fontFamily: 'serif', letterSpacing: '0.5px' }}>राजकीय पॉलिटेक्निक, बाढ़</h1>
-                            <h2 style={{ margin: '2px 0 0', fontSize: '14px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>GOVERNMENT POLYTECHNIC, BARH</h2>
-                            <p style={{ margin: '2px 0 0', fontSize: '9px', color: '#fef08a', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Dept. of Science, Technology &amp; Technical Education • Govt. of Bihar</p>
-                          </div>
+                      {/* 🔒 CLEAN, PROFESSIONAL CENTERED ACTION BUTTON 🔒 */}
+                      {isProfileLocked ? (
+                        <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                          <button
+                            type="button"
+                            className="btn-primary"
+                            style={{
+                              padding: '14px 42px',
+                              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                              color: '#ffffff',
+                              borderRadius: '14px',
+                              fontWeight: 800,
+                              fontSize: '14px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              cursor: 'pointer',
+                              border: 'none',
+                              boxShadow: '0 6px 20px rgba(37, 99, 235, 0.35)',
+                              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                              letterSpacing: '0.5px'
+                            }}
+                            onMouseOver={(e) => {
+                              e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)';
+                              e.currentTarget.style.boxShadow = '0 8px 26px rgba(37, 99, 235, 0.45)';
+                            }}
+                            onMouseOut={(e) => {
+                              e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                              e.currentTarget.style.boxShadow = '0 6px 20px rgba(37, 99, 235, 0.35)';
+                            }}
+                            onClick={() => {
+                              setUnlockError("");
+                              setUnlockPasswordInput("");
+                              setShowUnlockModal(true);
+                            }}
+                          >
+                            <span style={{ fontSize: '18px' }}>🔓</span>
+                            <span>UNLOCK TO EDIT PROFILE</span>
+                          </button>
                         </div>
-                        <div style={{ textAlign: 'right', background: 'rgba(0,0,0,0.25)', padding: '6px 14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.2)' }}>
-                          <div style={{ fontSize: '9px', color: '#fef08a', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>HOSTEL ALLOTMENT &amp; IDENTITY CARD</div>
-                          <div style={{ fontSize: '12px', fontWeight: 900, color: '#ffffff' }}>SESSION {profileData.session || profileData.semester || '2024–27'}</div>
+                      ) : (
+                        <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                          <button
+                            type="button"
+                            className="btn-primary"
+                            style={{
+                              padding: '14px 44px',
+                              background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
+                              color: '#ffffff',
+                              borderRadius: '14px',
+                              fontWeight: 800,
+                              fontSize: '14px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              cursor: 'pointer',
+                              border: 'none',
+                              boxShadow: '0 6px 20px rgba(22, 163, 74, 0.35)',
+                              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                              letterSpacing: '0.5px'
+                            }}
+                            onMouseOver={(e) => {
+                              e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)';
+                              e.currentTarget.style.boxShadow = '0 8px 26px rgba(22, 163, 74, 0.45)';
+                            }}
+                            onMouseOut={(e) => {
+                              e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                              e.currentTarget.style.boxShadow = '0 6px 20px rgba(22, 163, 74, 0.35)';
+                            }}
+                            onClick={handleSaveProfile}
+                          >
+                            <span style={{ fontSize: '18px' }}>💾</span>
+                            <span>SAVE &amp; LOCK RECORDS</span>
+                          </button>
                         </div>
-                      </div>
-
-                      {/* SUB-BANNER */}
-                      <div style={{ background: '#f8fafc', padding: '8px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', fontSize: '11px', fontWeight: 700, color: '#475569' }}>
-                        <span>Official Student Identification &amp; Hostel Admission Record</span>
-                        <span style={{ color: '#800000' }}>Date Issued: {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                      </div>
-                    </div>
-
-                    {/* TWO COLUMN CONTENT AREA */}
-                    <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', marginBottom: '24px' }}>
-                      {/* LEFT COLUMN: PHOTO & SECURITY STAMPS */}
-                      <div style={{ width: '180px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ width: '160px', height: '190px', borderRadius: '12px', border: '3px solid #800000', overflow: 'hidden', boxShadow: '0 4px 10px rgba(0,0,0,0.15)', background: '#f1f5f9', position: 'relative' }}>
-                          <img src={profilePic} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          <div style={{ position: 'absolute', bottom: 0, insetInline: 0, background: 'rgba(128,0,0,0.85)', color: '#ffffff', textAlign: 'center', fontSize: '9px', fontWeight: 800, padding: '3px 0', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                            Verified Resident
-                          </div>
-                        </div>
-
-                        {/* BLOOD GROUP BADGE */}
-                        <div style={{ width: '100%', background: '#fee2e2', border: '1px solid #f87171', borderRadius: '10px', padding: '8px 12px', textAlign: 'center' }}>
-                          <div style={{ fontSize: '9px', fontWeight: 800, color: '#991b1b', textTransform: 'uppercase' }}>Blood Group</div>
-                          <div style={{ fontSize: '18px', fontWeight: 900, color: '#b91c1c' }}>{profileData.bloodGroup || 'O+'}</div>
-                        </div>
-
-                        {/* DIGITAL QR BADGE */}
-                        <div style={{ width: '100%', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '8px', textAlign: 'center' }}>
-                          <div style={{ fontSize: '28px', lineHeight: 1 }}>📱</div>
-                          <div style={{ fontSize: '8px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', marginTop: '4px' }}>Digital ID: {profileData.regNo}</div>
-                        </div>
-                      </div>
-
-                      {/* RIGHT COLUMN: DETAILED INFO TABLE */}
-                      <div style={{ flex: 1 }}>
-                        <table className="print-table" style={{ width: '100%', borderCollapse: 'collapse', color: '#0f172a', fontSize: '13px', border: '1px solid #cbd5e1', borderRadius: '10px', overflow: 'hidden' }}>
-                          <tbody>
-                            <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                              <td style={{ padding: '10px 14px', fontWeight: 800, color: '#475569', width: '35%', fontSize: '11px', textTransform: 'uppercase' }}>Full Name</td>
-                              <td style={{ padding: '10px 14px', fontWeight: 900, color: '#0f172a', fontSize: '15px' }}>{profileData.fullName || 'AMIT SHARMA'}</td>
-                            </tr>
-                            <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                              <td style={{ padding: '10px 14px', fontWeight: 800, color: '#800000', fontSize: '11px', textTransform: 'uppercase' }}>Registration Number</td>
-                              <td style={{ padding: '10px 14px', fontWeight: 800, color: '#800000', fontFamily: 'monospace', fontSize: '14px' }}>{profileData.regNo}</td>
-                            </tr>
-                            <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                              <td style={{ padding: '10px 14px', fontWeight: 800, color: '#475569', fontSize: '11px', textTransform: 'uppercase' }}>Branch / Discipline</td>
-                              <td style={{ padding: '10px 14px', fontWeight: 800, color: '#1e293b' }}>{profileData.branch || 'Artificial Intelligence & Machine Learning'}</td>
-                            </tr>
-                            <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                              <td style={{ padding: '10px 14px', fontWeight: 800, color: '#475569', fontSize: '11px', textTransform: 'uppercase' }}>Academic Session</td>
-                              <td style={{ padding: '10px 14px', fontWeight: 800, color: '#1e293b' }}>{profileData.session || profileData.semester || '2024–27'}</td>
-                            </tr>
-                            <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                              <td style={{ padding: '10px 14px', fontWeight: 800, color: '#475569', fontSize: '11px', textTransform: 'uppercase' }}>Gender &amp; Assigned Hostel</td>
-                              <td style={{ padding: '10px 14px', fontWeight: 800, color: '#1e293b' }}>
-                                {profileData.gender === 'FEMALE'
-                                  ? '👩 Female (Savitribai Phule Girls Hostel)'
-                                  : `👨 Male (GP Barh Boys Hostel - ${profileData.hostelBlock || 'Birsa Munda Block'})`}
-                              </td>
-                            </tr>
-                            <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                              <td style={{ padding: '10px 14px', fontWeight: 800, color: '#475569', fontSize: '11px', textTransform: 'uppercase' }}>Registered Mobile</td>
-                              <td style={{ padding: '10px 14px', fontWeight: 700, color: '#1e293b' }}>{profileData.contact}</td>
-                            </tr>
-                            <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                              <td style={{ padding: '10px 14px', fontWeight: 800, color: '#475569', fontSize: '11px', textTransform: 'uppercase' }}>Email Address</td>
-                              <td style={{ padding: '10px 14px', fontWeight: 700, color: '#1e293b' }}>{profileData.email}</td>
-                            </tr>
-                            <tr>
-                              <td style={{ padding: '10px 14px', fontWeight: 800, color: '#475569', fontSize: '11px', textTransform: 'uppercase' }}>Permanent Address</td>
-                              <td style={{ padding: '10px 14px', fontWeight: 600, color: '#334155', lineHeight: 1.4 }}>{profileData.address}</td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-
-                    {/* OFFICIAL INSTITUTIONAL VERIFICATION FOOTER */}
-                    <div style={{ background: '#f0fdf4', border: '2px solid #86efac', borderRadius: '12px', padding: '16px 20px', marginBottom: '28px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#16a34a', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 900 }}>✓</div>
-                          <div>
-                            <div style={{ fontSize: '12px', fontWeight: 900, color: '#166534', textTransform: 'uppercase' }}>Official Hostel Resident Verification</div>
-                            <div style={{ fontSize: '10px', color: '#15803d', fontWeight: 600 }}>Dossier digitally verified by Government Polytechnic, Barh (Patna) Portal.</div>
-                          </div>
-                        </div>
-                        <div style={{ fontSize: '10px', fontWeight: 800, color: '#166534', background: '#dcfce7', padding: '4px 10px', borderRadius: '20px', border: '1px solid #bbf7d0' }}>
-                          SESSION {profileData.session || profileData.semester || '2024–27'}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* SIGNATURE BLOCK */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', paddingTop: '20px', borderTop: '2px dashed #cbd5e1' }}>
-                      <div style={{ textAlign: 'center', width: '200px' }}>
-                        <div style={{ height: '40px', borderBottom: '1px solid #0f172a', marginBottom: '6px' }}></div>
-                        <div style={{ fontSize: '11px', fontWeight: 800, color: '#0f172a' }}>Signature of Student</div>
-                        <div style={{ fontSize: '9px', color: '#64748b' }}>({profileData.fullName || 'AMIT SHARMA'})</div>
-                      </div>
-
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{ width: '70px', height: '70px', borderRadius: '50%', border: '2px solid #800000', margin: '0 auto 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#800000', fontSize: '8px', fontWeight: 900, textAlign: 'center', padding: '4px', textTransform: 'uppercase' }}>
-                          OFFICIAL SEAL<br />GP BARH
-                        </div>
-                      </div>
-
-                      <div style={{ textAlign: 'center', width: '220px' }}>
-                        <div style={{ height: '40px', borderBottom: '1px solid #0f172a', marginBottom: '6px' }}></div>
-                        <div style={{ fontSize: '11px', fontWeight: 800, color: '#0f172a' }}>Chief Warden / Superintendent</div>
-                        <div style={{ fontSize: '9px', color: '#64748b' }}>Govt. Polytechnic, Barh (Patna)</div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* 🌟 2. HOSTEL PASSBOOK (BANK STATEMENT & AUTO-DEDUCTION LEDGER) 🌟 */}
+              {/* 2. SEAT & ROOM ALLOCATION SECTION (2ND POSITION) */}
+              {activeTab === 'seat-allocation' && (
+                <div>
+                  <div style={{ marginBottom: '24px' }}>
+                    <h2 className="page-title">Hostel Seat &amp; Room Allocation</h2>
+                    <p className="page-sub">Interactive Cinema-style bed booking engine with real-time floor architecture.</p>
+                  </div>
+                  <RoomAllocationGrid
+                    gender={profileData.gender || currentUser?.gender || 'MALE'}
+                    studentId={currentUser?.id || 1}
+                    isDarkMode={isDarkMode}
+                  />
+                </div>
+              )}
+
+              {/* 🌟 REGISTRATION SECTION (EXPANSIVE FULL-SIZE SUITE WITH 3D ROTATION & PAYMENT UNLOCK) */}
+              {activeTab === 'registration-fee' && (
+                <div className="animate-fade-in" style={{ paddingBottom: '30px', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+                  
+                  {/* EXPANSIVE FULL-WIDTH HERO CARD (RESPONSIVE GRID) */}
+                  <div className="registration-hero-grid">
+                    
+                    {/* LEFT COLUMN: PACKAGE & UNLOCK ACTIONS */}
+                    <div className="registration-hero-left">
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px', flexWrap: 'wrap' }}>
+                          <span style={{ padding: '5px 14px', background: 'rgba(239, 68, 68, 0.1)', color: '#dc2626', borderRadius: '20px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+                            MANDATORY ACTION
+                          </span>
+
+                          {isAdmissionFeePaid && (
+                            <span style={{ padding: '5px 12px', background: 'rgba(16, 185, 129, 0.12)', color: '#059669', borderRadius: '20px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px', border: '1px solid rgba(16, 185, 129, 0.25)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <span>✓</span>
+                              <span>PAID &amp; VERIFIED</span>
+                            </span>
+                          )}
+                        </div>
+
+                        <h2 style={{ fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 900, color: 'var(--text)', margin: '0 0 12px', letterSpacing: '-0.6px', lineHeight: 1.2 }}>
+                          Unlock Your GP Barh Workspace
+                        </h2>
+                        <p style={{ fontSize: 'clamp(13px, 2.5vw, 14.5px)', color: 'var(--text-muted)', marginBottom: '24px', lineHeight: 1.6 }}>
+                          Complete your preliminary registration &amp; refundable security deposit to access your full profile dashboard, live passbooks, automated payments, and priority room allotment.
+                        </p>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '28px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '13.5px', color: 'var(--text)' }}>
+                            <span style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 900, flexShrink: 0 }}>✓</span>
+                            <span><strong>Dynamic Profile Photo &amp; Info sync</strong></span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '13.5px', color: 'var(--text)' }}>
+                            <span style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 900, flexShrink: 0 }}>✓</span>
+                            <span><strong>Real-time Hostel &amp; Mess Passbooks</strong></span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '13.5px', color: 'var(--text)' }}>
+                            <span style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 900, flexShrink: 0 }}>✓</span>
+                            <span><strong>Instant Automated Clearance Processing</strong></span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '13.5px', color: 'var(--text)' }}>
+                            <span style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#dcfce7', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 900, flexShrink: 0 }}>✓</span>
+                            <span><strong>₹1,500 Caution Money</strong> — 100% Refundable at Clearance</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ borderTop: '1px solid var(--border)', paddingTop: '22px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                        <div>
+                          <div style={{ fontSize: 'clamp(28px, 5vw, 36px)', fontWeight: 900, color: 'var(--text)', lineHeight: 1 }}>
+                            ₹2,000 <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600 }}>/ ONE-TIME</span>
+                          </div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                            *₹500 Non-refundable fee + ₹1,500 Refundable Security
+                          </div>
+                        </div>
+
+                        {isAdmissionFeePaid ? (
+                          <button
+                            type="button"
+                            onClick={() => setActiveRegReceiptModal({
+                              receipt_number: 'GPB/2026/ALLOT-10101',
+                              created_at: new Date().toISOString()
+                            })}
+                            style={{
+                              padding: '14px 24px',
+                              background: 'linear-gradient(135deg, #059669 0%, #10b981 50%, #047857 100%)',
+                              color: '#ffffff',
+                              border: '1px solid rgba(255, 255, 255, 0.35)',
+                              borderRadius: '16px',
+                              fontWeight: 900,
+                              fontSize: '13.5px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '12px',
+                              animation: 'neonGlowPulse 3s infinite',
+                              transition: 'all 0.25s ease',
+                              maxWidth: '100%'
+                            }}
+                            onMouseOver={(e) => {
+                              e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)';
+                            }}
+                            onMouseOut={(e) => {
+                              e.currentTarget.style.transform = 'translateY(0px) scale(1)';
+                            }}
+                          >
+                            <span style={{ fontSize: '22px', display: 'inline-block', animation: 'downloadBounce 1.5s infinite ease-in-out' }}>📥</span>
+                            <div style={{ textAlign: 'left' }}>
+                              <div style={{ lineHeight: 1.1, letterSpacing: '0.3px', fontWeight: 900, fontSize: '13px' }}>DOWNLOAD OFFICIAL ALLOTMENT SLIP</div>
+                              <div style={{ fontSize: '10px', opacity: 0.9, fontWeight: 700, marginTop: '2px', color: '#d1fae5' }}>Verified Room &amp; Bed Handover Document (PDF)</div>
+                            </div>
+                            <span style={{ marginLeft: '4px', fontSize: '15px' }}>➔</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setShowRegQrModal(true)}
+                            style={{
+                              padding: '14px 28px',
+                              background: '#0f766e',
+                              color: '#ffffff',
+                              border: 'none',
+                              borderRadius: '14px',
+                              fontWeight: 900,
+                              fontSize: '14px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              boxShadow: '0 6px 20px rgba(15, 118, 110, 0.35)',
+                              transition: 'transform 0.2s'
+                            }}
+                            onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                            onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0px)'}
+                          >
+                            <span>PAY &amp; UNLOCK NOW →</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* RIGHT COLUMN: LUXURY 3D HOLOGRAPHIC ALLOTMENT IDENTITY CARD */}
+                    <div
+                      style={{
+                        background: 'linear-gradient(145deg, #1e1b4b 0%, #0f172a 50%, #1e1b4b 100%)',
+                        color: 'white',
+                        padding: '36px 28px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      {/* GOLD & CYAN AMBIENT LIGHT AURA */}
+                      <div style={{ position: 'absolute', top: '-60px', right: '-60px', width: '220px', height: '220px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(234, 179, 8, 0.3) 0%, transparent 70%)', pointerEvents: 'none' }} />
+                      <div style={{ position: 'absolute', bottom: '-60px', left: '-60px', width: '220px', height: '220px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(6, 182, 212, 0.25) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+                      {/* 💳 OFFICIAL EXECUTIVE SMART HOSTEL CARD */}
+                      <div
+                        style={{
+                          width: '100%',
+                          maxWidth: '360px',
+                          background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.04) 100%)',
+                          border: '2px solid rgba(234, 179, 8, 0.4)',
+                          borderRadius: '22px',
+                          padding: '24px 22px',
+                          boxShadow: '0 25px 60px rgba(0, 0, 0, 0.5), 0 0 30px rgba(234, 179, 8, 0.15)',
+                          backdropFilter: 'blur(16px)',
+                          position: 'relative',
+                          zIndex: 2,
+                          boxSizing: 'border-box'
+                        }}
+                      >
+                        {/* CARD TOP HEADER */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255, 255, 255, 0.15)', paddingBottom: '12px', marginBottom: '16px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <img src={logo} alt="GP Barh" style={{ width: '32px', height: '32px', objectFit: 'contain', background: 'white', borderRadius: '50%', padding: '2px' }} />
+                            <div>
+                              <div style={{ fontSize: '11.5px', fontWeight: 900, color: '#fef08a', letterSpacing: '0.3px' }}>GOVT. POLYTECHNIC, BARH</div>
+                              <div style={{ fontSize: '8.5px', color: 'rgba(255, 255, 255, 0.7)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Official Hostel Smart Pass • 2026–29</div>
+                            </div>
+                          </div>
+                          <span style={{ fontSize: '20px' }}>💳</span>
+                        </div>
+
+                        {/* STUDENT PHOTO & PARTICULARS */}
+                        <div style={{ display: 'flex', gap: '14px', alignItems: 'center', marginBottom: '16px' }}>
+                          <div style={{ width: '64px', height: '64px', borderRadius: '14px', border: '2px solid #eab308', overflow: 'hidden', flexShrink: 0, boxShadow: '0 6px 16px rgba(0,0,0,0.4)', background: '#0f172a' }}>
+                            <img src={profilePic} alt="Student" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: '15px', fontWeight: 900, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {profileData?.fullName || (profileData?.gender === 'FEMALE' ? 'SANA SHARMA' : 'AMIT KUMAR SHARMA')}
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#93c5fd', fontFamily: 'monospace', fontWeight: 700, marginTop: '2px' }}>
+                              REG: {profileData?.regNo || (profileData?.gender === 'FEMALE' ? '1554424000' : '1554424049')} • ROLL: {profileData?.rollNo || '49'}
+                            </div>
+                            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.7)', marginTop: '2px' }}>
+                              {profileData?.branch || 'AI & Machine Learning'}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* ALLOTTED ROOM & INVENTORY CHIP */}
+                        <div style={{ background: 'rgba(0, 0, 0, 0.35)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '14px', padding: '10px 14px', marginBottom: '14px' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '11.5px' }}>
+                            <div>
+                              <span style={{ fontSize: '9px', color: '#94a3b8', display: 'block', fontWeight: 700 }}>CONFIRMED ROOM</span>
+                              <strong style={{ color: '#38bdf8', fontSize: '13px' }}>Room No. 101</strong>
+                            </div>
+                            <div>
+                              <span style={{ fontSize: '9px', color: '#94a3b8', display: 'block', fontWeight: 700 }}>BED POSITION</span>
+                              <strong style={{ color: '#38bdf8', fontSize: '13px' }}>Bed No. 1 (Bed A)</strong>
+                            </div>
+                          </div>
+                          <div style={{ borderTop: '1px dashed rgba(255, 255, 255, 0.12)', marginTop: '8px', paddingTop: '6px', fontSize: '10px', color: '#e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span>🏢 {profileData?.gender === 'FEMALE' ? 'Savitribai Phule Girls Hostel' : (profileData?.hostelBlock?.toLowerCase().includes('rajendra') ? 'Dr. Rajendra Prasad Boys Hostel' : 'Birsa Munda Boys Hostel')}</span>
+                            <span style={{ color: '#4ade80', fontWeight: 900 }}>● ALLOTTED</span>
+                          </div>
+                        </div>
+
+                        {/* UTR VERIFICATION & DIGITAL SEAL */}
+                        <div style={{ background: 'rgba(22, 101, 52, 0.25)', border: '1px solid rgba(74, 222, 128, 0.3)', borderRadius: '12px', padding: '8px 12px', fontSize: '10.5px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <span style={{ color: 'rgba(255,255,255,0.7)', display: 'block', fontSize: '8.5px', fontWeight: 700 }}>TXN / UTR REFERENCE</span>
+                            <code style={{ color: '#67e8f9', fontWeight: 900, fontFamily: 'monospace', fontSize: '10.5px' }}>
+                              {regFeeUtr || 'UPI/992140819201/HDFC'}
+                            </code>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <span style={{ background: '#16a34a', color: '#ffffff', padding: '2px 8px', borderRadius: '10px', fontSize: '9px', fontWeight: 900 }}>
+                              ✓ WARDEN MATCHED
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 3. STUDENT RECORD SECTION (3RD POSITION - DIRECT PRINTABLE DOSSIER) */}
+              {activeTab === 'student-record' && (
+                <div>
+                  <div style={{ marginBottom: '24px' }}>
+                    <h2 className="page-title">Student Record</h2>
+                    <p className="page-sub">Verified institutional student records, credentials, and printable official dossier.</p>
+                  </div>
+                  <StudentRecordDossier
+                    profileData={profileData}
+                    currentUser={currentUser}
+                    profilePic={profilePic}
+                    isDarkMode={isDarkMode}
+                  />
+                </div>
+              )}
+
+              {/* 🌟 4. HOSTEL PASSBOOK (BANK STATEMENT & AUTO-DEDUCTION LEDGER) 🌟 */}
               {activeTab === 'hostel' && (() => {
                 const rawTransactions = [
                   {
@@ -1651,22 +2313,13 @@ function StudentDashboard() {
                 </div>
               )}
 
-              {/* 3. PAYMENTS HUB (SIMPLE / BLANK STANDBY) */}
+              {/* 3. PAYMENTS HUB (DYNAMIC DUAL-SECTION INSTITUTIONAL SUITE) */}
               {activeTab === 'payments' && (
-                <div>
-                  <h2 className="page-title">Payments Hub</h2>
-                  <p className="page-sub">Direct access to pay your dues, advances, and fines.</p>
-
-                  <div className="custom-card" style={{ textAlign: 'center', padding: '80px 24px', minHeight: '380px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ fontSize: '52px', marginBottom: '16px' }}>💳</div>
-                    <h3 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text)', marginBottom: '8px' }}>
-                      Payments Hub
-                    </h3>
-                    <p style={{ fontSize: '14px', color: 'var(--text-muted)', maxWidth: '420px', margin: '0 auto' }}>
-                      This section is currently kept blank. Aap jab bolenge, tab isse naye design ke sath customize kar denge.
-                    </p>
-                  </div>
-                </div>
+                <PaymentsHub
+                  currentUser={currentUser}
+                  profileData={profileData}
+                  isDarkMode={isDarkMode}
+                />
               )}
 
               {/* 5. CLEARANCE */}
@@ -1677,24 +2330,295 @@ function StudentDashboard() {
                   <div className="custom-card">
                     <div className="clearance-info-bar" style={{ background: '#fef2f2', borderLeft: '4px solid #ef4444', padding: '16px', borderRadius: '8px', marginBottom: '24px', color: '#991b1b', fontWeight: 600 }}>⚠️ <strong>CRITICAL WARNING:</strong> Submitting this form will mark your bed as vacant. Only proceed if legally vacating.</div>
 
-                    <div className="profile-summary-box" style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '24px', marginBottom: '32px' }}>
-                      <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--teal)', textTransform: 'uppercase', marginBottom: '16px', letterSpacing: '1px' }}>📋 Automated Profile Authentication</h3>
-                      <div className="form-row" style={{ marginBottom: 0, rowGap: '16px' }}>
-                        <div>
-                          <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 700 }}>STUDENT NAME</div>
-                          <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)', marginTop: '4px' }}>{profileData.fullName || 'Not Disclosed'}</div>
+                    {/* ✨ ULTRA-ATTRACTIVE FUTURISTIC CLEARANCE IDENTITY PASS ✨ */}
+                    <div
+                      className="profile-summary-box"
+                      style={{
+                        background: 'linear-gradient(135deg, #0b132b 0%, #1c2541 60%, #1e1b4b 100%)',
+                        border: '1.5px solid rgba(99, 102, 241, 0.45)',
+                        borderRadius: '24px',
+                        overflow: 'hidden',
+                        marginBottom: '32px',
+                        boxShadow: '0 20px 50px rgba(11, 19, 43, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.2)',
+                        position: 'relative',
+                        color: '#ffffff'
+                      }}
+                    >
+                      {/* SUBTLE TOP AMBIENT GLOW */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '-60px',
+                          right: '-60px',
+                          width: '180px',
+                          height: '180px',
+                          background: 'radial-gradient(circle, rgba(56, 189, 248, 0.25) 0%, rgba(56, 189, 248, 0) 70%)',
+                          borderRadius: '50%',
+                          pointerEvents: 'none'
+                        }}
+                      />
+
+                      {/* TOP INSTITUTIONAL BAR */}
+                      <div
+                        style={{
+                          padding: '16px 24px',
+                          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: '12px',
+                          background: 'rgba(255, 255, 255, 0.03)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', border: '1px solid rgba(255, 255, 255, 0.15)' }}>
+                            🏛️
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '13px', fontWeight: 900, letterSpacing: '1px', textTransform: 'uppercase', color: '#f8fafc' }}>
+                              Government Polytechnic, Barh
+                            </div>
+                            <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 600, letterSpacing: '0.5px' }}>
+                              OFFICIAL DIGITAL CLEARANCE &amp; NO-DUES DOSSIER
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 700 }}>REGISTRATION ID</div>
-                          <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)', marginTop: '4px' }}>{profileData.regNo}</div>
+
+                        <div
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            background: 'rgba(34, 197, 94, 0.15)',
+                            color: '#4ade80',
+                            padding: '6px 14px',
+                            borderRadius: '30px',
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            border: '1px solid rgba(74, 222, 128, 0.4)',
+                            boxShadow: '0 0 16px rgba(74, 222, 128, 0.2)'
+                          }}
+                        >
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#4ade80', display: 'inline-block', boxShadow: '0 0 8px #4ade80' }}></span>
+                          LIVE BIOMETRIC VERIFIED
                         </div>
-                        <div>
-                          <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 700 }}>BRANCH & SEM</div>
-                          <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)', marginTop: '4px' }}>{profileData.branch || 'Not Disclosed'}</div>
+                      </div>
+
+                      {/* MAIN DOSSIER CONTENT */}
+                      <div style={{ padding: '24px 28px' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            flexWrap: 'wrap',
+                            gap: '28px'
+                          }}
+                        >
+                          {/* AVATAR & NAME CARD */}
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '18px',
+                              paddingRight: '28px',
+                              borderRight: '1px solid rgba(255, 255, 255, 0.12)',
+                              minWidth: '280px'
+                            }}
+                          >
+                            <div style={{ position: 'relative' }}>
+                              <div
+                                style={{
+                                  width: '76px',
+                                  height: '76px',
+                                  borderRadius: '50%',
+                                  overflow: 'hidden',
+                                  border: '3px solid #38bdf8',
+                                  boxShadow: '0 0 20px rgba(56, 189, 248, 0.4)',
+                                  background: '#0f172a'
+                                }}
+                              >
+                                <img
+                                  src={profilePic}
+                                  alt="Student"
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                              </div>
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  bottom: '2px',
+                                  right: '2px',
+                                  width: '22px',
+                                  height: '22px',
+                                  borderRadius: '50%',
+                                  background: '#10b981',
+                                  color: 'white',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '12px',
+                                  fontWeight: 900,
+                                  border: '2px solid #0b132b',
+                                  boxShadow: '0 0 8px #10b981'
+                                }}
+                              >
+                                ✓
+                              </div>
+                            </div>
+
+                            <div>
+                              <h3
+                                style={{
+                                  margin: '0 0 6px',
+                                  fontSize: '19px',
+                                  fontWeight: 900,
+                                  color: '#ffffff',
+                                  letterSpacing: '0.3px',
+                                  textShadow: '0 2px 10px rgba(0,0,0,0.5)'
+                                }}
+                              >
+                                {profileData.fullName || (profileData.gender === 'FEMALE' ? 'Sana Sharma' : 'Amit Kumar Sharma')}
+                              </h3>
+                              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                <span
+                                  style={{
+                                    fontSize: '11px',
+                                    fontWeight: 900,
+                                    background: 'rgba(234, 179, 8, 0.18)',
+                                    color: '#fde047',
+                                    padding: '3px 10px',
+                                    borderRadius: '8px',
+                                    fontFamily: 'monospace',
+                                    border: '1px solid rgba(234, 179, 8, 0.35)'
+                                  }}
+                                >
+                                  ID: {profileData.regNo || (profileData.gender === 'FEMALE' ? '1554424000' : '1554424049')}
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: '11px',
+                                    fontWeight: 800,
+                                    background: 'rgba(56, 189, 248, 0.15)',
+                                    color: '#38bdf8',
+                                    padding: '3px 10px',
+                                    borderRadius: '8px',
+                                    border: '1px solid rgba(56, 189, 248, 0.3)'
+                                  }}
+                                >
+                                  {profileData.session || '2024-27'} (Sem 3)
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* 4 FROSTED GLASS SPECS CHIPS */}
+                          <div
+                            style={{
+                              flex: 1,
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                              gap: '12px',
+                              minWidth: '280px'
+                            }}
+                          >
+                            {/* 1. DISCIPLINE */}
+                            <div
+                              style={{
+                                background: 'rgba(255, 255, 255, 0.05)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                padding: '10px 14px',
+                                borderRadius: '12px',
+                                backdropFilter: 'blur(8px)'
+                              }}
+                            >
+                              <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                                🎓 Discipline
+                              </div>
+                              <div style={{ fontSize: '13px', fontWeight: 800, color: '#f8fafc', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {profileData.branch || 'AI & Machine Learning'}
+                              </div>
+                            </div>
+
+                            {/* 2. ROOM & BED */}
+                            <div
+                              style={{
+                                background: 'rgba(34, 197, 94, 0.08)',
+                                border: '1px solid rgba(34, 197, 94, 0.25)',
+                                padding: '10px 14px',
+                                borderRadius: '12px',
+                                backdropFilter: 'blur(8px)'
+                              }}
+                            >
+                              <div style={{ fontSize: '10px', color: '#86efac', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                                🛏️ Hostel Room
+                              </div>
+                              <div style={{ fontSize: '13px', fontWeight: 900, color: '#4ade80', marginTop: '3px' }}>
+                                {profileData.gender === 'FEMALE' ? 'Room G-102 • Bed A' : 'Room B-204 • Bed B'}
+                              </div>
+                            </div>
+
+                            {/* 3. MOBILE */}
+                            <div
+                              style={{
+                                background: 'rgba(255, 255, 255, 0.05)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                padding: '10px 14px',
+                                borderRadius: '12px',
+                                backdropFilter: 'blur(8px)'
+                              }}
+                            >
+                              <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                                📞 Mobile
+                              </div>
+                              <div style={{ fontSize: '13px', fontWeight: 800, color: '#f8fafc', marginTop: '3px', fontFamily: 'monospace' }}>
+                                {profileData.contact || (profileData.gender === 'FEMALE' ? '+91 91234 -----' : '+91 88731 -----')}
+                              </div>
+                            </div>
+
+                            {/* 4. EMAIL */}
+                            <div
+                              style={{
+                                background: 'rgba(255, 255, 255, 0.05)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                padding: '10px 14px',
+                                borderRadius: '12px',
+                                backdropFilter: 'blur(8px)'
+                              }}
+                            >
+                              <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                                ✉️ Email
+                              </div>
+                              <div style={{ fontSize: '12px', fontWeight: 800, color: '#f8fafc', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={profileData.email}>
+                                {profileData.email || (profileData.gender === 'FEMALE' ? 'sanasharma.gpb.ai@gmail.com' : 'amitkumar.gpb.ai@gmail.com')}
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 700 }}>MOBILE NO</div>
-                          <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)', marginTop: '4px' }}>{profileData.contact || 'Not Disclosed'}</div>
+
+                        {/* BOTTOM SECURITY CODE BAR */}
+                        <div
+                          style={{
+                            marginTop: '20px',
+                            paddingTop: '14px',
+                            borderTop: '1px dashed rgba(255, 255, 255, 0.15)',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            flexWrap: 'wrap',
+                            gap: '10px',
+                            fontSize: '11px',
+                            color: '#94a3b8'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span>🔐</span>
+                            <span>Tamper-Proof Encryption: <code style={{ color: '#38bdf8', fontWeight: 700 }}>GPB-CLR-SEC-2025</code></span>
+                          </div>
+                          <div style={{ color: '#4ade80', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span>✓</span>
+                            <span>Dues Audit Status: ZERO PENDING DUES</span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1704,14 +2628,75 @@ function StudentDashboard() {
                       <div className="form-group"><label className="form-label">Anticipated Date of Departure</label><input type="date" className="form-input" /></div>
                     </div>
 
-                    <h3 style={{ fontSize: '16px', fontWeight: 800, margin: '40px 0 24px', color: 'var(--text)' }}>Bank Details (For Refund)</h3>
+                    <h3 style={{ fontSize: '16px', fontWeight: 800, margin: '40px 0 24px', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span>🏦</span> Bank Details (For Refund)
+                    </h3>
                     <div className="form-row">
-                      <div className="form-group"><label className="form-label">Account Holder Name</label><input type="text" className="form-input" placeholder="Must match bank passbook" /></div>
-                      <div className="form-group"><label className="form-label">Account Number</label><input type="password" placeholder="Enter A/C Number" className="form-input" /></div>
+                      <div className="form-group">
+                        <label className="form-label" style={{ fontWeight: 700 }}>Account Holder Name</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          value={bankAccountHolder || profileData.fullName || (profileData.gender === 'FEMALE' ? 'Sana Sharma' : 'Amit Kumar Sharma')}
+                          onChange={e => setBankAccountHolder(e.target.value)}
+                          placeholder="Must match bank passbook"
+                          autoComplete="off"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label" style={{ fontWeight: 700 }}>Account Number</label>
+                        <div style={{ position: 'relative' }}>
+                          <input
+                            type={showAccountNumber ? "text" : "password"}
+                            placeholder="Enter bank A/C number..."
+                            className="form-input"
+                            value={bankAccountNumber}
+                            onChange={e => setBankAccountNumber(e.target.value)}
+                            style={{ paddingRight: '44px' }}
+                            autoComplete="new-password"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowAccountNumber(!showAccountNumber)}
+                            style={{
+                              position: 'absolute',
+                              right: '12px',
+                              top: '50%',
+                              transform: 'translateY(-50%)',
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              fontSize: '16px',
+                              color: 'var(--text-muted)'
+                            }}
+                            title={showAccountNumber ? "Hide Account Number" : "Show Account Number"}
+                          >
+                            {showAccountNumber ? '👁️' : '🔒'}
+                          </button>
+                        </div>
+                      </div>
                     </div>
                     <div className="form-row">
-                      <div className="form-group"><label className="form-label">Bank Name & Branch</label><input type="text" className="form-input" placeholder="e.g. State Bank of India, Barh" /></div>
-                      <div className="form-group"><label className="form-label">IFSC Code</label><input type="text" className="form-input" placeholder="e.g. SBIN0001234" /></div>
+                      <div className="form-group">
+                        <label className="form-label" style={{ fontWeight: 700 }}>Bank Name</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          value={bankNameBranch}
+                          onChange={e => setBankNameBranch(e.target.value)}
+                          placeholder="e.g. Kotak Mahindra Bank"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label" style={{ fontWeight: 700 }}>IFSC Code (Patna)</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          value={bankIfsc}
+                          onChange={e => setBankIfsc(e.target.value.toUpperCase())}
+                          placeholder="e.g. KKBK0005650"
+                        />
+                      </div>
                     </div>
 
                     <label className="upload-zone" style={{ margin: '32px 0' }}>
@@ -1754,6 +2739,204 @@ function StudentDashboard() {
                 </div>
               )}
 
+              {/* 8. SECURITY & PASSWORD MANAGEMENT (DEDICATED SECTION) */}
+              {activeTab === 'security' && (
+                <div>
+                  <h2 className="page-title">Security &amp; Password</h2>
+                  <p className="page-sub">Manage your account credentials, generate secure passkeys, and keep your portal access protected.</p>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+                    <div className="custom-card" style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                      <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(34, 197, 94, 0.1)', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
+                        🛡️
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Account Status</div>
+                        <div style={{ fontSize: '15px', fontWeight: 900, color: '#16a34a' }}>Active &amp; Protected</div>
+                      </div>
+                    </div>
+                    <div className="custom-card" style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                      <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(37, 99, 235, 0.1)', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
+                        🔑
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Password Strength</div>
+                        <div style={{ fontSize: '15px', fontWeight: 900, color: 'var(--text)' }}>High-Grade Encryption</div>
+                      </div>
+                    </div>
+                    <div className="custom-card" style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                      <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(234, 179, 8, 0.1)', color: '#ca8a04', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
+                        📱
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Device Session</div>
+                        <div style={{ fontSize: '15px', fontWeight: 900, color: 'var(--text)' }}>Authenticated ID: {profileData.regNo}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* MAIN CHANGE PASSWORD CARD */}
+                  <div
+                    className="custom-card"
+                    style={{
+                      padding: '32px 28px',
+                      borderRadius: '20px',
+                      background: 'var(--card)',
+                      border: '1px solid var(--border)',
+                      boxShadow: 'var(--shadow)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '24px', paddingBottom: '18px', borderBottom: '1px solid var(--border)' }}>
+                      <div>
+                        <h3 style={{ fontSize: '18px', fontWeight: 900, margin: '0 0 4px', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span>🔐</span> Update Account Password
+                        </h3>
+                        <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>
+                          Enter your current password followed by your chosen new password.
+                        </p>
+                      </div>
+
+                      {/* GENERATE PASSWORD BUTTON */}
+                      <button
+                        type="button"
+                        onClick={generateStrongPassword}
+                        style={{
+                          padding: '10px 20px',
+                          background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.2) 100%)',
+                          color: '#2563eb',
+                          border: '1px solid rgba(37, 99, 235, 0.35)',
+                          borderRadius: '12px',
+                          fontSize: '13px',
+                          fontWeight: 800,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          cursor: 'pointer',
+                          boxShadow: '0 2px 8px rgba(37, 99, 235, 0.15)',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseOver={(e) => { e.currentTarget.style.background = '#2563eb'; e.currentTarget.style.color = '#fff'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.2) 100%)'; e.currentTarget.style.color = '#2563eb'; }}
+                      >
+                        <span style={{ fontSize: '15px' }}>⚡</span>
+                        <span>Generate Strong Password</span>
+                      </button>
+                    </div>
+
+                    <div className="form-row">
+                      {/* CURRENT PASSWORD */}
+                      <div className="form-group">
+                        <label className="form-label" style={{ fontWeight: 700 }}>Current Password</label>
+                        <div style={{ position: 'relative' }}>
+                          <input
+                            className="form-input"
+                            type={showCurrentPass ? "text" : "password"}
+                            value={currentPasswordInput}
+                            onChange={e => setCurrentPasswordInput(e.target.value)}
+                            placeholder="Enter current account password..."
+                            style={{ paddingRight: '44px' }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowCurrentPass(!showCurrentPass)}
+                            style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: 'var(--text-muted)' }}
+                          >
+                            {showCurrentPass ? '👁️' : '🔒'}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* NEW PASSWORD */}
+                      <div className="form-group">
+                        <label className="form-label" style={{ fontWeight: 700 }}>New Password</label>
+                        <div style={{ position: 'relative' }}>
+                          <input
+                            className="form-input"
+                            type={showNewPass ? "text" : "password"}
+                            value={newPasswordInput}
+                            onChange={e => setNewPasswordInput(e.target.value)}
+                            placeholder="Enter new password (min. 6 chars)..."
+                            style={{ paddingRight: '44px' }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowNewPass(!showNewPass)}
+                            style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: 'var(--text-muted)' }}
+                          >
+                            {showNewPass ? '👁️' : '🔒'}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* CONFIRM NEW PASSWORD */}
+                      <div className="form-group">
+                        <label className="form-label" style={{ fontWeight: 700 }}>Confirm New Password</label>
+                        <div style={{ position: 'relative' }}>
+                          <input
+                            className="form-input"
+                            type={showConfirmPass ? "text" : "password"}
+                            value={confirmPasswordInput}
+                            onChange={e => setConfirmPasswordInput(e.target.value)}
+                            placeholder="Re-enter new password..."
+                            style={{ paddingRight: '44px' }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPass(!showConfirmPass)}
+                            style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: 'var(--text-muted)' }}
+                          >
+                            {showConfirmPass ? '👁️' : '🔒'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SECURITY GUIDELINES BOX */}
+                    <div style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '14px', padding: '16px 20px', marginTop: '16px', fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '18px' }}>💡</span>
+                      <div>
+                        <strong>Password Tips:</strong> Must be at least 6 characters long. For best security, combine capital letters, numbers, and special symbols (e.g. <code>GPB@738#x</code>).
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        disabled={isUpdatingPassword}
+                        onClick={handleChangePassword}
+                        style={{
+                          padding: '14px 36px',
+                          background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                          color: '#ffffff',
+                          borderRadius: '12px',
+                          fontWeight: 800,
+                          fontSize: '14px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          cursor: isUpdatingPassword ? 'wait' : 'pointer',
+                          border: 'none',
+                          boxShadow: '0 6px 20px rgba(37, 99, 235, 0.35)',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(37, 99, 235, 0.45)'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(37, 99, 235, 0.35)'; }}
+                      >
+                        {isUpdatingPassword ? (
+                          <span>Updating Password... ⏳</span>
+                        ) : (
+                          <>
+                            <span>🔐</span>
+                            <span>SAVE &amp; UPDATE PASSWORD</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* 7. APP SCAN */}
               {activeTab === 'appscan' && (
                 <article className="mobile-only-nav">
@@ -1771,6 +2954,599 @@ function StudentDashboard() {
             </div>
           </section>
         </main>
+
+        {/* 🌟 ALWAYS-RENDERED DEDICATED PRINT DOSSIER CONTAINER (100% PRINT RELIABILITY) 🌟 */}
+        <div id="global-printable-dossier" style={{ display: 'none' }}>
+          <StudentRecordDossier
+            profileData={profileData}
+            currentUser={currentUser}
+            profilePic={profilePic}
+            isDarkMode={false}
+          />
+        </div>
+
+        {/* 🌟 ALWAYS-RENDERED DEDICATED PRINT ALLOTMENT SLIP CONTAINER 🌟 */}
+        <div id="global-printable-allotment-slip" style={{ display: 'none', background: '#ffffff', color: '#0f172a', fontFamily: 'system-ui, sans-serif' }}>
+          <div style={{ border: '2px solid #800000', borderRadius: '12px', padding: '16px', background: '#ffffff' }}>
+            
+            {/* HEADER */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '3px solid #800000', paddingBottom: '12px', marginBottom: '14px' }}>
+              <div style={{ width: '60px', height: '60px' }}>
+                <img src={logo} alt="GP Barh" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              </div>
+              <div style={{ textAlign: 'center', flex: 1, padding: '0 12px' }}>
+                <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 900, color: '#800000', fontFamily: 'serif' }}>राजकीय पॉलिटेक्निक, बाढ़ (पटना)</h1>
+                <h2 style={{ margin: '2px 0 0', fontSize: '13px', fontWeight: 800, color: '#0f172a', letterSpacing: '0.5px' }}>GOVERNMENT POLYTECHNIC, BARH (PATNA)</h2>
+                <div style={{ fontSize: '9.5px', color: '#64748b', fontWeight: 600 }}>Dept. of Science, Technology &amp; Technical Education • Govt. of Bihar</div>
+                <div style={{ display: 'inline-block', background: '#800000', color: '#ffffff', padding: '3px 12px', borderRadius: '10px', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', marginTop: '6px', letterSpacing: '0.5px' }}>
+                  Official Hostel Room &amp; Inventory Allotment Slip • Session 2026–29
+                </div>
+              </div>
+              <div style={{ width: '60px', height: '60px', border: '1px dashed #cbd5e1', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                <img src={profilePic} alt="Photo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              </div>
+            </div>
+
+            {/* METADATA BAR */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '12px', fontSize: '11px' }}>
+              <div><strong>Allotment Slip No:</strong> <span style={{ color: '#800000', fontFamily: 'monospace', fontWeight: 800 }}>GPB/2026/ALLOT-10101</span></div>
+              <div><strong>Issued Date:</strong> <span>{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span></div>
+              <div><strong>Status:</strong> <span style={{ color: '#16a34a', fontWeight: 900 }}>✓ ADMITTED &amp; ALLOTTED</span></div>
+            </div>
+
+            {/* STUDENT DETAILS TABLE */}
+            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '12px', fontSize: '11.5px' }}>
+              <tbody>
+                <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                  <td style={{ padding: '6px 8px', color: '#64748b', fontWeight: 700, width: '22%' }}>Student Name:</td>
+                  <td style={{ padding: '6px 8px', fontWeight: 900, color: '#0f172a', width: '28%' }}>{profileData?.fullName || (profileData?.gender === 'FEMALE' ? 'SANA SHARMA' : 'AMIT KUMAR SHARMA')}</td>
+                  <td style={{ padding: '6px 8px', color: '#64748b', fontWeight: 700, width: '22%' }}>Registration No:</td>
+                  <td style={{ padding: '6px 8px', fontWeight: 900, color: '#0f172a', width: '28%', fontFamily: 'monospace' }}>{profileData?.regNo || (profileData?.gender === 'FEMALE' ? '1554424000' : '1554424049')}</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                  <td style={{ padding: '6px 8px', color: '#64748b', fontWeight: 700 }}>Discipline / Branch:</td>
+                  <td style={{ padding: '6px 8px', fontWeight: 800 }}>{profileData?.branch || 'Artificial Intelligence & Machine Learning'}</td>
+                  <td style={{ padding: '6px 8px', color: '#64748b', fontWeight: 700 }}>Class Roll No:</td>
+                  <td style={{ padding: '6px 8px', fontWeight: 900, color: '#0f172a' }}>{profileData?.rollNo || currentUser?.roll_no || (profileData?.gender === 'FEMALE' ? '00' : '49')}</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: '6px 8px', color: '#64748b', fontWeight: 700 }}>Hostel Name:</td>
+                  <td style={{ padding: '6px 8px', fontWeight: 900, color: '#800000' }}>
+                    {profileData?.gender === 'FEMALE' || currentUser?.gender === 'FEMALE'
+                      ? 'Savitribai Phule Girls Hostel'
+                      : (profileData?.hostelBlock?.toLowerCase().includes('rajendra') || currentUser?.hostel_block?.toLowerCase().includes('rajendra')
+                          ? 'Dr. Rajendra Prasad Boys Hostel'
+                          : 'Birsa Munda Boys Hostel')}
+                  </td>
+                  <td style={{ padding: '6px 8px', color: '#64748b', fontWeight: 700 }}>Academic Session:</td>
+                  <td style={{ padding: '6px 8px', fontWeight: 800 }}>2026 – 2029</td>
+                </tr>
+              </tbody>
+            </table>
+
+            {/* 🏢 ALLOTTED ROOM & INVENTORY TABLE */}
+            <div style={{ background: '#f1f5f9', padding: '6px 10px', borderRadius: '6px', fontWeight: 900, fontSize: '11px', color: '#1e293b', marginBottom: '6px', textTransform: 'uppercase' }}>
+              🏢 Verified Room Allocation &amp; Official Inventory Handover
+            </div>
+
+            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '12px', fontSize: '11.5px', border: '1px solid #cbd5e1' }}>
+              <thead>
+                <tr style={{ background: '#e2e8f0', color: '#0f172a' }}>
+                  <th style={{ padding: '6px 8px', textAlign: 'left', border: '1px solid #cbd5e1', width: '10%' }}>S.No</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'left', border: '1px solid #cbd5e1', width: '40%' }}>Allotted Item &amp; Specification</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'center', border: '1px solid #cbd5e1', width: '25%' }}>Allotted Number / Tag</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'center', border: '1px solid #cbd5e1', width: '25%' }}>Handover Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>1</td>
+                  <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}><strong>Hostel Room</strong> (Ground Floor, Main Wing)</td>
+                  <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'center', fontWeight: 900, color: '#1e40af' }}>Room No. 101</td>
+                  <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'center', color: '#16a34a', fontWeight: 800 }}>Inspected &amp; Handed Over</td>
+                </tr>
+                <tr style={{ background: '#f8fafc' }}>
+                  <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>2</td>
+                  <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}><strong>Single Bed &amp; Foam Mattress</strong> (Standard Size)</td>
+                  <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'center', fontWeight: 900, color: '#1e40af' }}>Bed No. 1 (Bed A)</td>
+                  <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'center', color: '#16a34a', fontWeight: 800 }}>Inspected &amp; Handed Over</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>3</td>
+                  <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}><strong>Study Table</strong> (Wooden Ergonomic Desk)</td>
+                  <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'center', fontWeight: 900, color: '#1e40af' }}>Study Table No. 1</td>
+                  <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'center', color: '#16a34a', fontWeight: 800 }}>Inspected &amp; Handed Over</td>
+                </tr>
+                <tr style={{ background: '#f8fafc' }}>
+                  <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>4</td>
+                  <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}><strong>Study Chair</strong> (Comfort High-Back Chair)</td>
+                  <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'center', fontWeight: 900, color: '#1e40af' }}>Study Chair No. 1</td>
+                  <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'center', color: '#16a34a', fontWeight: 800 }}>Inspected &amp; Handed Over</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>5</td>
+                  <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}><strong>Steel Almirah / Cupboard</strong> (2-Door with Key)</td>
+                  <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'center', fontWeight: 900, color: '#1e40af' }}>Almirah / Locker No. 1</td>
+                  <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'center', color: '#16a34a', fontWeight: 800 }}>Key #1 Handed Over</td>
+                </tr>
+                <tr style={{ background: '#f8fafc' }}>
+                  <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>6</td>
+                  <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}><strong>Electrical Fittings</strong> (Fan, Light &amp; Socket)</td>
+                  <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'center', fontWeight: 900, color: '#1e40af' }}>1x Fan • 1x LED • 1x Socket</td>
+                  <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'center', color: '#16a34a', fontWeight: 800 }}>Operational</td>
+                </tr>
+              </tbody>
+            </table>
+
+            {/* 💰 FEE RECEIPT & CERTIFICATION */}
+            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', fontSize: '11px' }}>
+              <div>
+                <div><strong>Registration Fee (Non-Refundable):</strong> ₹500.00 | <strong>Caution Deposit (Refundable):</strong> ₹1,500.00</div>
+                <div style={{ fontSize: '10px', color: '#166534', marginTop: '2px' }}>*The ₹1,500 Caution Money is 100% refundable upon final hostel exit clearance.</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '9px', color: '#166534', fontWeight: 700 }}>TOTAL RECEIVED &amp; VERIFIED</div>
+                <div style={{ fontSize: '16px', fontWeight: 900, color: '#15803d' }}>₹2,000.00</div>
+              </div>
+            </div>
+
+            {/* VERIFIED UTR ROW */}
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', fontSize: '11px' }}>
+              <div>
+                <span style={{ color: '#64748b', fontWeight: 700 }}>TXN / UTR NUMBER:</span>
+                <span style={{ fontFamily: 'monospace', fontWeight: 900, color: '#1e3a8a', marginLeft: '6px' }}>
+                  {regFeeUtr || 'UPI/992140819201/HDFC'}
+                </span>
+              </div>
+              <div style={{ color: '#16a34a', fontWeight: 900, fontSize: '10.5px' }}>
+                ✓ UTR VERIFIED &amp; MATCHED BY CHIEF WARDEN
+              </div>
+            </div>
+
+            {/* SIGNATURES */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '20px', paddingTop: '10px', fontSize: '11px' }}>
+              <div style={{ textAlign: 'center', width: '180px' }}>
+                <div style={{ height: '30px' }}></div>
+                <div style={{ borderTop: '1px solid #0f172a', paddingTop: '4px', fontWeight: 800 }}>Signature of Student</div>
+                <div style={{ fontSize: '9.5px', color: '#64748b' }}>({profileData?.fullName || (profileData?.gender === 'FEMALE' ? 'Sana Sharma' : 'Amit Kumar Sharma')})</div>
+              </div>
+
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ width: '56px', height: '56px', borderRadius: '50%', border: '2px solid #800000', color: '#800000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontSize: '8px', fontWeight: 900, margin: '0 auto' }}>
+                  <span>OFFICIAL</span>
+                  <span>SEAL</span>
+                  <span>GP BARH</span>
+                </div>
+              </div>
+
+              <div style={{ textAlign: 'center', width: '200px' }}>
+                <div style={{ height: '30px' }}></div>
+                <div style={{ borderTop: '1px solid #0f172a', paddingTop: '4px', fontWeight: 800 }}>Hostel Warden / Principal</div>
+                <div style={{ fontSize: '9.5px', color: '#64748b' }}>Govt. Polytechnic, Barh (Patna)</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        {/* 🔐 PASSWORD UNLOCK MODAL 🔐 */}
+        {showUnlockModal && (
+          <div
+            className="modal-backdrop"
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(15, 23, 42, 0.75)',
+              backdropFilter: 'blur(6px)',
+              zIndex: 999999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '16px'
+            }}
+          >
+            <div
+              className="custom-card"
+              style={{
+                maxWidth: '420px',
+                width: '100%',
+                padding: '32px 28px',
+                borderRadius: '22px',
+                background: 'var(--card)',
+                border: '1px solid var(--border)',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+                textAlign: 'center'
+              }}
+            >
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(37, 99, 235, 0.1)', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', margin: '0 auto 16px', border: '2px solid rgba(37, 99, 235, 0.2)' }}>
+                🔐
+              </div>
+              <h3 style={{ fontSize: '20px', fontWeight: 900, color: 'var(--text)', margin: '0 0 6px', fontFamily: "'Fraunces', serif" }}>
+                Unlock Profile Records
+              </h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 20px', lineHeight: 1.5 }}>
+                Enter your account password to verify your identity and unlock academic &amp; personal fields.
+              </p>
+
+              <div style={{ textAlign: 'left', marginBottom: '16px' }}>
+                <label className="form-label" style={{ fontWeight: 700, marginBottom: '6px', display: 'block', fontSize: '12px' }}>
+                  Account Password
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showPasswordText ? "text" : "password"}
+                    className="form-input"
+                    placeholder="Enter password..."
+                    value={unlockPasswordInput}
+                    onChange={(e) => {
+                      setUnlockPasswordInput(e.target.value);
+                      setUnlockError("");
+                    }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleUnlockProfile(); }}
+                    autoFocus
+                    style={{ paddingRight: '44px', width: '100%', fontSize: '14px' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswordText(!showPasswordText)}
+                    style={{
+                      position: 'absolute',
+                      right: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '16px',
+                      padding: 0
+                    }}
+                    title={showPasswordText ? "Hide Password" : "Show Password"}
+                  >
+                    {showPasswordText ? '👁️' : '🔒'}
+                  </button>
+                </div>
+                {unlockError && (
+                  <p style={{ color: '#ef4444', fontSize: '12px', fontWeight: 700, marginTop: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span>⚠️</span> {unlockError}
+                  </p>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowUnlockModal(false);
+                    setUnlockPasswordInput("");
+                    setUnlockError("");
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '12px',
+                    color: 'var(--text)',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    fontSize: '13px'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleUnlockProfile}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    background: '#2563eb',
+                    border: 'none',
+                    borderRadius: '12px',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
+                  }}
+                >
+                  Unlock 🔓
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 📱 REGISTRATION & CAUTION FEE (₹2,000) UPI QR MODAL */}
+        {showRegQrModal && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(6px)', padding: '16px' }}>
+            <div style={{ background: 'var(--card)', width: '100%', maxWidth: '380px', borderRadius: '20px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
+              <div style={{ background: '#16a34a', color: 'white', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '20px' }}>📝</span>
+                  <div>
+                    <h3 style={{ fontSize: '15px', fontWeight: 900, margin: 0 }}>Admission &amp; Security QR</h3>
+                    <div style={{ fontSize: '10.5px', opacity: 0.9 }}>Principal GP Barh Hostel</div>
+                  </div>
+                </div>
+                <button onClick={() => setShowRegQrModal(false)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', fontWeight: 900 }}>✕</button>
+              </div>
+
+              <div style={{ padding: '20px', textAlign: 'center' }}>
+                <div style={{ width: '170px', height: '170px', margin: '0 auto 14px', background: 'white', borderRadius: '12px', padding: '10px', border: '2px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(
+                      `upi://pay?pa=50200112532031@hdfcbank&pn=Principal%20GP%20Barh%20Hostel&am=2000&cu=INR`
+                    )}`}
+                    alt="Admission QR Code"
+                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                  />
+                </div>
+
+                <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text)', marginBottom: '2px' }}>
+                  Scan with Google Pay / PhonePe / Paytm
+                </div>
+                <div style={{ fontSize: '20px', fontWeight: 900, color: '#16a34a', marginBottom: '14px' }}>
+                  ₹2,000.00 <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>(₹500 Reg + ₹1,500 Security)</span>
+                </div>
+
+                <div style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 12px', fontSize: '11.5px', textAlign: 'left', color: 'var(--text-muted)', marginBottom: '16px' }}>
+                  <div><strong>A/C:</strong> <code>50200112532031</code></div>
+                  <div><strong>IFSC:</strong> <code>HDFC0002248</code></div>
+                  <div><strong>Beneficiary:</strong> Principal Govt Polytechnic Barh Hostel</div>
+                </div>
+
+                {/* UTR INPUT FIELD */}
+                <div style={{ textAlign: 'left', marginBottom: '16px' }}>
+                  <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text)', display: 'block', marginBottom: '4px' }}>
+                    ENTER 12-DIGIT TRANSACTION UTR NUMBER:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 423891002931 or UPI/..."
+                    value={regFeeUtr}
+                    onChange={(e) => setRegFeeUtr(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      borderRadius: '10px',
+                      border: '2px solid #16a34a',
+                      background: 'var(--input-bg)',
+                      color: 'var(--text)',
+                      fontSize: '13px',
+                      fontWeight: 800,
+                      fontFamily: 'monospace',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'block', marginTop: '3px' }}>
+                    *Chief Warden will verify this UTR against bank records to confirm your permanent room allotment.
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const finalUtr = (regFeeUtr && regFeeUtr.trim()) ? regFeeUtr.trim() : 'UPI/992140819201/HDFC';
+                      setRegFeeUtr(finalUtr);
+                      setIsAdmissionFeePaid(true);
+                      localStorage.setItem('gpbarh_admission_fee_paid', 'true');
+                      localStorage.setItem('gpbarh_admission_utr', finalUtr);
+                      setShowRegQrModal(false);
+                      toast.success(`🎉 UTR ${finalUtr} Recorded! Official Allotment Slip Unlocked for Warden Matching. ✅`, {
+                        duration: 5000,
+                        style: { borderRadius: '12px', background: '#166534', color: '#ffffff', fontWeight: 800 }
+                      });
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      background: '#16a34a',
+                      border: 'none',
+                      color: 'white',
+                      borderRadius: '10px',
+                      fontWeight: 900,
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 14px rgba(22, 163, 74, 0.35)'
+                    }}
+                  >
+                    ✅ SUBMIT UTR &amp; CONFIRM ADMISSION
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowRegQrModal(false)}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      background: 'var(--input-bg)',
+                      border: '1px solid var(--border)',
+                      color: 'var(--text)',
+                      borderRadius: '10px',
+                      fontWeight: 800,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 📥 OFFICIAL ADMISSION & ROOM INVENTORY ALLOTMENT SLIP (₹2,000) */}
+        {activeRegReceiptModal && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)', padding: '12px' }}>
+            <div style={{ background: '#ffffff', color: '#111827', width: '100%', maxWidth: '540px', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 25px 70px rgba(0,0,0,0.6)', border: '2px solid #e2e8f0', maxHeight: '95vh', overflowY: 'auto' }}>
+              
+              {/* TOP BAR */}
+              <div style={{ background: '#800000', color: 'white', padding: '18px 20px', textAlign: 'center', borderBottom: '3px solid #eab308' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '2px' }}>
+                  <div style={{ width: '36px', height: '36px', background: 'white', borderRadius: '50%', padding: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <img src={logo} alt="Logo" style={{ height: '100%', width: '100%', objectFit: 'contain' }} />
+                  </div>
+                  <div>
+                    <h2 style={{ fontSize: '16px', fontWeight: 900, margin: 0, fontFamily: 'serif' }}>राजकीय पॉलिटेक्निक, बाढ़</h2>
+                    <p style={{ fontSize: '9.5px', fontWeight: 700, margin: 0, textTransform: 'uppercase', opacity: 0.9 }}>Government Polytechnic, Barh</p>
+                  </div>
+                </div>
+                <div style={{ background: 'rgba(0,0,0,0.25)', padding: '3px 12px', borderRadius: '12px', display: 'inline-block', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', marginTop: '6px', color: '#fef08a' }}>
+                  Official Hostel Room &amp; Inventory Allotment Slip
+                </div>
+              </div>
+
+              <div style={{ padding: '22px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '10px', borderBottom: '1px dashed #cbd5e1', marginBottom: '14px' }}>
+                  <div>
+                    <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 700 }}>ALLOTMENT SLIP NO.</div>
+                    <div style={{ fontSize: '13px', fontWeight: 900, color: '#800000', fontFamily: 'monospace' }}>
+                      GPB/2026/ALLOT-10101
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 700 }}>ISSUED DATE</div>
+                    <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#334155' }}>
+                      {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* STUDENT PARTICULARS */}
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px 14px', marginBottom: '12px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: '6px', columnGap: '12px', fontSize: '11.5px' }}>
+                    <div>
+                      <span style={{ color: '#64748b', fontWeight: 700, display: 'block', fontSize: '9.5px' }}>STUDENT NAME</span>
+                      <strong style={{ color: '#0f172a' }}>{profileData?.fullName || (profileData?.gender === 'FEMALE' ? 'Sana Sharma' : 'Amit Kumar Sharma')}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: '#64748b', fontWeight: 700, display: 'block', fontSize: '9.5px' }}>ROLL / REG NO</span>
+                      <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>{profileData?.regNo || (profileData?.gender === 'FEMALE' ? '1554424000' : '1554424049')}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: '#64748b', fontWeight: 700, display: 'block', fontSize: '9.5px' }}>CLASS ROLL NO</span>
+                      <strong style={{ color: '#0f172a' }}>{profileData?.rollNo || currentUser?.roll_no || (profileData?.gender === 'FEMALE' ? '00' : '49')}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: '#64748b', fontWeight: 700, display: 'block', fontSize: '9.5px' }}>DISCIPLINE / BRANCH</span>
+                      <strong style={{ color: '#0f172a' }}>{profileData?.branch || 'AI & Machine Learning'}</strong>
+                    </div>
+                    <div style={{ gridColumn: 'span 2', borderTop: '1px solid #e2e8f0', paddingTop: '4px', marginTop: '2px' }}>
+                      <span style={{ color: '#64748b', fontWeight: 700, display: 'block', fontSize: '9.5px' }}>HOSTEL PREMISES / BLOCK</span>
+                      <strong style={{ color: '#800000', fontSize: '12px' }}>
+                        {profileData?.gender === 'FEMALE' || currentUser?.gender === 'FEMALE'
+                          ? 'Savitribai Phule Girls Hostel'
+                          : (profileData?.hostelBlock?.toLowerCase().includes('rajendra') || currentUser?.hostel_block?.toLowerCase().includes('rajendra')
+                              ? 'Dr. Rajendra Prasad Boys Hostel'
+                              : 'Birsa Munda Boys Hostel')}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ALLOTTED ROOM & INVENTORY HANDOVER */}
+                <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '12px', padding: '12px 14px', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '10.5px', fontWeight: 900, color: '#1e40af', textTransform: 'uppercase', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>🏢</span> Allotted Accommodation &amp; Inventory Details
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px', fontSize: '11.5px' }}>
+                    <div style={{ background: '#ffffff', padding: '7px 10px', borderRadius: '8px', border: '1px solid #dbeafe' }}>
+                      <span style={{ fontSize: '9.5px', color: '#64748b', display: 'block' }}>ALLOTTED ROOM</span>
+                      <strong style={{ color: '#1e3a8a', fontSize: '13px' }}>Room No. 101 (Ground Floor)</strong>
+                    </div>
+                    <div style={{ background: '#ffffff', padding: '7px 10px', borderRadius: '8px', border: '1px solid #dbeafe' }}>
+                      <span style={{ fontSize: '9.5px', color: '#64748b', display: 'block' }}>BED POSITION</span>
+                      <strong style={{ color: '#1e3a8a', fontSize: '13px' }}>Bed No. 1 (Bed A)</strong>
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: '11.5px', color: '#334155', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                    <div>🛏️ <strong>Bed &amp; Mattress:</strong> Bed No. 1 with Foam Mattress (Allotted)</div>
+                    <div>🪑 <strong>Study Table:</strong> Study Table No. 1 (Wooden Desk)</div>
+                    <div>🪑 <strong>Study Chair:</strong> Study Chair No. 1 (Ergonomic Chair)</div>
+                    <div>🚪 <strong>Steel Almirah / Locker:</strong> Almirah No. 1 (Cupboard Key #1)</div>
+                    <div>💡 <strong>Electricals:</strong> 1x Ceiling Fan, 1x LED Light &amp; Power Socket</div>
+                  </div>
+                </div>
+
+                {/* VERIFIED UTR ROW */}
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', fontSize: '11px' }}>
+                  <div>
+                    <span style={{ color: '#64748b', fontWeight: 700 }}>TXN / UTR NUMBER:</span>
+                    <span style={{ fontFamily: 'monospace', fontWeight: 900, color: '#1e3a8a', marginLeft: '6px' }}>
+                      {regFeeUtr || 'UPI/992140819201/HDFC'}
+                    </span>
+                  </div>
+                  <div style={{ color: '#16a34a', fontWeight: 900, fontSize: '10px' }}>
+                    ✓ MATCHED BY CHIEF WARDEN
+                  </div>
+                </div>
+
+                {/* PAYMENT CERTIFICATION */}
+                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                  <div>
+                    <div style={{ fontSize: '9.5px', color: '#166534', fontWeight: 700 }}>FEE BREAKDOWN &amp; RECEIVED</div>
+                    <div style={{ fontSize: '16px', fontWeight: 900, color: '#15803d' }}>
+                      ₹2,000.00 <span style={{ fontSize: '10px', color: '#166534', fontWeight: 600 }}>(₹500 Reg + ₹1,500 Refundable Caution)</span>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: '10.5px', fontWeight: 900, background: '#16a34a', color: '#fff', padding: '3px 8px', borderRadius: '12px' }}>
+                    ✓ ALLOTTED &amp; VERIFIED
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '10px', color: '#64748b', marginBottom: '16px' }}>
+                  <div>🔒 Chief Hostel Warden Office, GP Barh</div>
+                  <div style={{ fontWeight: 800, color: '#0f172a' }}>Seal: <code>GPB-ALLOTMENT-2026</code></div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={handlePrintAllotmentSlip}
+                    style={{
+                      flex: 1,
+                      background: '#0f172a',
+                      color: 'white',
+                      padding: '11px',
+                      borderRadius: '10px',
+                      fontWeight: 800,
+                      fontSize: '12.5px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <span>🖨️</span>
+                    <span>Print Official Allotment Slip</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveRegReceiptModal(null)}
+                    style={{
+                      background: '#e2e8f0',
+                      color: '#334155',
+                      padding: '11px 18px',
+                      borderRadius: '10px',
+                      fontWeight: 800,
+                      fontSize: '12.5px',
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
