@@ -181,3 +181,59 @@ class StudentDirectoryItem(BaseModel):
     bed_code: Optional[str] = None
     status: str
     profile_completed: bool
+
+# ==========================================
+# DYNAMIC FEE & PAYMENT SCHEMAS
+# ==========================================
+class FeeStructureSchema(BaseModel):
+    id: int
+    mess_fee_per_month: float = 3600.0
+    hostel_maintenance_per_month: float = 750.0
+    caution_money: float = 1500.0
+    registration_fee: float = 500.0
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+class FeeStructureUpdate(BaseModel):
+    mess_fee_per_month: Optional[float] = None
+    hostel_maintenance_per_month: Optional[float] = None
+    caution_money: Optional[float] = None
+    registration_fee: Optional[float] = None
+
+class PaymentSubmitSchema(BaseModel):
+    student_id: Optional[int] = None
+    student_name: str
+    reg_no: str
+    gender: Optional[str] = "MALE"
+    fee_type: str # 'HOSTEL' or 'MESS'
+    amount: float
+    utr_number: str
+    proof_url: Optional[str] = None
+    payment_period: Optional[str] = None
+    remarks: Optional[str] = None
+
+class PaymentTransactionSchema(BaseModel):
+    id: int
+    student_id: Optional[int] = None
+    student_name: str
+    reg_no: str
+    gender: str
+    fee_type: str
+    amount: float
+    utr_number: str
+    proof_url: Optional[str] = None
+    status: str # 'PENDING', 'APPROVED', 'REJECTED'
+    receipt_number: Optional[str] = None
+    remarks: Optional[str] = None
+    payment_period: Optional[str] = None
+    created_at: datetime
+    verified_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+class PaymentVerifyAction(BaseModel):
+    action: str # 'approve' or 'reject'
+    remarks: Optional[str] = None

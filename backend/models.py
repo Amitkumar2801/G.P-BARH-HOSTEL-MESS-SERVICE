@@ -95,3 +95,34 @@ class AllotmentRequest(Base):
     student = relationship("User", back_populates="allotment_requests", foreign_keys=[student_id])
     room = relationship("Room", back_populates="allotment_requests")
     bed = relationship("Bed", back_populates="allotment_requests")
+
+class FeeStructure(Base):
+    __tablename__ = "fee_structures"
+
+    id = Column(Integer, primary_key=True, index=True)
+    mess_fee_per_month = Column(Float, default=3600.0)
+    hostel_maintenance_per_month = Column(Float, default=750.0)
+    caution_money = Column(Float, default=1500.0)
+    registration_fee = Column(Float, default=500.0)
+    updated_at = Column(DateTime, default=datetime.utcnow)
+
+class PaymentTransaction(Base):
+    __tablename__ = "payment_transactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    student_name = Column(String, index=True)
+    reg_no = Column(String, index=True)
+    gender = Column(String, default="MALE")
+    fee_type = Column(String, index=True) # 'HOSTEL' or 'MESS'
+    amount = Column(Float)
+    utr_number = Column(String, unique=True, index=True)
+    proof_url = Column(Text, nullable=True)
+    status = Column(String, default="PENDING") # 'PENDING', 'APPROVED', 'REJECTED'
+    receipt_number = Column(String, unique=True, nullable=True, index=True)
+    remarks = Column(String, nullable=True)
+    payment_period = Column(String, nullable=True) # e.g. '6 Months (Semester)', 'New Batch 1st Year (5 Months)'
+    created_at = Column(DateTime, default=datetime.utcnow)
+    verified_at = Column(DateTime, nullable=True)
+
+    student = relationship("User", foreign_keys=[student_id])
