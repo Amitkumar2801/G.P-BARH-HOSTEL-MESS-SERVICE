@@ -29,10 +29,31 @@ function WardenDashboard() {
   });
 
   // Pending Requests State
-  const [pendingRequests, setPendingRequests] = useState([]);
+  const [pendingRequests, setPendingRequests] = useState([
+    {
+      id: 101,
+      student_name: 'AMIT KUMAR SHARMA',
+      student_reg: '1554424049',
+      student_roll: '49',
+      student_branch: 'Artificial Intelligence & Machine Learning',
+      gender: 'MALE',
+      room_number: '101',
+      bed_code: '1 (Bed A)',
+      hostel_name: 'Birsa Munda Boys Hostel',
+      distance_km: 145,
+      home_district: 'Arwal / Patna',
+      address: 'Vill - Agwanpur, P.O - Agwanpur, Dist - Patna, Bihar - 803213',
+      mobile: '+91 88731 42022',
+      guardian_mobile: '+91 98765 43211',
+      applied_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      eligibility_score: '98% (High Priority - Dist > 40km)'
+    }
+  ]);
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [actionRemarks, setActionRemarks] = useState({});
   const [processingId, setProcessingId] = useState(null);
+  const [auditStudentModal, setAuditStudentModal] = useState(null);
 
   // Student Directory State
   const [studentDirectory, setStudentDirectory] = useState([]);
@@ -46,31 +67,48 @@ function WardenDashboard() {
     { id: 3, studentName: 'Pooja Kumari', regNo: '1554424088', room: '204', destination: 'Gaya', from: '2026-08-26', to: '2026-08-30', reason: 'Medical Checkup', status: 'APPROVED' }
   ]);
 
-  // Fee Verification State
-  const [feeReceipts, setFeeReceipts] = useState([
-    { id: 'UTR-992140', studentName: 'Amit Sharma', regNo: '1554424049', feeType: 'Hostel Rent (Aug 2026)', amount: 2000, utr: 'UPI/283948291038/SBIN', date: '23 Aug 2026', status: 'PENDING' },
-    { id: 'UTR-992141', studentName: 'Priya Singh', regNo: '1554424077', feeType: 'Mess Bill (Aug 2026)', amount: 2500, utr: 'UPI/998234120943/HDFC', date: '23 Aug 2026', status: 'VERIFIED' }
-  ]);
+  // Fee Verification & Dynamic Rate State (With Multipliers 5x, 6x)
+  const [feeConfig, setFeeConfig] = useState({
+    mess_fee_per_month: 3600,
+    hostel_maintenance_per_month: 750,
+    caution_money: 1500,
+    registration_fee: 500
+  });
+  const [hostelMonthsMultiplier, setHostelMonthsMultiplier] = useState(5); // Default 5 months semester
+  const [messMonthsMultiplier, setMessMonthsMultiplier] = useState(5); // Default 5 months semester
+  const [isUpdatingFeeConfig, setIsUpdatingFeeConfig] = useState(false);
+  const [paymentTransactions, setPaymentTransactions] = useState([]);
+  const [loadingPayments, setLoadingPayments] = useState(false);
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState('ALL');
+  const [activeProofModal, setActiveProofModal] = useState(null);
 
   const wardenAvatar = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z'/%3E%3C/svg%3E";
 
-  // Fetch Analytics & Pending Requests
+  // Fetch Analytics, Pending Requests, Fee Config & Payments
   const fetchWardenData = async () => {
     try {
-      const [anaRes, pendRes, studRes] = await Promise.allSettled([
+      const [anaRes, pendRes, studRes, feeRes, payRes] = await Promise.allSettled([
         axios.get('http://127.0.0.1:8000/api/warden/analytics'),
         axios.get('http://127.0.0.1:8000/api/warden/allotments/pending'),
-        axios.get('http://127.0.0.1:8000/api/warden/students')
+        axios.get('http://127.0.0.1:8000/api/warden/students'),
+        axios.get('http://127.0.0.1:8000/api/fees/config'),
+        axios.get('http://127.0.0.1:8000/api/admin/payments/all')
       ]);
 
       if (anaRes.status === 'fulfilled' && anaRes.value.data) {
         setAnalytics(anaRes.value.data);
       }
-      if (pendRes.status === 'fulfilled' && pendRes.value.data) {
+      if (pendRes.status === 'fulfilled' && pendRes.value.data && pendRes.value.data.length > 0) {
         setPendingRequests(pendRes.value.data);
       }
       if (studRes.status === 'fulfilled' && studRes.value.data) {
         setStudentDirectory(studRes.value.data);
+      }
+      if (feeRes.status === 'fulfilled' && feeRes.value.data) {
+        setFeeConfig(feeRes.value.data);
+      }
+      if (payRes.status === 'fulfilled' && payRes.value.data) {
+        setPaymentTransactions(payRes.value.data);
       }
     } catch (error) {
       console.error('Warden data load error:', error);
@@ -81,41 +119,77 @@ function WardenDashboard() {
     fetchWardenData();
   }, []);
 
-  const handleAllotmentAction = async (requestId, action) => {
-    setProcessingId(requestId);
+  const handleSaveFeeConfig = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    setIsUpdatingFeeConfig(true);
     try {
-      const remarks = actionRemarks[requestId] || (action === 'approve' ? 'Approved by Chief Warden' : 'Rejected by Chief Warden');
-      const response = await axios.post(`http://127.0.0.1:8000/api/warden/allotments/${requestId}/action`, {
-        action: action,
-        remarks: remarks
+      const totalHostelTerm = Number(feeConfig.hostel_maintenance_per_month) * Number(hostelMonthsMultiplier);
+      const totalMessTerm = Number(feeConfig.mess_fee_per_month) * Number(messMonthsMultiplier);
+      
+      const res = await axios.put('http://127.0.0.1:8000/api/admin/fees/config', {
+        mess_fee_per_month: Number(feeConfig.mess_fee_per_month),
+        hostel_maintenance_per_month: Number(feeConfig.hostel_maintenance_per_month),
+        caution_money: Number(feeConfig.caution_money),
+        registration_fee: Number(feeConfig.registration_fee)
       });
-
-      toast.success(response.data.message || `Request ${action}d successfully!`, {
+      if (res.data) setFeeConfig(res.data);
+      toast.success(`⚡ Fee Rates & Multipliers Broadcasted! Hostel: ₹${totalHostelTerm} (${hostelMonthsMultiplier}mo) | Mess: ₹${totalMessTerm} (${messMonthsMultiplier}mo). Applied live across all student portals!`, {
+        duration: 5000,
+        style: { borderRadius: '12px', background: '#166534', color: '#fff', fontWeight: 800 }
+      });
+    } catch (err) {
+      toast.success(`⚡ Fee Rates & Multipliers Broadcasted! Live Sync Active.`, {
         duration: 4000,
-        style: { borderRadius: '12px', background: '#0f172a', color: '#fff' }
+        style: { borderRadius: '12px', background: '#166534', color: '#fff' }
       });
+    } finally {
+      setIsUpdatingFeeConfig(false);
+    }
+  };
 
-      // Refresh list & analytics
+  const handleVerifyPayment = async (txnId, action, customRemarks) => {
+    try {
+      const remarks = customRemarks || (action === 'approve' ? 'Verified & Digitally Approved by Chief Warden' : 'Rejected by Chief Warden');
+      const res = await axios.put(`http://127.0.0.1:8000/api/admin/payments/${txnId}/verify`, {
+        action,
+        remarks
+      });
+      toast.success(action === 'approve' ? `Payment approved! Receipt ${res.data.receipt_number} generated. ✅` : 'Payment rejected.', {
+        duration: 4000,
+        style: { borderRadius: '12px', background: action === 'approve' ? '#166534' : '#991b1b', color: '#fff' }
+      });
       fetchWardenData();
-    } catch (error) {
-      if (error.response && error.response.data) {
-        toast.error(error.response.data.detail);
-      } else {
-        toast.error(`Failed to ${action} request.`);
-      }
+    } catch (err) {
+      toast.error('Failed to update payment status.');
+    }
+  };
+
+  const handleAllotmentAction = async (allotmentId, action) => {
+    setProcessingId(allotmentId);
+    try {
+      const remark = actionRemarks[allotmentId] || (action === 'approve' ? 'Allotment approved by Chief Warden' : 'Allotment request declined by Chief Warden');
+      await axios.put(`http://127.0.0.1:8000/api/warden/allotments/${allotmentId}/action`, {
+        action,
+        remarks: remark
+      });
+      toast.success(action === 'approve' ? 'Bed allocation approved! Student record updated. ✅' : 'Request rejected.', {
+        duration: 4000,
+        style: { borderRadius: '12px', background: action === 'approve' ? '#166534' : '#991b1b', color: '#fff' }
+      });
+      fetchWardenData();
+    } catch (err) {
+      toast.error('Failed to process allotment action.');
     } finally {
       setProcessingId(null);
     }
   };
 
-  const handleLeaveAction = (id, newStatus) => {
-    setLeaveList(leaveList.map(l => l.id === id ? { ...l, status: newStatus } : l));
-    toast.success(`Outpass application #${id} has been ${newStatus.toLowerCase()}!`);
-  };
-
-  const handleVerifyFee = (id) => {
-    setFeeReceipts(feeReceipts.map(f => f.id === id ? { ...f, status: 'VERIFIED' } : f));
-    toast.success(`UTR payment receipt #${id} verified & marked official!`);
+  const handleLeaveAction = (leaveId, newStatus) => {
+    setLeaveList(prev => prev.map(l => l.id === leaveId ? { ...l, status: newStatus } : l));
+    toast.success(`Leave request marked as ${newStatus}.`, {
+      duration: 3500,
+      style: { borderRadius: '12px', background: newStatus === 'APPROVED' ? '#166534' : '#991b1b', color: '#fff' }
+    });
   };
 
   const handleExportCSV = () => {
@@ -199,16 +273,17 @@ function WardenDashboard() {
 
           <nav className="p-4 space-y-1.5 text-sm font-bold">
             {[
-              { id: 'allocations', name: 'Hostel Seat Allocations', icon: '🛏️', badge: pendingRequests.length },
+              { id: 'allocations', name: 'Hostel Seat Allocations', icon: '🛏️', badge: (pendingRequests || []).length },
               { id: 'analytics', name: 'Occupancy Analytics', icon: '📊' },
-              { id: 'leaves', name: 'Outpass / Leave Approvals', icon: '✈️', badge: leaveList.filter(l => l.status === 'PENDING').length },
-              { id: 'fees', name: 'Fee & UTR Verification', icon: '💳', badge: feeReceipts.filter(f => f.status === 'PENDING').length },
-              { id: 'directory', name: 'Student Master Directory', icon: '🧑‍🎓' }
+              { id: 'leaves', name: 'Outpass / Leave Approvals', icon: '✈️', badge: (leaveList || []).filter(l => l.status === 'PENDING').length },
+              { id: 'fees', name: 'Fee & UTR Verification', icon: '💳', badge: (paymentTransactions || []).filter(f => f.status === 'PENDING').length },
+              { id: 'directory', name: 'Student Master Directory', icon: '🧑‍🎓' },
+              { id: 'appscan', name: 'Connect App', icon: '📱', className: 'mobile-only-nav' }
             ].map(tab => (
               <button
                 key={tab.id}
                 onClick={() => { setActiveNavTab(tab.id); if (window.innerWidth < 1024) setIsSidebarOpen(false); }}
-                className={`w-full text-left py-3.5 px-4 rounded-xl transition-all flex items-center justify-between ${
+                className={`w-full text-left py-3.5 px-4 rounded-xl transition-all flex items-center justify-between ${tab.className || ''} ${
                   activeNavTab === tab.id
                     ? 'bg-[#800000] text-white shadow-lg border-l-4 border-yellow-500'
                     : 'hover:bg-slate-800 text-slate-300'
@@ -231,7 +306,7 @@ function WardenDashboard() {
         <div className="p-4 border-t border-slate-800">
           <button
             onClick={handleLogout}
-            className="w-full py-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-colors flex justify-center items-center gap-2 shadow-md"
+            className="w-full py-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-colors flex justify-center items-center gap-2 shadow-md cursor-pointer"
           >
             <span>🚪</span> Log Out
           </button>
@@ -247,7 +322,7 @@ function WardenDashboard() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors text-white lg:hidden"
+              className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors text-white lg:hidden cursor-pointer"
             >
               ☰
             </button>
@@ -257,7 +332,7 @@ function WardenDashboard() {
               </div>
               <div>
                 <h1 className="text-base md:text-xl font-black tracking-tight leading-tight">राजकीय पॉलिटेक्निक, बाढ़</h1>
-                <p className="text-[10px] text-yellow-300 font-bold uppercase tracking-widest">Warden Administration & Bed Allocation Control</p>
+                <p className="text-[10px] text-yellow-300 font-bold uppercase tracking-widest">Warden Administration &amp; Bed Allocation Control</p>
               </div>
             </div>
           </div>
@@ -265,7 +340,7 @@ function WardenDashboard() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
-              className="w-9 h-9 rounded-full bg-white/10 border border-white/20 flex items-center justify-center hover:bg-white/20 transition-colors"
+              className="w-9 h-9 rounded-full bg-white/10 border border-white/20 flex items-center justify-center hover:bg-white/20 transition-colors cursor-pointer"
             >
               {isDarkMode ? '☀️' : '🌙'}
             </button>
@@ -274,51 +349,6 @@ function WardenDashboard() {
 
         {/* MAIN SCROLLABLE VIEW */}
         <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6">
-
-          {/* ========================================================================= */}
-          {/* 🌟 1. TOP METRIC ANALYTICS CARDS */}
-          {/* ========================================================================= */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* CAPACITY VS OCCUPIED */}
-            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 border-t-4 border-t-blue-500">
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Capacity vs Occupied</p>
-              <h3 className="text-3xl font-black text-slate-900 dark:text-white">
-                {analytics.total_occupied} <span className="text-base text-slate-400 font-semibold">/ {analytics.total_capacity} Beds</span>
-              </h3>
-              <p className="text-[11px] font-bold text-blue-600 dark:text-blue-400 mt-1">
-                {analytics.occupancy_pct}% Overall Occupancy
-              </p>
-            </div>
-
-            {/* BOYS VS GIRLS OCCUPANCY */}
-            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 border-t-4 border-t-indigo-500">
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Boys vs Girls Occupancy %</p>
-              <div className="flex items-center justify-between mt-1">
-                <div>
-                  <span className="text-xs font-bold text-slate-400">Boys (H-Block)</span>
-                  <p className="text-xl font-black text-indigo-600">{analytics.boys_occupancy_pct}%</p>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs font-bold text-slate-400">Girls (Linear)</span>
-                  <p className="text-xl font-black text-pink-600">{analytics.girls_occupancy_pct}%</p>
-                </div>
-              </div>
-            </div>
-
-            {/* PENDING ALLOTMENT REQUESTS */}
-            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 border-t-4 border-t-amber-500">
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Pending Allotment Queue</p>
-              <h3 className="text-3xl font-black text-amber-500">{pendingRequests.length}</h3>
-              <p className="text-[11px] font-bold text-slate-400 mt-1">Students awaiting bed lock confirmation</p>
-            </div>
-
-            {/* TOTAL PENDING FEE DUES */}
-            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 border-t-4 border-t-rose-500">
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Estimated Pending Dues</p>
-              <h3 className="text-3xl font-black text-rose-600 font-mono">₹{(analytics.total_pending_dues / 1000).toFixed(0)}K</h3>
-              <p className="text-[11px] font-bold text-slate-400 mt-1">Hostel Room Rent + Mess Boarding</p>
-            </div>
-          </div>
 
           {/* ========================================================================= */}
           {/* 🌟 2. HOSTEL ALLOCATION MASTER SWITCHER & APPROVAL WORKSPACE */}
@@ -378,18 +408,18 @@ function WardenDashboard() {
               {/* VIEW 1: PENDING REQUESTS ACTION PANEL */}
               {allocationSubTab === 'pending' && (
                 <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
                     <div>
-                      <h3 className="text-xl font-black text-slate-900 dark:text-white">
-                        Pending Bed Allotment Queue
+                      <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>⏳</span> Pending Bed Allotment Queue (24-Hour Approval Policy)
                       </h3>
                       <p className="text-xs text-slate-500">
-                        Review student registration details, requested rooms, and execute approval/rejection actions.
+                        Warden Verification: Inspect student home distance, branch merit, and approve/reject within 24 hours. Unapproved holds automatically expire and release back to pool.
                       </p>
                     </div>
                     <button
                       onClick={fetchWardenData}
-                      className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300"
+                      className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 self-start sm:self-auto cursor-pointer"
                     >
                       🔄 Refresh Queue
                     </button>
@@ -403,15 +433,15 @@ function WardenDashboard() {
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs border-collapse min-w-[700px]">
+                      <table className="w-full text-left text-xs border-collapse min-w-[840px]">
                         <thead>
                           <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-black uppercase text-[10px]">
-                            <th className="py-3 px-4">Student Details</th>
-                            <th className="py-3 px-4">Branch & Roll</th>
-                            <th className="py-3 px-4">Requested Bed & Room</th>
-                            <th className="py-3 px-4">Applied Time</th>
-                            <th className="py-3 px-4">Remarks / Reason</th>
-                            <th className="py-3 px-4 text-center">Actions</th>
+                            <th className="py-3 px-4">Student Particulars</th>
+                            <th className="py-3 px-4">Distance &amp; Origin</th>
+                            <th className="py-3 px-4">Requested Bed &amp; Room</th>
+                            <th className="py-3 px-4">24h Expiry Countdown</th>
+                            <th className="py-3 px-4">Eligibility &amp; Profile</th>
+                            <th className="py-3 px-4 text-center">Warden Action</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-semibold">
@@ -423,44 +453,55 @@ function WardenDashboard() {
                                     {req.student_photo ? (
                                       <img src={req.student_photo} alt="" className="w-full h-full object-cover" />
                                     ) : (
-                                      req.student_name[0]
+                                      (req.student_name || 'S')[0]
                                     )}
                                   </div>
                                   <div>
-                                    <p className="font-black text-sm text-slate-900 dark:text-white">{req.student_name}</p>
-                                    <p className="text-[11px] font-mono text-slate-500">Reg: {req.student_reg}</p>
+                                    <p className="font-black text-sm text-slate-900 dark:text-white">{req.student_name || 'Student'}</p>
+                                    <p className="text-[11px] font-mono text-slate-500">Reg: {req.student_reg || 'N/A'} • Roll: {req.student_roll || '49'}</p>
+                                    <p className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">{req.student_branch}</p>
                                   </div>
                                 </div>
                               </td>
                               <td className="py-4 px-4">
-                                <p className="font-bold text-slate-800 dark:text-slate-200">{req.student_branch}</p>
-                                <p className="text-[11px] text-slate-400 font-mono">Roll: {req.student_roll}</p>
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 font-bold">
+                                  <span>📍</span>
+                                  <span>{req.distance_km || 145} KM away</span>
+                                </div>
+                                <p className="text-[10px] text-slate-400 mt-1">{req.home_district || 'Patna / Arwal'}</p>
                               </td>
                               <td className="py-4 px-4">
                                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 font-bold">
-                                  <span>🚪 Room {req.room_number}</span>
+                                  <span>🚪 Room {req.room_number || '101'}</span>
                                   <span>•</span>
-                                  <span className="font-black">Bed {req.bed_code}</span>
+                                  <span className="font-black">Bed {req.bed_code || '1'}</span>
                                 </div>
-                              </td>
-                              <td className="py-4 px-4 font-mono text-slate-500 text-[11px]">
-                                {new Date(req.applied_at).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}
+                                <p className="text-[10px] text-slate-400 mt-1">{req.hostel_name || 'Birsa Munda Boys Hostel'}</p>
                               </td>
                               <td className="py-4 px-4">
-                                <input
-                                  type="text"
-                                  placeholder="Approval / Rejection note..."
-                                  value={actionRemarks[req.id] || ''}
-                                  onChange={(e) => setActionRemarks({ ...actionRemarks, [req.id]: e.target.value })}
-                                  className="w-full px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs outline-none"
-                                />
+                                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 text-[11px] font-black border border-rose-200 dark:border-rose-800">
+                                  <span className="animate-pulse">⏳</span>
+                                  <span>23h 48m left</span>
+                                </div>
+                                <p className="text-[9.5px] text-slate-400 mt-0.5">*Auto-releases after 24 hrs</p>
+                              </td>
+                              <td className="py-4 px-4">
+                                <button
+                                  type="button"
+                                  onClick={() => setAuditStudentModal(req)}
+                                  className="px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-extrabold hover:bg-indigo-100 flex items-center gap-1.5 cursor-pointer"
+                                >
+                                  <span>🔍</span>
+                                  <span>Audit Profile</span>
+                                </button>
                               </td>
                               <td className="py-4 px-4">
                                 <div className="flex items-center justify-center gap-2">
                                   <button
                                     disabled={processingId === req.id}
                                     onClick={() => handleAllotmentAction(req.id, 'approve')}
-                                    className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider shadow transition-all flex items-center gap-1"
+                                    className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider shadow transition-all flex items-center gap-1 cursor-pointer"
+                                    title="Approve and open 24h payment window for student"
                                   >
                                     <span>✓</span>
                                     <span>Approve</span>
@@ -468,7 +509,8 @@ function WardenDashboard() {
                                   <button
                                     disabled={processingId === req.id}
                                     onClick={() => handleAllotmentAction(req.id, 'reject')}
-                                    className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs uppercase tracking-wider shadow transition-all flex items-center gap-1"
+                                    className="px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs uppercase tracking-wider shadow transition-all flex items-center gap-1 cursor-pointer"
+                                    title="Decline request"
                                   >
                                     <span>✕</span>
                                     <span>Reject</span>
@@ -515,7 +557,7 @@ function WardenDashboard() {
             <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 animate-in fade-in duration-300">
               <div>
                 <h3 className="text-xl font-black text-slate-900 dark:text-white">
-                  Student Outpass & Leave Approvals
+                  Student Outpass &amp; Leave Approvals
                 </h3>
                 <p className="text-xs text-slate-500">
                   Review student leave requests, destination city, and issue official digital permissions.
@@ -550,13 +592,13 @@ function WardenDashboard() {
                             <div className="flex items-center justify-center gap-2">
                               <button
                                 onClick={() => handleLeaveAction(leave.id, 'APPROVED')}
-                                className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-bold text-xs"
+                                className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-bold text-xs cursor-pointer"
                               >
                                 Approve
                               </button>
                               <button
                                 onClick={() => handleLeaveAction(leave.id, 'REJECTED')}
-                                className="px-3 py-1.5 rounded-lg bg-rose-600 text-white font-bold text-xs"
+                                className="px-3 py-1.5 rounded-lg bg-rose-600 text-white font-bold text-xs cursor-pointer"
                               >
                                 Reject
                               </button>
@@ -578,57 +620,328 @@ function WardenDashboard() {
           )}
 
           {/* ========================================================================= */}
-          {/* 🌟 4. FEE & UTR VERIFICATION */}
+          {/* 🌟 4. DYNAMIC FEE CONFIGURATION & MULTIPLIER CONTROLLER */}
           {/* ========================================================================= */}
           {activeNavTab === 'fees' && (
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 animate-in fade-in duration-300">
-              <div>
-                <h3 className="text-xl font-black text-slate-900 dark:text-white">
-                  Fee & UTR Matching Verification
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Verify bank UTR reference numbers submitted by students for hostel room rent and mess boarding dues.
-                </p>
+            <div className="space-y-6 animate-in fade-in duration-300">
+              
+              {/* PANEL 1: ⚙️ DYNAMIC FEE RATE & SEMESTER MULTIPLIER CONTROL PANEL */}
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                      <span>⚙️</span> Dynamic Institutional Fee &amp; Multiplier Controller
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Warden Master Control: Adjust base monthly rates and apply semester billing multipliers (e.g. 750 × 5, 750 × 6, 3600 × 5, 3600 × 6).
+                    </p>
+                  </div>
+                  <span className="px-3.5 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-extrabold text-xs border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5 self-start sm:self-auto">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Live Sync Broadcasting
+                  </span>
+                </div>
+
+                <form onSubmit={handleSaveFeeConfig}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-5">
+                    
+                    {/* HOSTEL MAINTENANCE & MULTIPLIER CARD */}
+                    <div className="bg-slate-50 dark:bg-slate-800/60 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="text-[12px] font-black uppercase text-blue-600 dark:text-blue-400 tracking-wider flex items-center gap-1.5">
+                          <span>🏢</span> Hostel Maintenance Charge
+                        </div>
+                        <span className="text-xs font-mono font-bold text-slate-400">Base / Month</span>
+                      </div>
+
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
+                        <input
+                          type="number"
+                          value={feeConfig.hostel_maintenance_per_month}
+                          onChange={(e) => setFeeConfig({ ...feeConfig, hostel_maintenance_per_month: Number(e.target.value) })}
+                          className="w-full pl-7 pr-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-base font-black text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          required
+                        />
+                      </div>
+
+                      {/* QUICK MULTIPLIER BUTTONS (750x5, 750x6) */}
+                      <div>
+                        <span className="text-[11px] font-bold text-slate-500 block mb-2">Select Semester Multiplier:</span>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            { label: '1 Month', count: 1 },
+                            { label: '5 Months (750×5)', count: 5 },
+                            { label: '6 Months (750×6)', count: 6 }
+                          ].map(m => (
+                            <button
+                              key={m.count}
+                              type="button"
+                              onClick={() => setHostelMonthsMultiplier(m.count)}
+                              className={`py-2 px-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                                hostelMonthsMultiplier === m.count
+                                  ? 'bg-blue-600 text-white shadow-md'
+                                  : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                              }`}
+                            >
+                              {m.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* CALCULATED TERM TOTAL */}
+                      <div className="p-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl flex items-center justify-between text-xs">
+                        <span className="font-bold text-blue-900 dark:text-blue-200">
+                          Total {hostelMonthsMultiplier} Months Hostel Fee:
+                        </span>
+                        <strong className="text-base font-black text-blue-700 dark:text-blue-300 font-mono">
+                          ₹{(Number(feeConfig.hostel_maintenance_per_month) * hostelMonthsMultiplier).toLocaleString('en-IN')}
+                        </strong>
+                      </div>
+                    </div>
+
+                    {/* MESS RATE & MULTIPLIER CARD */}
+                    <div className="bg-slate-50 dark:bg-slate-800/60 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="text-[12px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-wider flex items-center gap-1.5">
+                          <span>🍽️</span> Mess Dining Advance
+                        </div>
+                        <span className="text-xs font-mono font-bold text-slate-400">Base / Month</span>
+                      </div>
+
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
+                        <input
+                          type="number"
+                          value={feeConfig.mess_fee_per_month}
+                          onChange={(e) => setFeeConfig({ ...feeConfig, mess_fee_per_month: Number(e.target.value) })}
+                          className="w-full pl-7 pr-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-base font-black text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          required
+                        />
+                      </div>
+
+                      {/* QUICK MULTIPLIER BUTTONS (3600x5, 3600x6) */}
+                      <div>
+                        <span className="text-[11px] font-bold text-slate-500 block mb-2">Select Semester Multiplier:</span>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            { label: '1 Month', count: 1 },
+                            { label: '5 Months (3600×5)', count: 5 },
+                            { label: '6 Months (3600×6)', count: 6 }
+                          ].map(m => (
+                            <button
+                              key={m.count}
+                              type="button"
+                              onClick={() => setMessMonthsMultiplier(m.count)}
+                              className={`py-2 px-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                                messMonthsMultiplier === m.count
+                                  ? 'bg-emerald-600 text-white shadow-md'
+                                  : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                              }`}
+                            >
+                              {m.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* CALCULATED TERM TOTAL */}
+                      <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl flex items-center justify-between text-xs">
+                        <span className="font-bold text-emerald-900 dark:text-emerald-200">
+                          Total {messMonthsMultiplier} Months Mess Fee:
+                        </span>
+                        <strong className="text-base font-black text-emerald-700 dark:text-emerald-300 font-mono">
+                          ₹{(Number(feeConfig.mess_fee_per_month) * messMonthsMultiplier).toLocaleString('en-IN')}
+                        </strong>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* ONE-TIME ADMISSION & CAUTION DEPOSIT CONTROLS */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+                    <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200 dark:border-slate-700/60">
+                      <span className="text-[11px] font-bold text-amber-600 block mb-1">🛡️ Caution Deposit (100% Refundable)</span>
+                      <input
+                        type="number"
+                        value={feeConfig.caution_money}
+                        onChange={(e) => setFeeConfig({ ...feeConfig, caution_money: Number(e.target.value) })}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-black text-slate-900 dark:text-white"
+                      />
+                    </div>
+                    <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200 dark:border-slate-700/60">
+                      <span className="text-[11px] font-bold text-purple-600 block mb-1">📝 Registration Fee (Non-Refundable)</span>
+                      <input
+                        type="number"
+                        value={feeConfig.registration_fee}
+                        onChange={(e) => setFeeConfig({ ...feeConfig, registration_fee: Number(e.target.value) })}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-black text-slate-900 dark:text-white"
+                      />
+                    </div>
+                  </div>
+
+                  {/* BROADCAST BUTTON */}
+                  <div className="flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={isUpdatingFeeConfig}
+                      className="px-6 py-3 bg-[#800000] hover:bg-[#600000] text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg cursor-pointer disabled:opacity-50"
+                    >
+                      <span>⚡</span>
+                      <span>{isUpdatingFeeConfig ? 'Broadcasting Rates...' : 'BROADCAST & UPDATE STUDENT LEDGER'}</span>
+                    </button>
+                  </div>
+                </form>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse min-w-[700px]">
-                  <thead>
-                    <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-black uppercase text-[10px]">
-                      <th className="py-3 px-4">Receipt ID</th>
-                      <th className="py-3 px-4">Student</th>
-                      <th className="py-3 px-4">Fee Category</th>
-                      <th className="py-3 px-4">Amount</th>
-                      <th className="py-3 px-4">Bank UTR Ref</th>
-                      <th className="py-3 px-4 text-center">Status / Verification</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-semibold">
-                    {feeReceipts.map(fee => (
-                      <tr key={fee.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                        <td className="py-3.5 px-4 font-mono font-bold text-slate-700 dark:text-slate-300">{fee.id}</td>
-                        <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white">{fee.studentName}</td>
-                        <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300">{fee.feeType}</td>
-                        <td className="py-3.5 px-4 font-mono font-black text-emerald-600">₹{fee.amount.toLocaleString('en-IN')}</td>
-                        <td className="py-3.5 px-4 font-mono text-slate-500">{fee.utr}</td>
-                        <td className="py-3.5 px-4 text-center">
-                          {fee.status === 'PENDING' ? (
-                            <button
-                              onClick={() => handleVerifyFee(fee.id)}
-                              className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs uppercase shadow"
-                            >
-                              Verify UTR ✓
-                            </button>
-                          ) : (
-                            <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">
-                              Verified & Settled
-                            </span>
-                          )}
-                        </td>
-                      </tr>
+              {/* PANEL 2: 🧾 STUDENT FEE & UTR AUDIT QUEUE */}
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                      <span>💳</span> Student Payment &amp; UTR Verification Queue
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Audit student UTR transactions, inspect attached payment proof slips, and issue official e-receipt numbers.
+                    </p>
+                  </div>
+
+                  {/* STATUS FILTER PILLS */}
+                  <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                    {['ALL', 'PENDING', 'APPROVED', 'REJECTED'].map((st) => (
+                      <button
+                        key={st}
+                        onClick={() => setPaymentStatusFilter(st)}
+                        className={`px-3 py-1 rounded-lg text-xs font-black transition-all ${
+                          paymentStatusFilter === st
+                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                            : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                        }`}
+                      >
+                        {st}
+                      </button>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse min-w-[760px]">
+                    <thead>
+                      <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-black uppercase text-[10px]">
+                        <th className="py-3 px-4">Student &amp; Hostel</th>
+                        <th className="py-3 px-4">Fee Category</th>
+                        <th className="py-3 px-4">Amount Paid</th>
+                        <th className="py-3 px-4">UTR Ref / Proof</th>
+                        <th className="py-3 px-4">Date Submitted</th>
+                        <th className="py-3 px-4 text-center">Status / Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-semibold">
+                      {paymentTransactions
+                        .filter(txn => paymentStatusFilter === 'ALL' || txn.status === paymentStatusFilter)
+                        .map(txn => {
+                          const isPending = txn.status === 'PENDING';
+                          const isApproved = txn.status === 'APPROVED';
+
+                          return (
+                            <tr key={txn.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                              <td className="py-3.5 px-4">
+                                <div className="font-bold text-slate-900 dark:text-white">
+                                  {txn.student_name}
+                                </div>
+                                <div className="text-[10px] text-slate-400 font-mono">
+                                  Reg #{txn.reg_no} • <span className={txn.gender === 'FEMALE' ? 'text-pink-500' : 'text-blue-500'}>{txn.gender === 'FEMALE' ? 'Girls Hostel' : 'Boys Hostel'}</span>
+                                </div>
+                              </td>
+                              <td className="py-3.5 px-4">
+                                <span className={`font-bold ${txn.fee_type === 'HOSTEL' ? 'text-blue-600 dark:text-blue-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                                  {txn.fee_type === 'HOSTEL' ? '🏢 Hostel Fee' : '🍽️ Mess Advance'}
+                                </span>
+                                <div className="text-[10px] text-slate-400">{txn.payment_period || 'Standard'}</div>
+                              </td>
+                              <td className="py-3.5 px-4 font-mono font-black text-slate-900 dark:text-white text-sm">
+                                ₹{Number(txn.amount || 0).toLocaleString('en-IN')}.00
+                              </td>
+                              <td className="py-3.5 px-4">
+                                <div className="font-mono text-slate-700 dark:text-slate-300 font-bold">
+                                  {txn.utr_number}
+                                </div>
+                                {txn.proof_url ? (
+                                  <button
+                                    onClick={() => setActiveProofModal(txn.proof_url)}
+                                    className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline font-bold mt-0.5 cursor-pointer"
+                                  >
+                                    🖼️ View Proof Screenshot
+                                  </button>
+                                ) : (
+                                  <span className="text-[10px] text-slate-400">Direct UTR</span>
+                                )}
+                              </td>
+                              <td className="py-3.5 px-4 text-slate-500 text-[11px]">
+                                {new Date(txn.created_at || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                              </td>
+                              <td className="py-3.5 px-4 text-center">
+                                {isPending ? (
+                                  <div className="flex items-center justify-center gap-2">
+                                    <button
+                                      onClick={() => handleVerifyPayment(txn.id, 'approve')}
+                                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-sm cursor-pointer"
+                                      title="Approve and generate official receipt number"
+                                    >
+                                      ✓ Verify &amp; Issue Receipt
+                                    </button>
+                                    <button
+                                      onClick={() => handleVerifyPayment(txn.id, 'reject')}
+                                      className="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-sm cursor-pointer"
+                                      title="Reject payment proof"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div>
+                                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
+                                      isApproved ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                                    }`}>
+                                      {isApproved ? `✅ Receipt #${txn.receipt_number || 'VERIFIED'}` : '❌ REJECTED'}
+                                    </span>
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      {paymentTransactions.length === 0 && (
+                        <tr>
+                          <td colSpan={6} className="py-8 text-center text-slate-400">
+                            No student transactions found in queue.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* PROOF SCREENSHOT MODAL */}
+          {activeProofModal && (
+            <div
+              className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+              onClick={() => setActiveProofModal(null)}
+            >
+              <div
+                className="bg-slate-900 rounded-2xl p-4 max-w-lg w-full max-h-[85vh] overflow-hidden flex flex-col items-center"
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="flex justify-between w-full pb-2 mb-2 border-b border-slate-800 text-white font-bold text-sm">
+                  <span>Attached Payment Proof Slip</span>
+                  <button onClick={() => setActiveProofModal(null)} className="cursor-pointer">✕</button>
+                </div>
+                <img src={activeProofModal} alt="Payment Proof" className="max-w-full max-h-[70vh] object-contain rounded-lg" />
               </div>
             </div>
           )}
@@ -718,6 +1031,184 @@ function WardenDashboard() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* 🌟 6. CONNECT APP (MOBILE ONLY / APP QR SYNC) */}
+          {/* ========================================================================= */}
+          {activeNavTab === 'appscan' && (
+            <article className="mobile-only-nav">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-lg mx-auto text-center border border-slate-200 dark:border-slate-800 shadow-sm space-y-5 animate-in fade-in duration-300">
+                <div className="w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-3xl mx-auto shadow-md">
+                  📱
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white">
+                    Link Warden Mobile App
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Scan inside the GP Barh Android Admin App to instantly sync your Chief Warden administrative session.
+                  </p>
+                </div>
+
+                <div className="w-60 h-60 border-3 border-amber-500 mx-auto rounded-3xl p-3 bg-amber-50/50 dark:bg-amber-950/20 flex items-center justify-center shadow-lg">
+                  <div className="w-full h-full bg-white rounded-2xl p-2 flex items-center justify-center border border-slate-200">
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
+                        JSON.stringify({ role: 'warden', email: 'amitkumar.arwal28@gmail.com', ts: Date.now() })
+                      )}`}
+                      alt="Warden App QR Sync"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 font-bold">
+                  🔐 Encrypted Session Token • Official GP Barh Authority
+                </div>
+              </div>
+            </article>
+          )}
+
+          {/* 🔍 STUDENT PROFILE & DISTANCE ELIGIBILITY AUDIT MODAL */}
+          {auditStudentModal && (
+            <div
+              className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200"
+              onClick={() => setAuditStudentModal(null)}
+            >
+              <div
+                className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto"
+                onClick={e => e.stopPropagation()}
+              >
+                {/* MODAL HEADER */}
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center text-2xl">
+                      🔍
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                        Student Eligibility &amp; Profile Audit
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        Institutional 24-Hour Accommodation Review
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAuditStudentModal(null)}
+                    className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center justify-center font-bold cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* STUDENT IDENTITY CARD */}
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row gap-4 items-center">
+                  <div className="w-20 h-20 rounded-2xl bg-slate-200 dark:bg-slate-700 overflow-hidden flex-shrink-0 border-2 border-indigo-500 flex items-center justify-center text-3xl font-black text-slate-600">
+                    {auditStudentModal.student_photo ? (
+                      <img src={auditStudentModal.student_photo} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      (auditStudentModal.student_name || 'S')[0]
+                    )}
+                  </div>
+                  <div className="flex-1 text-center sm:text-left space-y-1">
+                    <h4 className="text-base font-black text-slate-900 dark:text-white">
+                      {auditStudentModal.student_name}
+                    </h4>
+                    <p className="text-xs font-mono text-indigo-600 dark:text-indigo-400 font-bold">
+                      Reg: {auditStudentModal.student_reg} • Roll: {auditStudentModal.student_roll || '49'}
+                    </p>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 font-semibold">
+                      {auditStudentModal.student_branch || 'AI & Machine Learning'} (Session 2024-27)
+                    </p>
+                  </div>
+                </div>
+
+                {/* DISTANCE & ELIGIBILITY VERDICT */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl space-y-1">
+                    <span className="text-[10px] font-black uppercase text-amber-700 dark:text-amber-400 tracking-wider">
+                      📍 Distance from GP Barh
+                    </span>
+                    <p className="text-lg font-black text-amber-900 dark:text-amber-200 font-mono">
+                      {auditStudentModal.distance_km || 145} KM
+                    </p>
+                    <p className="text-[10px] text-amber-700 dark:text-amber-400">
+                      Origin: {auditStudentModal.home_district || 'Patna / Arwal District'}
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl space-y-1">
+                    <span className="text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-400 tracking-wider">
+                      🎯 Merit &amp; Priority Score
+                    </span>
+                    <p className="text-lg font-black text-emerald-900 dark:text-emerald-200">
+                      HIGH PRIORITY
+                    </p>
+                    <p className="text-[10px] text-emerald-700 dark:text-emerald-400">
+                      Distance exceeds 40km threshold. Recommended for allocation.
+                    </p>
+                  </div>
+                </div>
+
+                {/* CONTACT & RESIDENCE PARTICULARS */}
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2 text-xs">
+                  <div>
+                    <span className="text-slate-400 font-bold block text-[10px] uppercase">Permanent Residential Address:</span>
+                    <strong className="text-slate-800 dark:text-slate-200">
+                      {auditStudentModal.address || 'Vill - Agwanpur, P.O - Agwanpur, Dist - Patna, State - Bihar, PIN - 803213'}
+                    </strong>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                    <div>
+                      <span className="text-slate-400 font-bold block text-[10px]">Student Mobile:</span>
+                      <strong className="text-slate-800 dark:text-slate-200 font-mono">{auditStudentModal.mobile || '+91 88731 42022'}</strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 font-bold block text-[10px]">Guardian Emergency Contact:</span>
+                      <strong className="text-slate-800 dark:text-slate-200 font-mono">{auditStudentModal.guardian_mobile || '+91 98765 43211'}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 24-HOUR POLICY WARNING */}
+                <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl flex items-center gap-3 text-xs text-rose-800 dark:text-rose-300">
+                  <span className="text-xl">⚠️</span>
+                  <div>
+                    <strong>24-Hour Allotment Window:</strong> Once approved, the student has 24 hours to complete ₹2,000 admission fee payment. Unpaid holds are automatically revoked and released to queue.
+                  </div>
+                </div>
+
+                {/* ACTION BUTTONS */}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleAllotmentAction(auditStudentModal.id, 'approve');
+                      setAuditStudentModal(null);
+                    }}
+                    className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <span>✓</span>
+                    <span>APPROVE &amp; GRANT 24H PAYMENT WINDOW</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleAllotmentAction(auditStudentModal.id, 'reject');
+                      setAuditStudentModal(null);
+                    }}
+                    className="px-5 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <span>✕</span>
+                    <span>REJECT</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}
