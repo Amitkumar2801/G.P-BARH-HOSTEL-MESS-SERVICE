@@ -114,15 +114,18 @@ function Login() {
         style: { borderRadius: '10px', background: '#333', color: '#fff' }
       });
 
-      const role = (response.data.user.role || '').toLowerCase();
+      const loggedInUser = response.data.user;
+      localStorage.setItem('user', JSON.stringify(loggedInUser));
+
+      const role = (loggedInUser.role || '').toLowerCase();
       if (role === 'warden') {
-        navigate("/warden-dashboard", { state: { userRole: role, userName: response.data.user.full_name } });
+        navigate("/warden-dashboard", { state: { userRole: role, userName: loggedInUser.full_name, user: loggedInUser } });
       } else if (role === 'student') {
-        navigate("/student-dashboard", { state: { userRole: role, userName: response.data.user.full_name } });
+        navigate("/student-dashboard", { state: { userRole: role, userName: loggedInUser.full_name, user: loggedInUser } });
       } else if (role === 'parent') {
-        navigate("/parent-dashboard", { state: { userRole: role, userName: response.data.user.full_name } });
+        navigate("/parent-dashboard", { state: { userRole: role, userName: loggedInUser.full_name, user: loggedInUser } });
       } else {
-        navigate("/dashboard", { state: { userRole: role, userName: response.data.user.full_name } });
+        navigate("/dashboard", { state: { userRole: role, userName: loggedInUser.full_name, user: loggedInUser } });
       }
 
     } catch (error) {
@@ -545,10 +548,10 @@ function Login() {
             <div className="p-5 flex flex-col items-center bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-gray-50">
 
               <div className="w-20 h-24 bg-white border-2 border-[#800000] mb-3 flex items-center justify-center rounded shadow-md overflow-hidden p-0.5">
-                <img src={myPic} alt="Amit Sharma" className="w-full h-full object-cover rounded-sm" />
+                <img src={myPic} alt="Amit Kumar" className="w-full h-full object-cover rounded-sm" />
               </div>
 
-              <h3 className="text-xl font-black text-[#800000] uppercase tracking-wide mb-3">Amit Sharma</h3>
+              <h3 className="text-xl font-black text-[#800000] uppercase tracking-wide mb-3">Amit Kumar</h3>
 
               <div className="w-full text-left space-y-2 text-[11px]">
                 <div className="flex border-b border-gray-200 pb-1">

@@ -1,8 +1,10 @@
 // src/pages/StudentDashboard.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import logo from '../assets/logo.png.png';
 import toast, { Toaster } from 'react-hot-toast';
+import RoomAllocationGrid from '../components/RoomAllocationGrid';
 
 // ================= THEME & STYLES (HUGE CSS FOR PIXEL PERFECT UI) =================
 const customCSS = `
@@ -257,16 +259,55 @@ const customCSS = `
     .gp-reg-right { padding: 40px 24px; }
     .gp-reg-action-bar { flex-direction: column; align-items: stretch; gap: 16px; }
   }
+  #print-only-section { display: none; }
+  
+  @media print {
+    body * { visibility: hidden; }
+    #print-only-section, #print-only-section * { 
+      visibility: visible !important; 
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    #print-only-section {
+      display: block !important;
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      padding: 10px;
+      margin: 0;
+      background: #ffffff !important;
+      color: #0f172a !important;
+    }
+    .sidebar, .header, .toast-container, .modal-backdrop, #non-print-profile-elements {
+      display: none !important;
+    }
+  }
+  
   @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7); } 70% { box-shadow: 0 0 0 6px rgba(255, 255, 255, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); } }
   @keyframes spin { 100% { transform: rotate(360deg); } }
 `;
 
 function StudentDashboard() {
-  const [activeTab, setActiveTab] = useState('registration');
+  const [activeTab, setActiveTab] = useState('profile');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [isRegistered, setIsRegistered] = useState(false);
+  const [isRegistered, setIsRegistered] = useState(true);
   const navigate = useNavigate();
+
+  const [currentUser, setCurrentUser] = useState(() => {
+    const saved = localStorage.getItem('user');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { }
+    }
+    return {
+      id: 1,
+      full_name: 'Amit Kumar Sharma',
+      reg_no_email: '1554424049',
+      gender: 'MALE',
+      role: 'student'
+    };
+  });
 
   // Payment Simulation States
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -285,7 +326,7 @@ function StudentDashboard() {
         setPaymentStep(3);
         setTimeout(() => {
           setShowPaymentModal(false);
-          toast.success(`Transaction of ${amount} Completed Successfully`, { style: { borderRadius: '10px', background: '#333', color: '#fff' }});
+          toast.success(`Transaction of ${amount} Completed Successfully`, { style: { borderRadius: '10px', background: '#333', color: '#fff' } });
           if (callback) callback();
         }, 2000);
       }, 2000);
@@ -296,14 +337,34 @@ function StudentDashboard() {
   const [profilePic, setProfilePic] = useState(defaultAvatar);
   const [complaintPreview, setComplaintPreview] = useState(null);
 
-  const [profileData, setProfileData] = useState({
-    fullName: "", regNo: "1554424049", branch: "", bloodGroup: "", contact: "", email: "", address: ""
+  const [profileData, setProfileData] = useState(() => {
+    const saved = localStorage.getItem('user');
+    let u = {};
+    if (saved) {
+      try { u = JSON.parse(saved); } catch (e) { }
+    }
+    const cleanName = (u.full_name && !u.full_name.includes('Chief Warden')) ? u.full_name : "AMIT SHARMA";
+    const userGender = u.gender ? (u.gender.toUpperCase() === 'FEMALE' ? 'FEMALE' : 'MALE') : 'MALE';
+    const userBlock = u.hostel_block || u.hostelBlock || (userGender === 'FEMALE' ? 'Savitribai Phule Girls Hostel' : 'Birsa Munda Block');
+    return {
+      fullName: cleanName,
+      regNo: u.reg_no || u.reg_no_email || "1554424049",
+      branch: u.branch || "Artificial Intelligence & Machine Learning",
+      session: u.session || u.semester || "2024-27",
+      semester: u.session || u.semester || "2024-27",
+      bloodGroup: u.blood_group || "O+",
+      contact: u.mobile || "+91 88731 42022",
+      email: u.email || (u.reg_no_email && u.reg_no_email.includes('@') ? u.reg_no_email : "amitkumar.gpb.ai@gmail.com"),
+      address: u.address || "Village, P.O, District, State, Pincode",
+      gender: userGender,
+      hostelBlock: userBlock
+    };
   });
 
   const [paymentSelection, setPaymentSelection] = useState(null);
   const [customAmount, setCustomAmount] = useState("");
   const [paymentCycle, setPaymentCycle] = useState("");
-  
+
   // 🌟 HOSTEL BANK STATEMENT STATES
   const [hostelFilter, setHostelFilter] = useState('all'); // 'all', 'debit', 'credit'
   const [hostelSearch, setHostelSearch] = useState('');
@@ -336,6 +397,49 @@ function StudentDashboard() {
     }
   }, [activeTab]);
 
+  const handleSaveProfile = async () => {
+    const sessionVal = profileData.session || profileData.semester || '2024-27';
+    const genderVal = profileData.gender || currentUser?.gender || 'MALE';
+    try {
+      if (currentUser?.id) {
+        await axios.put('http://127.0.0.1:8000/api/student/profile', {
+          user_id: currentUser.id,
+          full_name: profileData.fullName,
+          gender: genderVal,
+          branch: profileData.branch,
+          semester: sessionVal,
+          session: sessionVal,
+          roll_no: profileData.rollNo || '24-AIML-01',
+          reg_no: profileData.regNo,
+          mobile: profileData.contact,
+          address: profileData.address,
+          blood_group: profileData.bloodGroup,
+          profile_pic: profilePic
+        });
+      }
+    } catch (e) {
+      console.log('Profile API note:', e.message);
+    }
+    const updatedUser = {
+      ...currentUser,
+      full_name: profileData.fullName,
+      gender: genderVal,
+      hostel_block: profileData.hostelBlock || (genderVal === 'FEMALE' ? 'Savitribai Phule Girls Hostel' : 'Birsa Munda Block'),
+      hostelBlock: profileData.hostelBlock || (genderVal === 'FEMALE' ? 'Savitribai Phule Girls Hostel' : 'Birsa Munda Block'),
+      branch: profileData.branch,
+      semester: sessionVal,
+      session: sessionVal,
+      mobile: profileData.contact,
+      address: profileData.address,
+      blood_group: profileData.bloodGroup
+    };
+    setCurrentUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    toast.success("Profile records successfully saved & synced! ✅", {
+      style: { borderRadius: '10px', background: '#166534', color: '#fff' }
+    });
+  };
+
   const handleWalletTopup = (amount) => {
     const addAmt = parseFloat(amount);
     if (isNaN(addAmt) || addAmt <= 0) {
@@ -363,7 +467,7 @@ function StudentDashboard() {
       setWalletBalance(newBal);
       localStorage.setItem('gpbarh_student_wallet', newBal);
     }
-    
+
     // Generate Official Printable Receipt
     const receiptData = {
       receiptNo: 'REC-HST-' + Math.floor(100000 + Math.random() * 900000),
@@ -396,7 +500,7 @@ function StudentDashboard() {
       setWalletBalance(newBal);
       localStorage.setItem('gpbarh_student_wallet', newBal);
     }
-    
+
     // Generate Official Printable Receipt
     const receiptData = {
       receiptNo: 'REC-MSS-' + Math.floor(100000 + Math.random() * 900000),
@@ -467,39 +571,39 @@ function StudentDashboard() {
 
         {/* PAYMENT MODAL */}
         {showPaymentModal && (
-          <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)'}}>
-            <div style={{background: 'var(--card)', width: '90%', maxWidth: '420px', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', border: '1px solid var(--border)'}}>
-              <div style={{background: 'linear-gradient(135deg, #0f172a, #1e293b)', padding: '24px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                <div style={{fontWeight: 800, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '10px', fontFamily: "'DM Sans', sans-serif"}}>
-                  <div style={{width: '28px', height: '28px', background: '#2563eb', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)' }}>
+            <div style={{ background: 'var(--card)', width: '90%', maxWidth: '420px', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', border: '1px solid var(--border)' }}>
+              <div style={{ background: 'linear-gradient(135deg, #0f172a, #1e293b)', padding: '24px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontWeight: 800, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '10px', fontFamily: "'DM Sans', sans-serif" }}>
+                  <div style={{ width: '28px', height: '28px', background: '#2563eb', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18" /></svg>
                   </div>
                   SecurePay Gateway
                 </div>
-                <div style={{fontSize: '12px', opacity: 0.7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px'}}>GP Barh</div>
+                <div style={{ fontSize: '12px', opacity: 0.7, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px' }}>GP Barh</div>
               </div>
-              <div style={{padding: '40px 32px', textAlign: 'center'}}>
+              <div style={{ padding: '40px 32px', textAlign: 'center' }}>
                 {paymentStep === 1 && (
                   <div className="animate-fade-in">
-                    <div style={{fontSize: '56px', marginBottom: '24px', display: 'inline-block', animation: 'pulse 2s infinite'}}>🏦</div>
-                    <h3 style={{fontSize: '22px', fontWeight: 800, marginBottom: '12px', color: 'var(--text)'}}>Connecting to Secure Server...</h3>
-                    <p style={{color: 'var(--text-muted)', fontSize: '15px', fontWeight: 500}}>Establishing 256-bit encrypted connection to bank.</p>
+                    <div style={{ fontSize: '56px', marginBottom: '24px', display: 'inline-block', animation: 'pulse 2s infinite' }}>🏦</div>
+                    <h3 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '12px', color: 'var(--text)' }}>Connecting to Secure Server...</h3>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '15px', fontWeight: 500 }}>Establishing 256-bit encrypted connection to bank.</p>
                   </div>
                 )}
                 {paymentStep === 2 && (
                   <div className="animate-fade-in">
-                    <div style={{margin: '0 auto 32px', width: '64px', height: '64px', border: '5px solid var(--hover-bg)', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'spin 1s linear infinite'}}></div>
-                    <h3 style={{fontSize: '22px', fontWeight: 800, marginBottom: '12px', color: 'var(--text)'}}>Processing Payment of {paymentAmount}</h3>
-                    <p style={{color: '#dc2626', fontSize: '14px', fontWeight: 700}}>Please do not refresh or close this window.</p>
+                    <div style={{ margin: '0 auto 32px', width: '64px', height: '64px', border: '5px solid var(--hover-bg)', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                    <h3 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '12px', color: 'var(--text)' }}>Processing Payment of {paymentAmount}</h3>
+                    <p style={{ color: '#dc2626', fontSize: '14px', fontWeight: 700 }}>Please do not refresh or close this window.</p>
                   </div>
                 )}
                 {paymentStep === 3 && (
                   <div className="animate-fade-in">
-                    <div style={{width: '72px', height: '72px', background: '#10b981', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', boxShadow: '0 10px 25px rgba(16,185,129,0.3)'}}>
-                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    <div style={{ width: '72px', height: '72px', background: '#10b981', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', boxShadow: '0 10px 25px rgba(16,185,129,0.3)' }}>
+                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                     </div>
-                    <h3 style={{fontSize: '24px', fontWeight: 800, marginBottom: '12px', color: 'var(--text)'}}>Payment Authorized!</h3>
-                    <p style={{color: 'var(--text-muted)', fontSize: '15px', fontWeight: 600}}>Redirecting back to your dashboard...</p>
+                    <h3 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '12px', color: 'var(--text)' }}>Payment Authorized!</h3>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '15px', fontWeight: 600 }}>Redirecting back to your dashboard...</p>
                   </div>
                 )}
               </div>
@@ -509,38 +613,38 @@ function StudentDashboard() {
 
         {/* TOP-UP WALLET MODAL */}
         {showTopupModal && (
-          <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)', padding: '16px'}}>
-            <div style={{background: 'var(--card)', width: '100%', maxWidth: '440px', borderRadius: '28px', overflow: 'hidden', boxShadow: '0 25px 60px rgba(0,0,0,0.5)', border: '1px solid var(--border)'}}>
-              <div style={{background: 'linear-gradient(135deg, #151c28, #0e131d)', padding: '24px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)'}}>
-                <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-                  <div style={{width: '36px', height: '36px', background: '#fbbf24', color: '#000', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 900}}>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)', padding: '16px' }}>
+            <div style={{ background: 'var(--card)', width: '100%', maxWidth: '440px', borderRadius: '28px', overflow: 'hidden', boxShadow: '0 25px 60px rgba(0,0,0,0.5)', border: '1px solid var(--border)' }}>
+              <div style={{ background: 'linear-gradient(135deg, #151c28, #0e131d)', padding: '24px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '36px', height: '36px', background: '#fbbf24', color: '#000', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 900 }}>
                     👛
                   </div>
                   <div>
-                    <h3 style={{fontSize: '18px', fontWeight: 900, margin: 0, color: 'white'}}>Top-Up Prepaid Wallet</h3>
-                    <p style={{fontSize: '11px', color: '#94a3b8', margin: 0, textTransform: 'uppercase', letterSpacing: '1px'}}>Instant Balance Recharge</p>
+                    <h3 style={{ fontSize: '18px', fontWeight: 900, margin: 0, color: 'white' }}>Top-Up Prepaid Wallet</h3>
+                    <p style={{ fontSize: '11px', color: '#94a3b8', margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>Instant Balance Recharge</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowTopupModal(false)}
-                  style={{background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', fontWeight: 900}}
+                  style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', fontWeight: 900 }}
                 >
                   ✕
                 </button>
               </div>
 
-              <div style={{padding: '28px 24px'}}>
-                <div style={{background: 'var(--input-bg)', border: '1px solid var(--border)', padding: '14px 18px', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
-                  <span style={{fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600}}>Current Wallet Balance</span>
-                  <span style={{fontSize: '18px', fontWeight: 900, color: '#fbbf24'}}>₹{walletBalance.toLocaleString('en-IN')}.00</span>
+              <div style={{ padding: '28px 24px' }}>
+                <div style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', padding: '14px 18px', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600 }}>Current Wallet Balance</span>
+                  <span style={{ fontSize: '18px', fontWeight: 900, color: '#fbbf24' }}>₹{walletBalance.toLocaleString('en-IN')}.00</span>
                 </div>
 
-                <label style={{display: 'block', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-muted)', marginBottom: '10px'}}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-muted)', marginBottom: '10px' }}>
                   Select Top-Up Amount
                 </label>
 
                 {/* AMOUNT PRESETS */}
-                <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginBottom: '16px'}}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginBottom: '16px' }}>
                   {[500, 1000, 2000, 5000].map(amt => (
                     <button
                       key={amt}
@@ -564,9 +668,9 @@ function StudentDashboard() {
                 </div>
 
                 {/* CUSTOM INPUT */}
-                <div style={{marginBottom: '24px'}}>
-                  <div style={{position: 'relative'}}>
-                    <span style={{position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontSize: '18px', fontWeight: 900, color: 'var(--text-muted)'}}>₹</span>
+                <div style={{ marginBottom: '24px' }}>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontSize: '18px', fontWeight: 900, color: 'var(--text-muted)' }}>₹</span>
                     <input
                       type="number"
                       value={topupInput}
@@ -585,7 +689,7 @@ function StudentDashboard() {
                       }}
                     />
                   </div>
-                  <p style={{fontSize: '11px', color: 'var(--text-muted)', marginTop: '8px'}}>
+                  <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '8px' }}>
                     💡 Recharging increases wallet funds. (Wallet top-up does not generate a rent receipt).
                   </p>
                 </div>
@@ -617,83 +721,83 @@ function StudentDashboard() {
 
         {/* OFFICIAL PRINTABLE FEE RECEIPT MODAL */}
         {activeReceipt && (
-          <div style={{position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', padding: '16px'}}>
-            <div style={{background: '#ffffff', color: '#111827', width: '100%', maxWidth: '520px', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 30px 90px rgba(0,0,0,0.6)', border: '2px solid #e2e8f0', position: 'relative'}}>
-              
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)', padding: '16px' }}>
+            <div style={{ background: '#ffffff', color: '#111827', width: '100%', maxWidth: '520px', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 30px 90px rgba(0,0,0,0.6)', border: '2px solid #e2e8f0', position: 'relative' }}>
+
               {/* TOP BRANDING BAR */}
-              <div style={{background: '#800000', color: 'white', padding: '20px 24px', textAlign: 'center', borderBottom: '3px solid #eab308'}}>
-                <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '4px'}}>
-                  <div style={{width: '36px', height: '36px', background: 'white', borderRadius: '50%', padding: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'}}>
-                    <img src={logo} alt="Logo" style={{height: '100%', width: '100%', objectFit: 'contain'}} />
+              <div style={{ background: '#800000', color: 'white', padding: '20px 24px', textAlign: 'center', borderBottom: '3px solid #eab308' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '4px' }}>
+                  <div style={{ width: '36px', height: '36px', background: 'white', borderRadius: '50%', padding: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                    <img src={logo} alt="Logo" style={{ height: '100%', width: '100%', objectFit: 'contain' }} />
                   </div>
                   <div>
-                    <h2 style={{fontSize: '15px', fontWeight: 900, margin: 0, fontFamily: 'serif', letterSpacing: '0.5px'}}>राजकीय पॉलिटेक्निक, बाढ़</h2>
-                    <p style={{fontSize: '9px', fontWeight: 700, margin: 0, textTransform: 'uppercase', letterSpacing: '1px', opacity: 0.9}}>Government Polytechnic, Barh</p>
+                    <h2 style={{ fontSize: '15px', fontWeight: 900, margin: 0, fontFamily: 'serif', letterSpacing: '0.5px' }}>राजकीय पॉलिटेक्निक, बाढ़</h2>
+                    <p style={{ fontSize: '9px', fontWeight: 700, margin: 0, textTransform: 'uppercase', letterSpacing: '1px', opacity: 0.9 }}>Government Polytechnic, Barh</p>
                   </div>
                 </div>
-                <div style={{background: 'rgba(0,0,0,0.25)', padding: '4px 12px', borderRadius: '20px', display: 'inline-block', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.5px', marginTop: '6px', color: '#fef08a'}}>
+                <div style={{ background: 'rgba(0,0,0,0.25)', padding: '4px 12px', borderRadius: '20px', display: 'inline-block', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.5px', marginTop: '6px', color: '#fef08a' }}>
                   🏛️ Official Digital E-Receipt
                 </div>
               </div>
 
               {/* RECEIPT BODY */}
-              <div style={{padding: '24px'}}>
-                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px dashed #cbd5e1', marginBottom: '16px'}}>
+              <div style={{ padding: '24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px dashed #cbd5e1', marginBottom: '16px' }}>
                   <div>
-                    <div style={{fontSize: '11px', color: '#64748b', fontWeight: 700}}>RECEIPT NO.</div>
-                    <div style={{fontSize: '14px', fontWeight: 900, color: '#800000', fontFamily: 'monospace'}}>{activeReceipt.receiptNo}</div>
+                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>RECEIPT NO.</div>
+                    <div style={{ fontSize: '14px', fontWeight: 900, color: '#800000', fontFamily: 'monospace' }}>{activeReceipt.receiptNo}</div>
                   </div>
-                  <div style={{textAlign: 'right'}}>
-                    <div style={{fontSize: '11px', color: '#64748b', fontWeight: 700}}>DATE &amp; TIME</div>
-                    <div style={{fontSize: '12px', fontWeight: 800, color: '#334155'}}>{activeReceipt.date} • {activeReceipt.time}</div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>DATE &amp; TIME</div>
+                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#334155' }}>{activeReceipt.date} • {activeReceipt.time}</div>
                   </div>
                 </div>
 
                 {/* STUDENT & FEE DETAILS */}
-                <div style={{background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '16px', marginBottom: '18px'}}>
-                  <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: '12px', columnGap: '16px', fontSize: '12px'}}>
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '16px', marginBottom: '18px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: '12px', columnGap: '16px', fontSize: '12px' }}>
                     <div>
-                      <span style={{color: '#64748b', fontWeight: 700, display: 'block', fontSize: '10px', textTransform: 'uppercase'}}>Student Name</span>
-                      <strong style={{color: '#0f172a'}}>{activeReceipt.paidBy}</strong>
+                      <span style={{ color: '#64748b', fontWeight: 700, display: 'block', fontSize: '10px', textTransform: 'uppercase' }}>Student Name</span>
+                      <strong style={{ color: '#0f172a' }}>{activeReceipt.paidBy}</strong>
                     </div>
                     <div>
-                      <span style={{color: '#64748b', fontWeight: 700, display: 'block', fontSize: '10px', textTransform: 'uppercase'}}>Registration ID</span>
-                      <strong style={{color: '#0f172a'}}>{activeReceipt.regNo}</strong>
+                      <span style={{ color: '#64748b', fontWeight: 700, display: 'block', fontSize: '10px', textTransform: 'uppercase' }}>Registration ID</span>
+                      <strong style={{ color: '#0f172a' }}>{activeReceipt.regNo}</strong>
                     </div>
                     <div>
-                      <span style={{color: '#64748b', fontWeight: 700, display: 'block', fontSize: '10px', textTransform: 'uppercase'}}>Room Allocation</span>
-                      <strong style={{color: '#0f172a'}}>{activeReceipt.roomNo}</strong>
+                      <span style={{ color: '#64748b', fontWeight: 700, display: 'block', fontSize: '10px', textTransform: 'uppercase' }}>Room Allocation</span>
+                      <strong style={{ color: '#0f172a' }}>{activeReceipt.roomNo}</strong>
                     </div>
                     <div>
-                      <span style={{color: '#64748b', fontWeight: 700, display: 'block', fontSize: '10px', textTransform: 'uppercase'}}>Billing Period</span>
-                      <strong style={{color: '#0f172a'}}>{activeReceipt.period}</strong>
+                      <span style={{ color: '#64748b', fontWeight: 700, display: 'block', fontSize: '10px', textTransform: 'uppercase' }}>Billing Period</span>
+                      <strong style={{ color: '#0f172a' }}>{activeReceipt.period}</strong>
                     </div>
                   </div>
                 </div>
 
                 {/* BREAKDOWN TABLE */}
-                <table style={{width: '100%', borderCollapse: 'collapse', marginBottom: '18px', fontSize: '13px'}}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '18px', fontSize: '13px' }}>
                   <thead>
-                    <tr style={{borderBottom: '2px solid #e2e8f0', color: '#64748b', fontSize: '10px', textTransform: 'uppercase', textAlign: 'left'}}>
-                      <th style={{padding: '8px 0'}}>Fee Description</th>
-                      <th style={{padding: '8px 0', textAlign: 'right'}}>Amount</th>
+                    <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#64748b', fontSize: '10px', textTransform: 'uppercase', textAlign: 'left' }}>
+                      <th style={{ padding: '8px 0' }}>Fee Description</th>
+                      <th style={{ padding: '8px 0', textAlign: 'right' }}>Amount</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr style={{borderBottom: '1px solid #f1f5f9'}}>
-                      <td style={{padding: '12px 0', fontWeight: 700, color: '#1e293b'}}>
+                    <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '12px 0', fontWeight: 700, color: '#1e293b' }}>
                         {activeReceipt.title}
-                        <div style={{fontSize: '11px', color: '#64748b', fontWeight: 500}}>{activeReceipt.category} • Paid via {activeReceipt.paymentMethod}</div>
+                        <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>{activeReceipt.category} • Paid via {activeReceipt.paymentMethod}</div>
                       </td>
-                      <td style={{padding: '12px 0', textAlign: 'right', fontWeight: 900, color: '#0f172a', fontSize: '15px'}}>
+                      <td style={{ padding: '12px 0', textAlign: 'right', fontWeight: 900, color: '#0f172a', fontSize: '15px' }}>
                         ₹{activeReceipt.amount.toLocaleString('en-IN')}.00
                       </td>
                     </tr>
                   </tbody>
                   <tfoot>
                     <tr>
-                      <td style={{padding: '14px 0', fontWeight: 900, color: '#0f172a', fontSize: '15px'}}>TOTAL PAID AMOUNT</td>
-                      <td style={{padding: '14px 0', textAlign: 'right', fontWeight: 900, color: '#166534', fontSize: '20px'}}>
+                      <td style={{ padding: '14px 0', fontWeight: 900, color: '#0f172a', fontSize: '15px' }}>TOTAL PAID AMOUNT</td>
+                      <td style={{ padding: '14px 0', textAlign: 'right', fontWeight: 900, color: '#166534', fontSize: '20px' }}>
                         ₹{activeReceipt.amount.toLocaleString('en-IN')}.00
                       </td>
                     </tr>
@@ -701,16 +805,16 @@ function StudentDashboard() {
                 </table>
 
                 {/* DIGITAL VERIFICATION STAMP */}
-                <div style={{background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px'}}>
-                  <span style={{fontSize: '20px'}}>✅</span>
+                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                  <span style={{ fontSize: '20px' }}>✅</span>
                   <div>
-                    <div style={{fontSize: '11px', fontWeight: 800, color: '#166534', textTransform: 'uppercase'}}>{activeReceipt.status}</div>
-                    <div style={{fontSize: '10px', color: '#15803d'}}>Digitally generated and verified by GP Barh Hostel Authority.</div>
+                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#166534', textTransform: 'uppercase' }}>{activeReceipt.status}</div>
+                    <div style={{ fontSize: '10px', color: '#15803d' }}>Digitally generated and verified by GP Barh Hostel Authority.</div>
                   </div>
                 </div>
 
                 {/* BUTTONS */}
-                <div style={{display: 'flex', gap: '10px'}}>
+                <div style={{ display: 'flex', gap: '10px' }}>
                   <button
                     onClick={() => window.print()}
                     style={{
@@ -753,14 +857,14 @@ function StudentDashboard() {
           </div>
         )}
 
-        <div className={`overlay ${isSidebarOpen ? 'show' : ''}`} style={{display: isSidebarOpen ? 'block' : 'none', position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 90}} onClick={() => setIsSidebarOpen(false)}></div>
+        <div className={`overlay ${isSidebarOpen ? 'show' : ''}`} style={{ display: isSidebarOpen ? 'block' : 'none', position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 90 }} onClick={() => setIsSidebarOpen(false)}></div>
 
         {/* ================= SIDEBAR ================= */}
         <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
           <div className="sidebar-profile">
             <div className="avatar-wrap">
               <div className="avatar-circle">
-                <img src={profilePic} alt="Profile" style={{opacity: profilePic === defaultAvatar ? 0.5 : 1}} />
+                <img src={profilePic} alt="Profile" style={{ opacity: profilePic === defaultAvatar ? 0.5 : 1 }} />
               </div>
             </div>
             <div className="student-name">{profileData.fullName || 'Student Profile'}</div>
@@ -769,36 +873,30 @@ function StudentDashboard() {
 
           <nav className="nav-list">
             {[
-              { id: 'registration', name: 'Registration', icon: <><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></> },
-              { id: 'profile', name: 'Manage Profile', icon: <><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></>, locked: !isRegistered },
-              { id: 'payments', name: 'Payments Hub', icon: <><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></> },
-              { id: 'hostel', name: 'Hostel Passbook', icon: <><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></> },
-              { id: 'mess', name: 'Mess Passbook', icon: <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></> },
-              { id: 'clearance', name: 'Clearance Portal', icon: <path d="M5 13l4 4L19 7"/> },
-              { id: 'complaints', name: 'Complaints', icon: <><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></> },
-              { id: 'appscan', name: 'Connect App', className: 'mobile-only-nav', icon: <><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></> }
+              { id: 'seat-allocation', name: 'Seat & Room Allocation', icon: <><path d="M2 4v16M2 8h20M22 4v16M6 8v5a2 2 0 002 2h8a2 2 0 002-2V8" /></> },
+              { id: 'profile', name: 'Manage Profile', icon: <><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" /></> },
+              { id: 'payments', name: 'Payments Hub', icon: <><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /></> },
+              { id: 'hostel', name: 'Hostel Passbook', icon: <><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 21V9" /></> },
+              { id: 'mess', name: 'Mess Passbook', icon: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></> },
+              { id: 'clearance', name: 'Clearance Portal', icon: <path d="M5 13l4 4L19 7" /> },
+              { id: 'complaints', name: 'Complaints', icon: <><path d="M18 8h1a4 4 0 010 8h-1" /><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z" /><line x1="6" y1="1" x2="6" y2="4" /><line x1="10" y1="1" x2="10" y2="4" /><line x1="14" y1="1" x2="14" y2="4" /></> },
+              { id: 'appscan', name: 'Connect App', className: 'mobile-only-nav', icon: <><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></> }
             ].map(tab => (
               <button
                 key={tab.id}
                 className={`nav-item ${activeTab === tab.id ? 'active' : ''} ${tab.className || ''}`}
-                onClick={() => { 
-                  if (tab.locked) {
-                    toast.error("Access Restricted: Please complete your portal registration payment to unlock this section.", { style: { borderRadius: '10px', background: '#333', color: '#fff' }});
-                    setActiveTab('registration');
-                  } else {
-                    setActiveTab(tab.id); 
-                  }
-                  setIsSidebarOpen(false); 
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setIsSidebarOpen(false);
                 }}
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>{tab.icon}</svg>
                 {tab.name}
-                {tab.locked && <span style={{ marginLeft: 'auto', fontSize: '13px' }}>🔒</span>}
               </button>
             ))}
           </nav>
           <button className="logout-btn" onClick={() => navigate("/")}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
             Secure Log Out
           </button>
         </aside>
@@ -828,50 +926,18 @@ function StudentDashboard() {
           <section className="scroll-content">
             <div className="content-wrapper">
 
-              {/* 0. GP BARH TWO-SIDED REGISTRATION */}
-              {activeTab === 'registration' && (
-                <div className="gp-reg-hero">
-                  <div className="gp-reg-left">
-                    <div className="gp-reg-badge">Mandatory Action</div>
-                    <h2 className="gp-reg-title">Unlock Your<br/>GP Barh Workspace</h2>
-                    <p className="gp-reg-desc">Complete your preliminary registration to access your full profile dashboard, live passbooks, automated payments, and priority grievance redressal.</p>
-                    
-                    <ul className="gp-reg-features">
-                      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Dynamic Profile Photo & Info sync</li>
-                      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Real-time Hostel & Mess Passbooks</li>
-                      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Instant Automated Clearance Processing</li>
-                    </ul>
-                    
-                    {!isRegistered ? (
-                       <div className="gp-reg-action-bar">
-                         <div className="gp-price-block">
-                           <div className="gp-price">₹500 <span>/ one-time</span></div>
-                           <div style={{fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600}}>*Non-refundable portal fee</div>
-                         </div>
-                         <button className="btn-pay-hero" onClick={() => { 
-                           simulatePayment("₹500", () => {
-                             setIsRegistered(true); 
-                             setActiveTab('profile'); 
-                           });
-                         }}>Pay & Unlock Now →</button>
-                       </div>
-                    ) : (
-                       <div className="gp-reg-action-bar" style={{ display: 'block', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '24px', borderRadius: '16px' }}>
-                          <h3 style={{ color: '#16a34a', marginBottom: '8px', fontSize: '18px', fontWeight: 800 }}>✅ Payment Verified</h3>
-                          <p style={{ color: '#15803d', marginBottom: '16px', fontWeight: 600 }}>Your GP Barh Hostel & Mess portal is fully activated.</p>
-                          <button className="btn-pay-hero" style={{background: 'var(--teal)', width: '100%'}} onClick={() => setActiveTab('profile')}>
-                            Go to Manage Profile
-                          </button>
-                       </div>
-                    )}
+              {/* 0. SEAT & ROOM ALLOCATION SECTION (ABOVE MANAGE PROFILE) */}
+              {activeTab === 'seat-allocation' && (
+                <div>
+                  <div style={{ marginBottom: '24px' }}>
+                    <h2 className="page-title">Hostel Seat &amp; Room Allocation</h2>
+                    <p className="page-sub">Interactive Cinema-style bed booking engine with real-time floor architecture.</p>
                   </div>
-                  <div className="gp-reg-right">
-                     <div className="glass-security-card">
-                        <div style={{ fontSize: '64px', marginBottom: '24px' }}>🛡️</div>
-                        <h3 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '12px' }}>Institutional Grade Security</h3>
-                        <p style={{ fontSize: '14px', lineHeight: 1.6, color: 'rgba(255,255,255,0.85)' }}>All personal data, transactions, and payment portals are end-to-end encrypted under Govt. Polytechnic Barh network standards.</p>
-                     </div>
-                  </div>
+                  <RoomAllocationGrid
+                    gender={profileData.gender || currentUser?.gender || 'MALE'}
+                    studentId={currentUser?.id || 1}
+                    isDarkMode={isDarkMode}
+                  />
                 </div>
               )}
 
@@ -883,81 +949,248 @@ function StudentDashboard() {
 
                   <div id="non-print-profile-elements">
                     <div className="prof-header-simple">
-                       <div className="prof-avatar-wrap">
-                          <img src={profilePic} alt="Avatar" style={{ opacity: profilePic === defaultAvatar ? 0.3 : 1 }}/>
-                          <label className="prof-avatar-edit" htmlFor="mainAvatarInput" title="Update Photo">
-                            <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-                            <input type="file" id="mainAvatarInput" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarChange} />
-                          </label>
-                       </div>
-                       <div className="prof-name-area">
-                          <h2>{profileData.fullName || 'Student Name'}</h2>
-                          <p><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg> {profileData.branch || 'Configuration Pending'}</p>
-                       </div>
-                       <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                          <button className="btn-primary" style={{ padding: '12px 24px', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', boxShadow: 'none' }} onClick={() => window.print()}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> PDF
-                          </button>
-                          <button className="btn-primary" style={{ padding: '12px 32px' }} onClick={() => toast.success("Profile records successfully updated.", { style: { borderRadius: '10px', background: '#333', color: '#fff' }})}>Save Profile</button>
-                       </div>
+                      <div className="prof-avatar-wrap">
+                        <img src={profilePic} alt="Avatar" style={{ opacity: profilePic === defaultAvatar ? 0.3 : 1 }} />
+                        <label className="prof-avatar-edit" htmlFor="mainAvatarInput" title="Update Photo">
+                          <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                          <input type="file" id="mainAvatarInput" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarChange} />
+                        </label>
+                      </div>
+                      <div className="prof-name-area">
+                        <h2>{profileData.fullName || 'Student Name'}</h2>
+                        <p><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg> {profileData.branch || 'Configuration Pending'}</p>
+                      </div>
+                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                        <button className="btn-primary" style={{ padding: '12px 24px', background: 'var(--input-bg)', color: 'var(--text)', border: '1px solid var(--border)', boxShadow: 'none' }} onClick={() => window.print()}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> PDF
+                        </button>
+                        <button className="btn-primary" style={{ padding: '12px 32px' }} onClick={handleSaveProfile}>Save Profile</button>
+                      </div>
                     </div>
 
                     <div className="custom-card">
-                       <h3 style={{ fontSize: '16px', fontWeight: 800, margin: '8px 0 24px', color: 'var(--text)' }}>Personal Information</h3>
-                       <div className="form-row">
-                         <div className="form-group"><label className="form-label">Full Name</label><input className="form-input" type="text" value={profileData.fullName} onChange={e => setProfileData({...profileData, fullName: e.target.value})} placeholder="e.g. Amit Sharma" /></div>
-                         <div className="form-group"><label className="form-label">Registration Number</label><input className="form-input" type="text" value={profileData.regNo} disabled /></div>
-                       </div>
-                       <div className="form-row">
-                         <div className="form-group"><label className="form-label">Branch & Semester</label><input className="form-input" type="text" value={profileData.branch} onChange={e => setProfileData({...profileData, branch: e.target.value})} placeholder="e.g. AI & ML (4th Sem)" /></div>
-                         <div className="form-group"><label className="form-label">Blood Group</label>
-                           <select className="form-select" value={profileData.bloodGroup} onChange={e => setProfileData({...profileData, bloodGroup: e.target.value})}>
-                             <option value="">Select Group</option><option>O+</option><option>O-</option><option>A+</option><option>B+</option><option>AB+</option>
-                           </select>
-                         </div>
-                       </div>
-                       <div className="form-row">
-                         <div className="form-group"><label className="form-label">Contact Number</label><input className="form-input" type="tel" value={profileData.contact} onChange={e => setProfileData({...profileData, contact: e.target.value})} placeholder="+91 88731 42022" /></div>
-                         <div className="form-group"><label className="form-label">Email Address</label><input className="form-input" type="email" value={profileData.email} onChange={e => setProfileData({...profileData, email: e.target.value})} placeholder="amitkumar.gpb.ai@gmail.com" /></div>
-                       </div>
-                       <div className="form-group">
-                         <label className="form-label">Full Permanent Address</label>
-                         <textarea className="form-textarea" value={profileData.address} onChange={e => setProfileData({...profileData, address: e.target.value})} placeholder="Village, P.O, District, State, Pincode"></textarea>
-                       </div>
+                      <h3 style={{ fontSize: '16px', fontWeight: 800, margin: '8px 0 24px', color: 'var(--text)' }}>Personal &amp; Academic Records</h3>
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label className="form-label">Full Name</label>
+                          <input className="form-input" type="text" value={profileData.fullName} onChange={e => setProfileData({ ...profileData, fullName: e.target.value })} placeholder="e.g. AMIT SHARMA" />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">Registration Number</label>
+                          <input className="form-input" type="text" value={profileData.regNo} onChange={e => setProfileData({ ...profileData, regNo: e.target.value })} placeholder="1554424049" />
+                        </div>
+                      </div>
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label className="form-label">Branch / Department</label>
+                          <select className="form-select" value={profileData.branch} onChange={e => setProfileData({ ...profileData, branch: e.target.value })}>
+                            <option value="Artificial Intelligence & Machine Learning">Artificial Intelligence & Machine Learning</option>
+                            <option value="Civil Engineering (Construction Technology)">Civil Engineering (Construction Technology)</option>
+                            <option value="Electronics (Robotics)">Electronics (Robotics)</option>
+                            <option value="Mechanical Engineering (CAD/CAM)">Mechanical Engineering (CAD/CAM)</option>
+                          </select>
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">Academic Session</label>
+                          <input
+                            className="form-input"
+                            type="text"
+                            value={profileData.session || profileData.semester || ""}
+                            onChange={e => setProfileData({ ...profileData, session: e.target.value, semester: e.target.value })}
+                            placeholder="e.g. 2024-27"
+                          />
+                        </div>
+                      </div>
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label className="form-label">Hostel &amp; Block Selection</label>
+                          <select
+                            className="form-select"
+                            value={profileData.hostelBlock || (profileData.gender === 'FEMALE' ? 'Savitribai Phule Girls Hostel' : 'Birsa Munda Block')}
+                            onChange={e => {
+                              const selected = e.target.value;
+                              const isFem = selected === 'Savitribai Phule Girls Hostel';
+                              setProfileData({
+                                ...profileData,
+                                hostelBlock: selected,
+                                gender: isFem ? 'FEMALE' : 'MALE'
+                              });
+                            }}
+                          >
+                            {profileData.gender === 'FEMALE' ? (
+                              <option value="Savitribai Phule Girls Hostel">👩 Savitribai Phule Girls Hostel</option>
+                            ) : (
+                              <>
+                                <option value="Birsa Munda Block">👨 Birsa Munda Block</option>
+                                <option value="Dr. Rajendra Prasad Block">👨 Dr. Rajendra Prasad Block</option>
+                              </>
+                            )}
+                          </select>
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">Blood Group</label>
+                          <select className="form-select" value={profileData.bloodGroup || "O+"} onChange={e => setProfileData({ ...profileData, bloodGroup: e.target.value })}>
+                            <option value="O+">O+</option>
+                            <option value="O-">O-</option>
+                            <option value="A+">A+</option>
+                            <option value="A-">A-</option>
+                            <option value="B+">B+</option>
+                            <option value="B-">B-</option>
+                            <option value="AB+">AB+</option>
+                            <option value="AB-">AB-</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label className="form-label">Contact Number</label>
+                          <input className="form-input" type="tel" value={profileData.contact} onChange={e => setProfileData({ ...profileData, contact: e.target.value })} placeholder="+91 88731 42022" />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">Email Address</label>
+                          <input className="form-input" type="email" value={profileData.email} onChange={e => setProfileData({ ...profileData, email: e.target.value })} placeholder="amitkumar.gpb.ai@gmail.com" />
+                        </div>
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Full Permanent Address</label>
+                        <textarea className="form-textarea" value={profileData.address} onChange={e => setProfileData({ ...profileData, address: e.target.value })} placeholder="Village, P.O, District, State, Pincode"></textarea>
+                      </div>
                     </div>
                   </div>
 
-                  {/* HIDDEN PRINT SECTION (ONLY SHOWS DURING PDF GENERATION/PRINT) */}
-                  <div id="print-only-section">
-                     <div style={{ textAlign: 'center', borderBottom: '3px solid #1e293b', paddingBottom: '24px', marginBottom: '32px' }}>
-                        <h1 style={{ fontSize: '28px', fontWeight: 800, margin: 0, color: '#0f172a', fontFamily: 'serif' }}>GOVERNMENT POLYTECHNIC, BARH</h1>
-                        <h2 style={{ fontSize: '16px', fontWeight: 700, margin: '8px 0 0', color: '#475569', textTransform: 'uppercase', letterSpacing: '1px' }}>Hostel & Mess Administration — Verified Student Profile</h2>
-                     </div>
-                     
-                     <div style={{ display: 'flex', gap: '40px', alignItems: 'flex-start' }}>
-                        <div style={{ width: '150px', flexShrink: 0 }}>
-                           <img src={profilePic} alt="Profile" style={{ width: '150px', height: '180px', objectFit: 'cover', border: '2px solid #cbd5e1', borderRadius: '8px' }} />
+                  {/* 🌟 ULTRA-PREMIUM COLORFUL PRINTABLE DOSSIER (ONLY VISIBLE ON PRINT / PDF) 🌟 */}
+                  <div id="print-only-section" style={{ background: '#ffffff', color: '#0f172a', padding: '16px', fontFamily: 'Arial, sans-serif' }}>
+                    {/* INSTITUTIONAL CREST HEADER */}
+                    <div style={{ border: '3px solid #800000', borderRadius: '16px', overflow: 'hidden', marginBottom: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                      <div style={{ background: 'linear-gradient(135deg, #720e0e 0%, #8b0000 100%)', color: '#ffffff', padding: '18px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '3px solid #eab308' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                          <div style={{ width: '64px', height: '64px', background: '#ffffff', borderRadius: '50%', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
+                            <img src={logo} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                          </div>
+                          <div>
+                            <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 900, fontFamily: 'serif', letterSpacing: '0.5px' }}>राजकीय पॉलिटेक्निक, बाढ़</h1>
+                            <h2 style={{ margin: '2px 0 0', fontSize: '14px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>GOVERNMENT POLYTECHNIC, BARH</h2>
+                            <p style={{ margin: '2px 0 0', fontSize: '9px', color: '#fef08a', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Dept. of Science, Technology &amp; Technical Education • Govt. of Bihar</p>
+                          </div>
                         </div>
-                        <div style={{ flex: 1 }}>
-                           <table className="print-table" style={{ borderCollapse: 'collapse', color: '#0f172a', fontSize: '14px', marginBottom: '32px' }}>
-                              <tbody>
-                                 <tr><td style={{ padding: '12px', border: '1px solid #cbd5e1', fontWeight: 700, width: '35%', background: '#f8fafc' }}>Full Name</td><td style={{ padding: '12px', border: '1px solid #cbd5e1' }}>{profileData.fullName || 'NOT DISCLOSED'}</td></tr>
-                                 <tr><td style={{ padding: '12px', border: '1px solid #cbd5e1', fontWeight: 700, background: '#f8fafc' }}>Registration ID</td><td style={{ padding: '12px', border: '1px solid #cbd5e1' }}>{profileData.regNo}</td></tr>
-                                 <tr><td style={{ padding: '12px', border: '1px solid #cbd5e1', fontWeight: 700, background: '#f8fafc' }}>Branch & Semester</td><td style={{ padding: '12px', border: '1px solid #cbd5e1' }}>{profileData.branch || 'NOT DISCLOSED'}</td></tr>
-                                 <tr><td style={{ padding: '12px', border: '1px solid #cbd5e1', fontWeight: 700, background: '#f8fafc' }}>Blood Group</td><td style={{ padding: '12px', border: '1px solid #cbd5e1' }}>{profileData.bloodGroup || 'NOT DISCLOSED'}</td></tr>
-                                 <tr><td style={{ padding: '12px', border: '1px solid #cbd5e1', fontWeight: 700, background: '#f8fafc' }}>Registered Mobile</td><td style={{ padding: '12px', border: '1px solid #cbd5e1' }}>{profileData.contact || 'NOT DISCLOSED'}</td></tr>
-                                 <tr><td style={{ padding: '12px', border: '1px solid #cbd5e1', fontWeight: 700, background: '#f8fafc' }}>Email Address</td><td style={{ padding: '12px', border: '1px solid #cbd5e1' }}>{profileData.email || 'NOT DISCLOSED'}</td></tr>
-                                 <tr><td style={{ padding: '12px', border: '1px solid #cbd5e1', fontWeight: 700, background: '#f8fafc' }}>Permanent Address</td><td style={{ padding: '12px', border: '1px solid #cbd5e1' }}>{profileData.address || 'NOT DISCLOSED'}</td></tr>
-                              </tbody>
-                           </table>
-                           <div style={{ padding: '24px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px' }}>
-                              <h4 style={{ margin: '0 0 16px 0', color: '#166534', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>✅ Registration Verified & Fee Settled</h4>
-                              <div style={{ fontSize: '14px', marginBottom: '8px', color: '#15281e' }}>Paid Amount: <strong>₹500.00 (Non-Refundable)</strong></div>
-                              <div style={{ fontSize: '14px', marginBottom: '8px', color: '#15281e' }}>Transaction ID: <strong>GPB-REG-{Math.floor(Math.random() * 100000000)}</strong></div>
-                              <div style={{ fontSize: '14px', color: '#15281e' }}>Generation Date: <strong>{new Date().toLocaleDateString('en-IN')}</strong></div>
-                           </div>
+                        <div style={{ textAlign: 'right', background: 'rgba(0,0,0,0.25)', padding: '6px 14px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.2)' }}>
+                          <div style={{ fontSize: '9px', color: '#fef08a', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1px' }}>HOSTEL ALLOTMENT &amp; IDENTITY CARD</div>
+                          <div style={{ fontSize: '12px', fontWeight: 900, color: '#ffffff' }}>SESSION {profileData.session || profileData.semester || '2024–27'}</div>
                         </div>
-                     </div>
+                      </div>
+
+                      {/* SUB-BANNER */}
+                      <div style={{ background: '#f8fafc', padding: '8px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', fontSize: '11px', fontWeight: 700, color: '#475569' }}>
+                        <span>Official Student Identification &amp; Hostel Admission Record</span>
+                        <span style={{ color: '#800000' }}>Date Issued: {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                      </div>
+                    </div>
+
+                    {/* TWO COLUMN CONTENT AREA */}
+                    <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', marginBottom: '24px' }}>
+                      {/* LEFT COLUMN: PHOTO & SECURITY STAMPS */}
+                      <div style={{ width: '180px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ width: '160px', height: '190px', borderRadius: '12px', border: '3px solid #800000', overflow: 'hidden', boxShadow: '0 4px 10px rgba(0,0,0,0.15)', background: '#f1f5f9', position: 'relative' }}>
+                          <img src={profilePic} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <div style={{ position: 'absolute', bottom: 0, insetInline: 0, background: 'rgba(128,0,0,0.85)', color: '#ffffff', textAlign: 'center', fontSize: '9px', fontWeight: 800, padding: '3px 0', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                            Verified Resident
+                          </div>
+                        </div>
+
+                        {/* BLOOD GROUP BADGE */}
+                        <div style={{ width: '100%', background: '#fee2e2', border: '1px solid #f87171', borderRadius: '10px', padding: '8px 12px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '9px', fontWeight: 800, color: '#991b1b', textTransform: 'uppercase' }}>Blood Group</div>
+                          <div style={{ fontSize: '18px', fontWeight: 900, color: '#b91c1c' }}>{profileData.bloodGroup || 'O+'}</div>
+                        </div>
+
+                        {/* DIGITAL QR BADGE */}
+                        <div style={{ width: '100%', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '8px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '28px', lineHeight: 1 }}>📱</div>
+                          <div style={{ fontSize: '8px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', marginTop: '4px' }}>Digital ID: {profileData.regNo}</div>
+                        </div>
+                      </div>
+
+                      {/* RIGHT COLUMN: DETAILED INFO TABLE */}
+                      <div style={{ flex: 1 }}>
+                        <table className="print-table" style={{ width: '100%', borderCollapse: 'collapse', color: '#0f172a', fontSize: '13px', border: '1px solid #cbd5e1', borderRadius: '10px', overflow: 'hidden' }}>
+                          <tbody>
+                            <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                              <td style={{ padding: '10px 14px', fontWeight: 800, color: '#475569', width: '35%', fontSize: '11px', textTransform: 'uppercase' }}>Full Name</td>
+                              <td style={{ padding: '10px 14px', fontWeight: 900, color: '#0f172a', fontSize: '15px' }}>{profileData.fullName || 'AMIT SHARMA'}</td>
+                            </tr>
+                            <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                              <td style={{ padding: '10px 14px', fontWeight: 800, color: '#800000', fontSize: '11px', textTransform: 'uppercase' }}>Registration Number</td>
+                              <td style={{ padding: '10px 14px', fontWeight: 800, color: '#800000', fontFamily: 'monospace', fontSize: '14px' }}>{profileData.regNo}</td>
+                            </tr>
+                            <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                              <td style={{ padding: '10px 14px', fontWeight: 800, color: '#475569', fontSize: '11px', textTransform: 'uppercase' }}>Branch / Discipline</td>
+                              <td style={{ padding: '10px 14px', fontWeight: 800, color: '#1e293b' }}>{profileData.branch || 'Artificial Intelligence & Machine Learning'}</td>
+                            </tr>
+                            <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                              <td style={{ padding: '10px 14px', fontWeight: 800, color: '#475569', fontSize: '11px', textTransform: 'uppercase' }}>Academic Session</td>
+                              <td style={{ padding: '10px 14px', fontWeight: 800, color: '#1e293b' }}>{profileData.session || profileData.semester || '2024–27'}</td>
+                            </tr>
+                            <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                              <td style={{ padding: '10px 14px', fontWeight: 800, color: '#475569', fontSize: '11px', textTransform: 'uppercase' }}>Gender &amp; Assigned Hostel</td>
+                              <td style={{ padding: '10px 14px', fontWeight: 800, color: '#1e293b' }}>
+                                {profileData.gender === 'FEMALE'
+                                  ? '👩 Female (Savitribai Phule Girls Hostel)'
+                                  : `👨 Male (GP Barh Boys Hostel - ${profileData.hostelBlock || 'Birsa Munda Block'})`}
+                              </td>
+                            </tr>
+                            <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                              <td style={{ padding: '10px 14px', fontWeight: 800, color: '#475569', fontSize: '11px', textTransform: 'uppercase' }}>Registered Mobile</td>
+                              <td style={{ padding: '10px 14px', fontWeight: 700, color: '#1e293b' }}>{profileData.contact}</td>
+                            </tr>
+                            <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                              <td style={{ padding: '10px 14px', fontWeight: 800, color: '#475569', fontSize: '11px', textTransform: 'uppercase' }}>Email Address</td>
+                              <td style={{ padding: '10px 14px', fontWeight: 700, color: '#1e293b' }}>{profileData.email}</td>
+                            </tr>
+                            <tr>
+                              <td style={{ padding: '10px 14px', fontWeight: 800, color: '#475569', fontSize: '11px', textTransform: 'uppercase' }}>Permanent Address</td>
+                              <td style={{ padding: '10px 14px', fontWeight: 600, color: '#334155', lineHeight: 1.4 }}>{profileData.address}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* OFFICIAL INSTITUTIONAL VERIFICATION FOOTER */}
+                    <div style={{ background: '#f0fdf4', border: '2px solid #86efac', borderRadius: '12px', padding: '16px 20px', marginBottom: '28px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#16a34a', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 900 }}>✓</div>
+                          <div>
+                            <div style={{ fontSize: '12px', fontWeight: 900, color: '#166534', textTransform: 'uppercase' }}>Official Hostel Resident Verification</div>
+                            <div style={{ fontSize: '10px', color: '#15803d', fontWeight: 600 }}>Dossier digitally verified by Government Polytechnic, Barh (Patna) Portal.</div>
+                          </div>
+                        </div>
+                        <div style={{ fontSize: '10px', fontWeight: 800, color: '#166534', background: '#dcfce7', padding: '4px 10px', borderRadius: '20px', border: '1px solid #bbf7d0' }}>
+                          SESSION {profileData.session || profileData.semester || '2024–27'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SIGNATURE BLOCK */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', paddingTop: '20px', borderTop: '2px dashed #cbd5e1' }}>
+                      <div style={{ textAlign: 'center', width: '200px' }}>
+                        <div style={{ height: '40px', borderBottom: '1px solid #0f172a', marginBottom: '6px' }}></div>
+                        <div style={{ fontSize: '11px', fontWeight: 800, color: '#0f172a' }}>Signature of Student</div>
+                        <div style={{ fontSize: '9px', color: '#64748b' }}>({profileData.fullName || 'AMIT SHARMA'})</div>
+                      </div>
+
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ width: '70px', height: '70px', borderRadius: '50%', border: '2px solid #800000', margin: '0 auto 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#800000', fontSize: '8px', fontWeight: 900, textAlign: 'center', padding: '4px', textTransform: 'uppercase' }}>
+                          OFFICIAL SEAL<br />GP BARH
+                        </div>
+                      </div>
+
+                      <div style={{ textAlign: 'center', width: '220px' }}>
+                        <div style={{ height: '40px', borderBottom: '1px solid #0f172a', marginBottom: '6px' }}></div>
+                        <div style={{ fontSize: '11px', fontWeight: 800, color: '#0f172a' }}>Chief Warden / Superintendent</div>
+                        <div style={{ fontSize: '9px', color: '#64748b' }}>Govt. Polytechnic, Barh (Patna)</div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1125,7 +1358,7 @@ function StudentDashboard() {
                       <div style={{ display: 'flex', gap: '10px' }}>
                         <button
                           onClick={() => {
-                            toast.success("Printing Official Statement...", { style: { borderRadius: '10px', background: '#333', color: '#fff' }});
+                            toast.success("Printing Official Statement...", { style: { borderRadius: '10px', background: '#333', color: '#fff' } });
                             window.print();
                           }}
                           style={{
@@ -1147,7 +1380,7 @@ function StudentDashboard() {
                         </button>
                         <button
                           onClick={() => {
-                            toast.success("Passbook Ledger Synchronized with Hostel Core Server!", { style: { borderRadius: '10px', background: '#333', color: '#fff' }});
+                            toast.success("Passbook Ledger Synchronized with Hostel Core Server!", { style: { borderRadius: '10px', background: '#333', color: '#fff' } });
                           }}
                           style={{
                             padding: '10px 18px',
@@ -1387,32 +1620,32 @@ function StudentDashboard() {
                         <div style={{ fontSize: '14px', fontWeight: 700, marginTop: '4px' }}>{formattedDate}</div>
                       </div>
                     </div>
-                    
+
                     <div className="pb-table-wrap">
-                       <table className="pb-table">
-                          <thead>
-                             <tr>
-                                <th>Date</th>
-                                <th>Particulars</th>
-                                <th className="right">Amount</th>
-                                <th className="right">Balance</th>
-                             </tr>
-                          </thead>
-                          <tbody>
-                             <tr>
-                                <td>01-Feb-2025</td>
-                                <td>Monthly Mess Charge<br/><span className="txt-muted">System Auto Deduction</span></td>
-                                <td className="right txt-red">- ₹3,200</td>
-                                <td className="right">₹18,400</td>
-                             </tr>
-                             <tr>
-                                <td>16-Jan-2025</td>
-                                <td>Six Months Mess Advance<br/><span className="txt-muted">Paid via Gateway</span></td>
-                                <td className="right txt-green">+ ₹21,600</td>
-                                <td className="right">₹21,600</td>
-                             </tr>
-                          </tbody>
-                       </table>
+                      <table className="pb-table">
+                        <thead>
+                          <tr>
+                            <th>Date</th>
+                            <th>Particulars</th>
+                            <th className="right">Amount</th>
+                            <th className="right">Balance</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td>01-Feb-2025</td>
+                            <td>Monthly Mess Charge<br /><span className="txt-muted">System Auto Deduction</span></td>
+                            <td className="right txt-red">- ₹3,200</td>
+                            <td className="right">₹18,400</td>
+                          </tr>
+                          <tr>
+                            <td>16-Jan-2025</td>
+                            <td>Six Months Mess Advance<br /><span className="txt-muted">Paid via Gateway</span></td>
+                            <td className="right txt-green">+ ₹21,600</td>
+                            <td className="right">₹21,600</td>
+                          </tr>
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 </div>
@@ -1442,7 +1675,7 @@ function StudentDashboard() {
                   <h2 className="page-title">Digital Clearance Portal</h2>
                   <p className="page-sub">Initiate your exit process and request security refunds.</p>
                   <div className="custom-card">
-                    <div className="clearance-info-bar" style={{ background: '#fef2f2', borderLeft: '4px solid #ef4444', padding: '16px', borderRadius: '8px', marginBottom: '24px', color: '#991b1b', fontWeight: 600}}>⚠️ <strong>CRITICAL WARNING:</strong> Submitting this form will mark your bed as vacant. Only proceed if legally vacating.</div>
+                    <div className="clearance-info-bar" style={{ background: '#fef2f2', borderLeft: '4px solid #ef4444', padding: '16px', borderRadius: '8px', marginBottom: '24px', color: '#991b1b', fontWeight: 600 }}>⚠️ <strong>CRITICAL WARNING:</strong> Submitting this form will mark your bed as vacant. Only proceed if legally vacating.</div>
 
                     <div className="profile-summary-box" style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '24px', marginBottom: '32px' }}>
                       <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--teal)', textTransform: 'uppercase', marginBottom: '16px', letterSpacing: '1px' }}>📋 Automated Profile Authentication</h3>
@@ -1468,26 +1701,26 @@ function StudentDashboard() {
 
                     <div className="form-row">
                       <div className="form-group"><label className="form-label">Official Reason for Evacuation</label><select className="form-select"><option>Academic Tenure Completion (Passout)</option><option>Shifting to Private Residence</option></select></div>
-                      <div className="form-group"><label className="form-label">Anticipated Date of Departure</label><input type="date" className="form-input"/></div>
+                      <div className="form-group"><label className="form-label">Anticipated Date of Departure</label><input type="date" className="form-input" /></div>
                     </div>
 
                     <h3 style={{ fontSize: '16px', fontWeight: 800, margin: '40px 0 24px', color: 'var(--text)' }}>Bank Details (For Refund)</h3>
                     <div className="form-row">
-                      <div className="form-group"><label className="form-label">Account Holder Name</label><input type="text" className="form-input" placeholder="Must match bank passbook"/></div>
-                      <div className="form-group"><label className="form-label">Account Number</label><input type="password" placeholder="Enter A/C Number" className="form-input"/></div>
+                      <div className="form-group"><label className="form-label">Account Holder Name</label><input type="text" className="form-input" placeholder="Must match bank passbook" /></div>
+                      <div className="form-group"><label className="form-label">Account Number</label><input type="password" placeholder="Enter A/C Number" className="form-input" /></div>
                     </div>
                     <div className="form-row">
-                      <div className="form-group"><label className="form-label">Bank Name & Branch</label><input type="text" className="form-input" placeholder="e.g. State Bank of India, Barh"/></div>
-                      <div className="form-group"><label className="form-label">IFSC Code</label><input type="text" className="form-input" placeholder="e.g. SBIN0001234"/></div>
+                      <div className="form-group"><label className="form-label">Bank Name & Branch</label><input type="text" className="form-input" placeholder="e.g. State Bank of India, Barh" /></div>
+                      <div className="form-group"><label className="form-label">IFSC Code</label><input type="text" className="form-input" placeholder="e.g. SBIN0001234" /></div>
                     </div>
 
                     <label className="upload-zone" style={{ margin: '32px 0' }}>
-                       <svg width="40" height="40" fill="none" stroke="var(--teal)" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                       <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text)' }}>Upload Signed No-Dues Form (PDF)</span>
-                       <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Signed by Warden & Library</span>
-                       <input type="file" accept=".pdf" style={{ display: 'none' }} />
+                      <svg width="40" height="40" fill="none" stroke="var(--teal)" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" /></svg>
+                      <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text)' }}>Upload Signed No-Dues Form (PDF)</span>
+                      <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Signed by Warden & Library</span>
+                      <input type="file" accept=".pdf" style={{ display: 'none' }} />
                     </label>
-                    <button className="btn-primary" style={{ background: '#0f172a', width: '100%' }} onClick={() => toast.success("Clearance Protocol successfully engaged. Your request is now under administrative review.", { style: { borderRadius: '10px', background: '#333', color: '#fff', padding: '12px 20px', minWidth: '300px' }})}>Submit Clearance Request</button>
+                    <button className="btn-primary" style={{ background: '#0f172a', width: '100%' }} onClick={() => toast.success("Clearance Protocol successfully engaged. Your request is now under administrative review.", { style: { borderRadius: '10px', background: '#333', color: '#fff', padding: '12px 20px', minWidth: '300px' } })}>Submit Clearance Request</button>
                   </div>
                 </div>
               )}
@@ -1506,16 +1739,16 @@ function StudentDashboard() {
 
                       <label className="upload-zone" style={{ marginBottom: '24px' }}>
                         {complaintPreview ? (
-                           <img src={complaintPreview} alt="Preview" className="upload-preview-img" />
+                          <img src={complaintPreview} alt="Preview" className="upload-preview-img" />
                         ) : (
-                           <>
-                             <span style={{ fontSize: '14px', fontWeight: 800, color: 'var(--teal)' }}>📎 UPLOAD PHOTO/VIDEO PROOF</span>
-                             <span style={{ fontSize: '12px', color: '#64748b' }}>Click to browse local files</span>
-                           </>
+                          <>
+                            <span style={{ fontSize: '14px', fontWeight: 800, color: 'var(--teal)' }}>📎 UPLOAD PHOTO/VIDEO PROOF</span>
+                            <span style={{ fontSize: '12px', color: '#64748b' }}>Click to browse local files</span>
+                          </>
                         )}
                         <input type="file" accept="image/*,video/*" style={{ display: 'none' }} onChange={handleComplaintProof} />
                       </label>
-                      <button className="btn-primary btn-teal" onClick={() => { toast.success("Grievance officially registered and routed to the respective authority.", { style: { borderRadius: '10px', background: '#333', color: '#fff' }}); setComplaintPreview(null); }}>Submit Complaint</button>
+                      <button className="btn-primary btn-teal" onClick={() => { toast.success("Grievance officially registered and routed to the respective authority.", { style: { borderRadius: '10px', background: '#333', color: '#fff' } }); setComplaintPreview(null); }}>Submit Complaint</button>
                     </div>
                   </div>
                 </div>
@@ -1524,14 +1757,14 @@ function StudentDashboard() {
               {/* 7. APP SCAN */}
               {activeTab === 'appscan' && (
                 <article className="mobile-only-nav">
-                   <div className="custom-card" style={{ textAlign: 'center', padding: '56px 40px', maxWidth: '500px', margin: '0 auto' }}>
-                      <h2 className="page-title">Link Mobile App</h2>
-                      <p className="page-sub" style={{marginBottom: '40px'}}>Scan inside the GP Barh Android App to sync your session.</p>
+                  <div className="custom-card" style={{ textAlign: 'center', padding: '56px 40px', maxWidth: '500px', margin: '0 auto' }}>
+                    <h2 className="page-title">Link Mobile App</h2>
+                    <p className="page-sub" style={{ marginBottom: '40px' }}>Scan inside the GP Barh Android App to sync your session.</p>
 
-                      <div style={{ width: '240px', height: '240px', border: '3px solid var(--teal)', margin: '0 auto 32px', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--teal-light)', boxShadow: '0 10px 25px rgba(14,122,90,0.15)' }}>
-                         <div style={{ fontSize: '80px' }}>📱</div>
-                      </div>
-                   </div>
+                    <div style={{ width: '240px', height: '240px', border: '3px solid var(--teal)', margin: '0 auto 32px', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--teal-light)', boxShadow: '0 10px 25px rgba(14,122,90,0.15)' }}>
+                      <div style={{ fontSize: '80px' }}>📱</div>
+                    </div>
+                  </div>
                 </article>
               )}
 

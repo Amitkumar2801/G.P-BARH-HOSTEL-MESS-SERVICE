@@ -2,34 +2,33 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import toast, { Toaster } from 'react-hot-toast';
 import '../App.css';
 
 // ASSETS IMPORT
 import logo from '../assets/logo.png.png';
-import myPic from '../assets/profile.jpg.jpg';
 
 function Signup() {
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   // ---------------------------------------------------------
-  // FORM STATES (Data store karne ke liye)
+  // FORM STATES
   // ---------------------------------------------------------
   const [role, setRole] = useState("student"); // Default role
   const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
+  const [gender, setGender] = useState("MALE"); // Default selection: Male
   
   // Dynamic fields
   const [regNo, setRegNo] = useState("");
+  const [session, setSession] = useState("2024-27");
   const [email, setEmail] = useState("");
-  const [branch, setBranch] = useState("");
+  const [branch, setBranch] = useState("AI & ML");
   const [phone, setPhone] = useState("");
-  const [employeeId, setEmployeeId] = useState("");
-  const [secretCode, setSecretCode] = useState("");
   const [adminId, setAdminId] = useState("");
   const [masterKey, setMasterKey] = useState("");
 
   const [isLoading, setIsLoading] = useState(false);
-
   const navigate = useNavigate();
 
   // ---------------------------------------------------------
@@ -40,19 +39,19 @@ function Signup() {
 
     // Basic validation based on role
     if (!fullName || !password) {
-      alert("Please fill in the common fields (Name & Password)! 🛑");
+      toast.error("Please fill in Name and Password! 🛑");
       return;
     }
-    if (role === 'student' && (!regNo || !branch || !email)) {
-      alert("Student details incomplete! 🛑");
+    if (role === 'student' && (!regNo || !email)) {
+      toast.error("Student Registration No. & Email are required! 🛑");
       return;
     }
     if (role === 'parent' && (!phone || !regNo)) {
-      alert("Parent details incomplete! 🛑");
+      toast.error("Parent Phone & Student Reg No. are required! 🛑");
       return;
     }
     if (role === 'warden' && (!adminId || !masterKey)) {
-      alert("Warden details incomplete! 🛑");
+      toast.error("Warden Admin ID & Master Key are required! 🛑");
       return;
     }
 
@@ -62,61 +61,71 @@ function Signup() {
       role,
       full_name: fullName,
       password,
+      gender: gender,
+      reg_no_email: regNo || email || adminId
     };
 
     if (role === 'student') {
       payload.reg_no = regNo;
       payload.branch = branch;
       payload.email = email;
-      // Compatibility with backend if it expects reg_no_email
+      payload.session = session;
+      payload.semester = session;
       payload.reg_no_email = regNo; 
     } else if (role === 'parent') {
       payload.phone = phone;
-      payload.ward_reg_no = regNo; // Reusing regNo for ward's reg no
+      payload.ward_reg_no = regNo;
+      payload.reg_no_email = phone;
     } else if (role === 'warden') {
       payload.admin_id = adminId;
       payload.master_key = masterKey;
+      payload.reg_no_email = adminId;
     }
 
     try {
       const response = await axios.post("http://127.0.0.1:8000/signup", payload);
 
-      alert("Success: " + response.data.message + " 🎉");
-      navigate("/");
+      toast.success(response.data.message || "Account successfully created! 🎉", {
+        duration: 3500,
+        style: { borderRadius: '12px', background: '#0f172a', color: '#fff' }
+      });
+      
+      setTimeout(() => {
+        navigate("/");
+      }, 1200);
 
     } catch (error) {
       if (error.response && error.response.data) {
-        alert("Error: " + error.response.data.detail + " ❌");
+        toast.error("Signup Failed: " + error.response.data.detail);
       } else {
-        alert("Server connection failed. Is backend running? 🤔");
+        toast.error("Server connection failed. Is backend running? 🤔");
       }
     } finally {
       setIsLoading(false);
     }
   };
 
-  const inputClass = `w-full px-4 py-2.5 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-semibold ${
-    isDarkMode ? 'bg-gray-800/80 border-gray-600 text-white placeholder-gray-500' : 'bg-gray-50 border-gray-300 text-black placeholder-gray-400'
+  const inputClass = `w-full px-4 py-2.5 rounded-xl border focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-semibold ${
+    isDarkMode ? 'bg-gray-800/90 border-gray-600 text-white placeholder-gray-500' : 'bg-gray-50 border-gray-300 text-black placeholder-gray-400'
   }`;
 
-  const labelClass = `block text-[10px] md:text-[11px] font-bold uppercase tracking-widest mb-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`;
+  const labelClass = `block text-[11px] font-bold uppercase tracking-widest mb-1.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`;
 
   return (
     <div className={`min-h-screen flex flex-col font-sans transition-colors duration-500 ${isDarkMode ? 'dark bg-[#0a0a0a]' : 'bg-gray-100'}`}>
+      <Toaster position="top-center" />
 
       {/* ================= HEADER SECTION ================= */}
       <header className="w-full z-20 shadow-lg">
         <div className="bg-black text-gray-300 text-[10px] md:text-xs py-2 px-4 md:px-6 flex justify-between items-center">
-          <div className="flex space-x-4 items-center font-medium tracking-wide">
-            <a href="#" className="hover:text-white transition-colors py-1 hidden md:block">Rules</a>
-            <span className="hidden md:inline text-gray-600">|</span>
-            <a href="#" className="hover:text-white transition-colors py-1">Mess Menu</a>
+          <div className="flex space-x-3 items-center font-medium tracking-wide">
+            <span className="text-yellow-400 font-extrabold tracking-wide">GP Barh Hostel &amp; Mess Portal</span>
           </div>
           <div className="flex items-center space-x-3">
             <span className="text-[10px] font-bold tracking-widest uppercase text-yellow-400 drop-shadow-md">Theme</span>
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
-              className="rounded-full border border-gray-600 hover:border-yellow-400 hover:scale-110 transition-transform duration-300 shadow-md bg-white h-7 w-7 flex items-center justify-center p-1 overflow-hidden"
+              className="rounded-full border border-gray-600 hover:border-yellow-400 hover:scale-110 transition-transform duration-300 shadow-md bg-white h-7 w-7 flex items-center justify-center p-1 overflow-hidden cursor-pointer"
             >
               <img src={logo} alt="Theme Toggle" className="h-full w-full object-contain" />
             </button>
@@ -129,29 +138,30 @@ function Signup() {
             </div>
             <div>
               <h1 className="text-lg md:text-2xl font-extrabold font-serif tracking-wide leading-tight drop-shadow-sm">राजकीय पॉलिटेक्निक, बाढ़</h1>
+              <p className="text-[10px] text-yellow-300 font-semibold tracking-wider uppercase">Hostel &amp; Mess Digital Registration</p>
             </div>
           </div>
         </div>
       </header>
 
       {/* ================= MAIN CONTENT AREA (SIGNUP FORM) ================= */}
-      <main className="flex-grow bg-campus flex items-center justify-center p-4 md:p-8 lg:p-10 relative">
-        <div className={`absolute inset-0 transition-colors duration-500 ${isDarkMode ? 'bg-black/75' : 'bg-black/40'}`}></div>
-
-        <div className={`relative z-10 backdrop-blur-xl rounded-2xl shadow-2xl flex flex-col md:flex-row w-full max-w-[860px] overflow-hidden border transition-all duration-300 ${
+      <main className="flex-grow flex items-center justify-center p-4 md:p-8 relative">
+        <div className={`relative z-10 backdrop-blur-xl rounded-2xl shadow-2xl flex flex-col md:flex-row w-full max-w-[920px] overflow-hidden border transition-all duration-300 ${
           isDarkMode ? 'bg-[#121212]/95 border-gray-700 text-white' : 'bg-white/95 border-white/60 text-gray-900'
         }`}>
 
           <div className="w-full md:w-[56%] p-6 md:p-8 lg:p-10 flex flex-col justify-center">
-            <div className="text-center md:text-left mb-5">
-              <h2 className="text-2xl md:text-3xl lg:text-4xl font-black mb-1 tracking-tight text-blue-600 dark:text-blue-400 drop-shadow-sm">Registration</h2>
-              <p className={`text-[11px] md:text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                Create your hostel account
+            <div className="text-center md:text-left mb-6">
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-black mb-1 tracking-tight text-blue-600 dark:text-blue-400 drop-shadow-sm">
+                Create Account
+              </h2>
+              <p className={`text-xs font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                Sign up to choose your hostel room & bed allocation
               </p>
             </div>
 
-            {/* 🌟 DYNAMIC FORM */}
-            <form className="space-y-3" onSubmit={handleSignup}>
+            {/* 🌟 FORM */}
+            <form className="space-y-4" onSubmit={handleSignup}>
               
               {/* REGISTER AS DROPDOWN */}
               <div>
@@ -160,12 +170,8 @@ function Signup() {
                   value={role}
                   onChange={(e) => {
                     setRole(e.target.value);
-                    // Reset fields on role change
-                    setFullName(""); setPassword(""); setRegNo(""); setEmail("");
-                    setBranch(""); setPhone(""); setEmployeeId(""); setSecretCode("");
-                    setAdminId(""); setMasterKey("");
                   }}
-                  className={`w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-bold cursor-pointer ${
+                  className={`w-full px-4 py-2.5 rounded-xl border focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-bold cursor-pointer ${
                     isDarkMode ? 'bg-gray-800 border-gray-600 text-blue-400' : 'bg-blue-50 border-blue-200 text-blue-700'
                   }`}
                 >
@@ -175,16 +181,46 @@ function Signup() {
                 </select>
               </div>
 
+              {/* 🌟 GENDER TOGGLE (MALE / FEMALE) */}
+              <div>
+                <label className={labelClass}>Select Gender</label>
+                <div className="grid grid-cols-2 gap-3 p-1.5 rounded-xl bg-gray-100 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700">
+                  <button
+                    type="button"
+                    onClick={() => setGender("MALE")}
+                    className={`py-2.5 px-4 rounded-lg font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
+                      gender === "MALE"
+                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 scale-[1.02]'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <span>👨 Male</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGender("FEMALE")}
+                    className={`py-2.5 px-4 rounded-lg font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
+                      gender === "FEMALE"
+                        ? 'bg-pink-600 text-white shadow-md shadow-pink-600/30 scale-[1.02]'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <span>👩 Female</span>
+                  </button>
+                </div>
+              </div>
+
               {/* COMMON FIELD: FULL NAME */}
               <div>
                 <label className={labelClass}>
-                  {role === 'parent' ? "Parent/Guest Name" : "Full Name"}
+                  {role === 'parent' ? "Parent/Guardian Name" : "Full Name"}
                 </label>
                 <input
                   type="text"
+                  required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder={role === 'parent' ? "e.g. Ramesh Kumar" : "e.g. Amit Sharma"}
+                  placeholder={role === 'parent' ? "e.g. Ramesh Kumar" : "e.g. Amit Kumar Sharma"}
                   className={inputClass}
                 />
               </div>
@@ -192,34 +228,52 @@ function Signup() {
               {/* STUDENT FIELDS */}
               {role === 'student' && (
                 <>
-                  <div>
-                    <label className={labelClass}>Registration Number</label>
-                    <input
-                      type="text"
-                      value={regNo}
-                      onChange={(e) => setRegNo(e.target.value)}
-                      placeholder="e.g. 1554424049"
-                      className={inputClass}
-                    />
-                  </div>
-                  <div className="flex space-x-3">
-                    <div className="w-1/2">
-                      <label className={labelClass}>Branch</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className={labelClass}>Registration Number</label>
                       <input
                         type="text"
-                        value={branch}
-                        onChange={(e) => setBranch(e.target.value)}
-                        placeholder="e.g. AI & ML"
+                        required
+                        value={regNo}
+                        onChange={(e) => setRegNo(e.target.value)}
+                        placeholder="e.g. 1554424049"
                         className={inputClass}
                       />
                     </div>
-                    <div className="w-1/2">
-                      <label className={labelClass}>Email</label>
+                    <div>
+                      <label className={labelClass}>Academic Session</label>
+                      <input
+                        type="text"
+                        required
+                        value={session}
+                        onChange={(e) => setSession(e.target.value)}
+                        placeholder="e.g. 2024-27"
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className={labelClass}>Branch / Department</label>
+                      <select
+                        value={branch}
+                        onChange={(e) => setBranch(e.target.value)}
+                        className={inputClass}
+                      >
+                        <option value="Artificial Intelligence & Machine Learning">Artificial Intelligence & Machine Learning</option>
+                        <option value="Civil Engineering (Construction Technology)">Civil Engineering (Construction Technology)</option>
+                        <option value="Electronics (Robotics)">Electronics (Robotics)</option>
+                        <option value="Mechanical Engineering (CAD/CAM)">Mechanical Engineering (CAD/CAM)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Email Address</label>
                       <input
                         type="email"
+                        required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="student@gmail.com"
+                        placeholder="student@example.com"
                         className={inputClass}
                       />
                     </div>
@@ -234,6 +288,7 @@ function Signup() {
                     <label className={labelClass}>Phone Number</label>
                     <input
                       type="tel"
+                      required
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="e.g. 9876543210"
@@ -244,6 +299,7 @@ function Signup() {
                     <label className={labelClass}>Student's Reg No. (Ward)</label>
                     <input
                       type="text"
+                      required
                       value={regNo}
                       onChange={(e) => setRegNo(e.target.value)}
                       placeholder="e.g. 1554424049"
@@ -257,12 +313,13 @@ function Signup() {
               {role === 'warden' && (
                 <>
                   <div>
-                    <label className={labelClass}>Admin ID</label>
+                    <label className={labelClass}>Admin ID / Email</label>
                     <input
                       type="text"
+                      required
                       value={adminId}
                       onChange={(e) => setAdminId(e.target.value)}
-                      placeholder="e.g. WARDEN-001"
+                      placeholder="e.g. amitkumar.arwal28@gmail.com"
                       className={inputClass}
                     />
                   </div>
@@ -270,21 +327,22 @@ function Signup() {
                     <label className={labelClass}>Master Authorization Key</label>
                     <input
                       type="password"
+                      required
                       value={masterKey}
                       onChange={(e) => setMasterKey(e.target.value)}
-                      placeholder="Secret Key"
+                      placeholder="Master Secret Key"
                       className={inputClass}
                     />
                   </div>
                 </>
               )}
 
-
               {/* COMMON FIELD: PASSWORD */}
               <div>
                 <label className={labelClass}>Create Password</label>
                 <input
                   type="password"
+                  required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
@@ -295,38 +353,187 @@ function Signup() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`w-full font-extrabold py-3 rounded-lg transition-all shadow-lg text-sm tracking-widest uppercase mt-4 ${
-                  isLoading ? 'bg-blue-400 text-white cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-blue-500/40'
+                className={`w-full font-extrabold py-3.5 rounded-xl transition-all shadow-lg text-sm tracking-wider uppercase mt-4 flex items-center justify-center gap-2 ${
+                  isLoading
+                    ? 'bg-blue-400 text-white cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-blue-500/40 transform hover:-translate-y-0.5'
                 }`}
               >
-                {isLoading ? 'Creating Account...' : 'Create Account'}
+                {isLoading ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                    <span>Creating Account...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>🚀 Register & Continue to Onboarding</span>
+                  </>
+                )}
               </button>
 
-              <div className="text-center mt-2">
-                <p className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Already have an account? <Link to="/" className="font-bold text-blue-600 hover:text-blue-500 hover:underline">Sign In</Link>
+              <div className="text-center mt-3">
+                <p className={`text-xs font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Already registered? <Link to="/" className="font-bold text-blue-600 hover:text-blue-500 hover:underline">Sign In here</Link>
                 </p>
               </div>
             </form>
           </div>
 
-          <div className={`hidden md:flex flex-col items-center justify-center px-0 border-l border-r ${
-            isDarkMode ? 'bg-gray-900/50 border-gray-800' : 'bg-gray-100/50 border-gray-200'
+          {/* 🌟 ULTRA-PREMIUM DYNAMIC RIGHT HERO BANNER (BOYS vs GIRLS ARCHITECTURE) 🌟 */}
+          <div className={`hidden md:flex w-[44%] p-8 flex-col justify-between relative overflow-hidden transition-all duration-500 ${
+            gender === 'FEMALE' 
+              ? (isDarkMode ? 'bg-gradient-to-br from-pink-950/90 via-slate-900 to-purple-950/90 border-l border-pink-500/30' : 'bg-gradient-to-br from-pink-50 via-rose-50 to-purple-50 border-l border-pink-200')
+              : (isDarkMode ? 'bg-gradient-to-br from-blue-950/90 via-slate-900 to-indigo-950/90 border-l border-blue-500/30' : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-sky-50 border-l border-blue-200')
           }`}>
-            <div className={`h-full w-[1px] ${isDarkMode ? 'bg-gray-700' : 'bg-gray-300'}`}></div>
-          </div>
+            {/* Ambient Background Glow Spheres */}
+            <div className={`absolute -top-12 -right-12 w-48 h-48 rounded-full blur-3xl opacity-30 pointer-events-none ${
+              gender === 'FEMALE' ? 'bg-pink-500' : 'bg-blue-500'
+            }`}></div>
+            <div className={`absolute -bottom-12 -left-12 w-48 h-48 rounded-full blur-3xl opacity-20 pointer-events-none ${
+              gender === 'FEMALE' ? 'bg-purple-500' : 'bg-indigo-500'
+            }`}></div>
 
-          <div className={`hidden md:flex w-[44%] p-8 lg:p-10 flex-col items-center justify-center ${isDarkMode ? 'bg-[#1a1a1a]/95' : 'bg-gray-50/95'}`}>
-            <h3 className={`text-sm font-black mb-6 uppercase tracking-widest text-center leading-relaxed ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-              Digital<br/>Onboarding
-            </h3>
-            <div className={`w-40 h-40 md:w-44 md:h-44 lg:w-48 lg:h-48 border-2 border-dashed rounded-full flex flex-col items-center justify-center mb-4 relative overflow-hidden shadow-inner ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-300'}`}>
-              <div className="absolute w-full h-1 bg-green-500 shadow-[0_0_20px_4px_rgba(34,197,94,0.8)] animate-scan"></div>
-              <span className="text-5xl lg:text-6xl mb-2 opacity-90 drop-shadow-md">🎓</span>
+            {/* HEADER BADGE & HOSTEL TITLE */}
+            <div className="text-center w-full relative z-10">
+              <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase mb-3 shadow-md border transition-all duration-300 ${
+                gender === 'FEMALE'
+                  ? (isDarkMode ? 'bg-pink-900/80 text-pink-200 border-pink-400/50 shadow-pink-500/20' : 'bg-pink-100 text-pink-900 border-pink-300 shadow-pink-100')
+                  : (isDarkMode ? 'bg-blue-900/80 text-blue-200 border-blue-400/50 shadow-blue-500/20' : 'bg-blue-100 text-blue-900 border-blue-300 shadow-blue-100')
+              }`}>
+                <span className={`w-2.5 h-2.5 rounded-full animate-ping inline-block ${gender === 'FEMALE' ? 'bg-pink-400' : 'bg-blue-400'}`}></span>
+                <span>{gender === 'FEMALE' ? '🌸 SECURE RESIDENTIAL COMPLEX' : '🏛️ DUAL-WING RESIDENTIAL CAMPUS'}</span>
+              </div>
+
+              <h3 className={`text-xl font-black uppercase tracking-wider mb-1.5 drop-shadow-sm ${
+                isDarkMode ? 'text-white' : 'text-slate-900'
+              }`}>
+                {gender === 'FEMALE' ? 'Savitribai Phule Girls Hostel' : 'GP Barh Boys Hostel'}
+              </h3>
+              <p className={`text-xs font-black tracking-wide ${
+                gender === 'FEMALE' 
+                  ? (isDarkMode ? 'text-pink-300' : 'text-pink-700') 
+                  : (isDarkMode ? 'text-blue-300' : 'text-blue-700')
+              }`}>
+                {gender === 'FEMALE' ? 'Dedicated Student Residential Complex' : 'Birsa Munda & Dr. Rajendra Prasad Residential Blocks'}
+              </p>
             </div>
-            <p className={`text-center text-xs font-semibold leading-relaxed px-2 mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              Join the official GP Barh student & mess network seamlessly.
-            </p>
+
+            {/* INTERACTIVE ARCHITECTURAL SHOWCASE CARD */}
+            <div className={`my-5 w-full space-y-2.5 backdrop-blur-md p-4 rounded-2xl shadow-xl border relative z-10 transition-all duration-300 ${
+              isDarkMode 
+                ? 'bg-slate-900/90 border-slate-700/80 shadow-black/40' 
+                : 'bg-white/95 border-slate-200/80 shadow-slate-200/50'
+            }`}>
+              {gender === 'MALE' ? (
+                <>
+                  <div className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-200 hover:scale-[1.02] ${
+                    isDarkMode ? 'bg-slate-800/80 border-slate-700 hover:bg-slate-800' : 'bg-blue-50/70 border-blue-100 hover:bg-blue-50'
+                  }`}>
+                    <span className="text-xl">🏢</span>
+                    <div>
+                      <p className={`text-xs font-extrabold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Birsa Munda Block</p>
+                      <p className={`text-[10px] font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>Modern Student Living &amp; Study Wing</p>
+                    </div>
+                  </div>
+                  <div className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-200 hover:scale-[1.02] ${
+                    isDarkMode ? 'bg-slate-800/80 border-slate-700 hover:bg-slate-800' : 'bg-blue-50/70 border-blue-100 hover:bg-blue-50'
+                  }`}>
+                    <span className="text-xl">🏢</span>
+                    <div>
+                      <p className={`text-xs font-extrabold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Dr. Rajendra Prasad Block</p>
+                      <p className={`text-[10px] font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>Premium Residential Quarters</p>
+                    </div>
+                  </div>
+                  <div className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-200 hover:scale-[1.02] ${
+                    isDarkMode ? 'bg-slate-800/80 border-slate-700 hover:bg-slate-800' : 'bg-indigo-50/70 border-indigo-100 hover:bg-indigo-50'
+                  }`}>
+                    <span className="text-xl">🛋️</span>
+                    <div>
+                      <p className={`text-xs font-extrabold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Common Room (BH1 &amp; BH2)</p>
+                      <p className={`text-[10px] font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>Recreation Lounge, Table Tennis &amp; TV Arena</p>
+                    </div>
+                  </div>
+                  <div className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-200 hover:scale-[1.02] ${
+                    isDarkMode ? 'bg-slate-800/80 border-slate-700 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                  }`}>
+                    <span className="text-xl">📹</span>
+                    <div>
+                      <p className={`text-xs font-extrabold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>24x7 HD CCTV Surveillance</p>
+                      <p className={`text-[10px] font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>Comprehensive Multi-Tier Campus Security</p>
+                    </div>
+                  </div>
+                  <div className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-200 hover:scale-[1.02] ${
+                    isDarkMode ? 'bg-slate-800/80 border-slate-700 hover:bg-slate-800' : 'bg-sky-50/70 border-sky-100 hover:bg-sky-50'
+                  }`}>
+                    <span className="text-xl">💧</span>
+                    <div>
+                      <p className={`text-xs font-extrabold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>24x7 Water Cooler</p>
+                      <p className={`text-[10px] font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>Multi-Stage Purified RO Chilled Drinking Water</p>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-200 hover:scale-[1.02] ${
+                    isDarkMode ? 'bg-slate-800/80 border-slate-700 hover:bg-slate-800' : 'bg-pink-50/70 border-pink-100 hover:bg-pink-50'
+                  }`}>
+                    <span className="text-xl">🌸</span>
+                    <div>
+                      <p className={`text-xs font-extrabold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Savitribai Phule Block</p>
+                      <p className={`text-[10px] font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>Safe, Modern &amp; Well-Equipped Residence</p>
+                    </div>
+                  </div>
+                  <div className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-200 hover:scale-[1.02] ${
+                    isDarkMode ? 'bg-slate-800/80 border-slate-700 hover:bg-slate-800' : 'bg-purple-50/70 border-purple-100 hover:bg-purple-50'
+                  }`}>
+                    <span className="text-xl">🛋️</span>
+                    <div>
+                      <p className={`text-xs font-extrabold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Common Room &amp; Reading Lounge</p>
+                      <p className={`text-[10px] font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>Recreation Space, TV &amp; Quiet Study Zone</p>
+                    </div>
+                  </div>
+                  <div className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-200 hover:scale-[1.02] ${
+                    isDarkMode ? 'bg-slate-800/80 border-slate-700 hover:bg-slate-800' : 'bg-rose-50/70 border-rose-100 hover:bg-rose-50'
+                  }`}>
+                    <span className="text-xl">🛡️</span>
+                    <div>
+                      <p className={`text-xs font-extrabold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>24x7 Security &amp; CCTV Surveillance</p>
+                      <p className={`text-[10px] font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>Biometric Gate &amp; 24x7 Female Warden Desk</p>
+                    </div>
+                  </div>
+                  <div className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-200 hover:scale-[1.02] ${
+                    isDarkMode ? 'bg-slate-800/80 border-slate-700 hover:bg-slate-800' : 'bg-sky-50/70 border-sky-100 hover:bg-sky-50'
+                  }`}>
+                    <span className="text-xl">💧</span>
+                    <div>
+                      <p className={`text-xs font-extrabold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>24x7 Water Cooler</p>
+                      <p className={`text-[10px] font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>Multi-Stage Purified RO Chilled Drinking Water</p>
+                    </div>
+                  </div>
+                  <div className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-200 hover:scale-[1.02] ${
+                    isDarkMode ? 'bg-slate-800/80 border-slate-700 hover:bg-slate-800' : 'bg-pink-50/70 border-pink-100 hover:bg-pink-50'
+                  }`}>
+                    <span className="text-xl">✨</span>
+                    <div>
+                      <p className={`text-xs font-extrabold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Illuminated Corridors &amp; Balconies</p>
+                      <p className={`text-[10px] font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>Fresh-Air Cross-Ventilation &amp; Green Views</p>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* OFFICIAL FOOTER TEXT */}
+            <div className="text-center relative z-10">
+              <p className={`text-[11px] font-extrabold tracking-wide uppercase ${
+                isDarkMode ? 'text-slate-300' : 'text-slate-600'
+              }`}>
+                Government Polytechnic Barh Hostel &amp; Mess
+              </p>
+            </div>
           </div>
         </div>
       </main>

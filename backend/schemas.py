@@ -20,23 +20,164 @@ class Transaction(TransactionBase):
         from_attributes = True
 
 # ==========================================
-# USER SCHEMAS (Login / Signup)
+# USER & PROFILE SCHEMAS
 # ==========================================
 class UserBase(BaseModel):
     full_name: str
     reg_no_email: str
-    role: str = "student"  # Default role student rahega
+    role: str = "student"
+    gender: Optional[str] = "MALE"
+    branch: Optional[str] = None
+    semester: Optional[str] = "2024-27"
+    session: Optional[str] = "2024-27"
 
 class UserCreate(UserBase):
     password: str
+    reg_no: Optional[str] = None
 
 class UserLogin(BaseModel):
     reg_no_email: str
     password: str
 
-class User(UserBase):
+class ProfileUpdate(BaseModel):
+    user_id: int
+    full_name: str
+    gender: Optional[str] = "MALE" # 'MALE' or 'FEMALE'
+    branch: Optional[str] = None
+    semester: Optional[str] = None
+    session: Optional[str] = None
+    roll_no: Optional[str] = None
+    reg_no: Optional[str] = None
+    mobile: Optional[str] = None
+    guardian_contact: Optional[str] = None
+    guardian_mobile: Optional[str] = None
+    address: Optional[str] = None
+    blood_group: Optional[str] = None
+    profile_pic: Optional[str] = None
+
+class UserProfileResponse(BaseModel):
     id: int
-    transactions: List[Transaction] = [] # User ki profile ke sath uski fee history bhi jayegi
+    full_name: str
+    reg_no_email: str
+    role: str
+    gender: str
+    branch: Optional[str] = None
+    semester: Optional[str] = None
+    session: Optional[str] = None
+    roll_no: Optional[str] = None
+    reg_no: Optional[str] = None
+    mobile: Optional[str] = None
+    guardian_contact: Optional[str] = None
+    guardian_mobile: Optional[str] = None
+    address: Optional[str] = None
+    blood_group: Optional[str] = None
+    profile_pic: Optional[str] = None
+    profile_completed: bool = False
 
     class Config:
         from_attributes = True
+
+class User(UserBase):
+    id: int
+    profile_completed: bool = False
+    transactions: List[Transaction] = []
+
+    class Config:
+        from_attributes = True
+
+# ==========================================
+# ROOM & ALLOCATION SCHEMAS
+# ==========================================
+class BedSchema(BaseModel):
+    id: int
+    bed_code: str # 'A', 'B', 'C'
+    is_occupied: bool
+    current_student_id: Optional[int] = None
+    current_student_name: Optional[str] = None
+    pending_request_by_me: Optional[bool] = False
+
+    class Config:
+        from_attributes = True
+
+class RoomSchema(BaseModel):
+    id: int
+    room_number: str
+    floor_number: int
+    wing: str
+    capacity: int = 3
+    occupied_count: int
+    status_color: str # 'GREEN', 'AMBER', 'RED'
+    beds: List[BedSchema] = []
+
+    class Config:
+        from_attributes = True
+
+class HostelLayoutSchema(BaseModel):
+    id: int
+    name: str
+    gender_type: str
+    total_floors: int
+    shape_type: str
+    rooms: List[RoomSchema] = []
+
+    class Config:
+        from_attributes = True
+
+class BedRequestCreate(BaseModel):
+    student_id: int
+    room_id: int
+    bed_id: int
+
+class AllotmentActionRequest(BaseModel):
+    action: str # 'approve' or 'reject'
+    remarks: Optional[str] = ""
+
+class AllotmentRequestResponse(BaseModel):
+    id: int
+    student_id: int
+    student_name: str
+    student_gender: str
+    student_branch: Optional[str] = None
+    student_roll: Optional[str] = None
+    student_reg: Optional[str] = None
+    student_mobile: Optional[str] = None
+    student_photo: Optional[str] = None
+    room_id: int
+    room_number: str
+    floor_number: int
+    wing: Optional[str] = "LEFT"
+    bed_id: int
+    bed_code: str
+    status: str
+    applied_at: datetime
+    remarks: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class WardenAnalyticsResponse(BaseModel):
+    total_capacity: int
+    total_occupied: int
+    occupancy_pct: float
+    boys_total: int
+    boys_occupied: int
+    boys_occupancy_pct: float
+    girls_total: int
+    girls_occupied: int
+    girls_occupancy_pct: float
+    pending_requests_count: int
+    total_pending_dues: float
+
+class StudentDirectoryItem(BaseModel):
+    id: int
+    full_name: str
+    reg_no: Optional[str] = None
+    roll_no: Optional[str] = None
+    branch: Optional[str] = None
+    semester: Optional[str] = None
+    gender: str
+    mobile: Optional[str] = None
+    room_number: Optional[str] = None
+    bed_code: Optional[str] = None
+    status: str
+    profile_completed: bool
