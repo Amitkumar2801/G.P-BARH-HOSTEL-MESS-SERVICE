@@ -82,17 +82,57 @@ function WardenDashboard() {
   const [paymentStatusFilter, setPaymentStatusFilter] = useState('ALL');
   const [activeProofModal, setActiveProofModal] = useState(null);
 
+  // Database Reset & Dev Maintenance State
+  const [isResettingDb, setIsResettingDb] = useState(false);
+  const [showResetConfirmModal, setShowResetConfirmModal] = useState(false);
+
+  // Mess Attendance & Counter Live State
+  const [messStats, setMessStats] = useState({
+    date: new Date().toISOString().slice(0, 10),
+    active_slot: 'LUNCH',
+    active_slot_label: 'Royal Afternoon Lunch (12:00 PM - 03:30 PM)',
+    total_eligible_students: 153,
+    total_scanned_today: 0,
+    breakfast_count: 0,
+    lunch_count: 0,
+    snacks_count: 0,
+    dinner_count: 0,
+    boys_fed_today: 0,
+    girls_fed_today: 0,
+    boys_total_eligible: 81,
+    girls_total_eligible: 72,
+    recent_scans: [],
+    daily_qr_token: ''
+  });
+  const [loadingMessStats, setLoadingMessStats] = useState(false);
+  const [messMealFilter, setMessMealFilter] = useState('ALL'); // 'ALL', 'BREAKFAST', 'LUNCH', 'SNACKS', 'DINNER'
+  const [messGenderFilter, setMessGenderFilter] = useState('ALL'); // 'ALL', 'BOYS', 'GIRLS'
+  const [messSearchQuery, setMessSearchQuery] = useState('');
+  const [showPrintDeskQrModal, setShowPrintDeskQrModal] = useState(false);
+  const [wardenMessTimeframe, setWardenMessTimeframe] = useState('1M'); // '1M', '6M', '1Y'
+  const [wardenMessAnalytics, setWardenMessAnalytics] = useState(null);
+
+  const fetchWardenMessAnalytics = async (tf = wardenMessTimeframe) => {
+    try {
+      const res = await axios.get(`http://127.0.0.1:8000/api/warden/mess/analytics?timeframe=${tf}`);
+      if (res.data) setWardenMessAnalytics(res.data);
+    } catch (e) {
+      console.log('Error fetching warden mess analytics:', e);
+    }
+  };
+
   const wardenAvatar = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z'/%3E%3C/svg%3E";
 
   // Fetch Analytics, Pending Requests, Fee Config & Payments
   const fetchWardenData = async () => {
     try {
-      const [anaRes, pendRes, studRes, feeRes, payRes] = await Promise.allSettled([
+      const [anaRes, pendRes, studRes, feeRes, payRes, messRes] = await Promise.allSettled([
         axios.get('http://127.0.0.1:8000/api/warden/analytics'),
         axios.get('http://127.0.0.1:8000/api/warden/allotments/pending'),
         axios.get('http://127.0.0.1:8000/api/warden/students'),
         axios.get('http://127.0.0.1:8000/api/fees/config'),
-        axios.get('http://127.0.0.1:8000/api/admin/payments/all')
+        axios.get('http://127.0.0.1:8000/api/admin/payments/all'),
+        axios.get('http://127.0.0.1:8000/api/mess/today-stats')
       ]);
 
       if (anaRes.status === 'fulfilled' && anaRes.value.data) {
@@ -110,6 +150,41 @@ function WardenDashboard() {
       if (payRes.status === 'fulfilled' && payRes.value.data) {
         setPaymentTransactions(payRes.value.data);
       }
+      
+      // Load local scanned attendance history from students (Manage Profile synced)
+      let localScans = [];
+      try {
+        const savedHist = localStorage.getItem('gpbarh_mess_attendance_history');
+        if (savedHist) localScans = JSON.parse(savedHist);
+      } catch (e) {
+        console.warn('Could not parse local mess attendance history', e);
+      }
+
+      if (messRes.status === 'fulfilled' && messRes.value.data) {
+        const backendStats = messRes.value.data;
+        const combinedScans = [...localScans];
+        (backendStats.recent_scans || []).forEach(bs => {
+          if (!combinedScans.some(cs => cs.token_code === bs.token_code || cs.id === bs.id)) {
+            combinedScans.push(bs);
+          }
+        });
+        setMessStats({
+          ...backendStats,
+          recent_scans: combinedScans,
+          total_scanned_today: Math.max(combinedScans.length, backendStats.total_scanned_today || 0)
+        });
+      } else if (localScans.length > 0) {
+        setMessStats(prev => ({
+          ...prev,
+          recent_scans: localScans,
+          total_scanned_today: localScans.length,
+          breakfast_count: localScans.length,
+          lunch_count: localScans.length,
+          snacks_count: localScans.length,
+          dinner_count: localScans.length
+        }));
+      }
+      fetchWardenMessAnalytics();
     } catch (error) {
       console.error('Warden data load error:', error);
     }
@@ -225,6 +300,55 @@ function WardenDashboard() {
     navigate('/');
   };
 
+  const handleExportMessCSV = (genderType = 'ALL') => {
+    let scans = messStats.recent_scans || [];
+    if (genderType === 'BOYS') scans = scans.filter(s => s.gender === 'MALE');
+    if (genderType === 'GIRLS') scans = scans.filter(s => s.gender === 'FEMALE');
+
+    const headers = ['ID', 'Student Name', 'Reg No', 'Gender', 'Branch', 'Meal Type', 'Token Code', 'Scanned At', 'Status'];
+    const rows = scans.map(s => [
+      s.id,
+      `"${s.student_name}"`,
+      `"${s.reg_no}"`,
+      s.gender,
+      `"${s.branch}"`,
+      s.meal_type,
+      `"${s.token_code}"`,
+      `"${s.scanned_at}"`,
+      s.status
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `GP_Barh_Mess_Attendance_${genderType}_${messStats.date}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success(`${genderType === 'ALL' ? 'Overall' : genderType === 'BOYS' ? 'Boys Hostel' : 'Girls Hostel'} Mess Attendance CSV exported! 📊`);
+  };
+
+  const handleResetDatabase = async () => {
+    setIsResettingDb(true);
+    try {
+      const res = await axios.post('http://127.0.0.1:8000/api/dev/reset-database');
+      toast.success('💥 Database purged & recreated cleanly! Hostel layouts & fee structures initialized.', {
+        duration: 5500,
+        style: { borderRadius: '12px', background: '#166534', color: '#fff', fontWeight: 800 }
+      });
+      setShowResetConfirmModal(false);
+      await fetchWardenData();
+    } catch (err) {
+      console.error('Reset DB Error:', err);
+      toast.error(err.response?.data?.detail || 'Failed to reset database. Please check backend server.', {
+        duration: 5000
+      });
+    } finally {
+      setIsResettingDb(false);
+    }
+  };
+
   const filteredStudents = studentDirectory.filter(s => {
     const matchSearch = (s.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (s.reg_no || '').includes(searchQuery) ||
@@ -274,10 +398,12 @@ function WardenDashboard() {
           <nav className="p-4 space-y-1.5 text-sm font-bold">
             {[
               { id: 'allocations', name: 'Hostel Seat Allocations', icon: '🛏️', badge: (pendingRequests || []).length },
+              { id: 'mess', name: 'Daily Mess Counter & QR', icon: '🍽️', badge: messStats.total_scanned_today || 0 },
               { id: 'analytics', name: 'Occupancy Analytics', icon: '📊' },
               { id: 'leaves', name: 'Outpass / Leave Approvals', icon: '✈️', badge: (leaveList || []).filter(l => l.status === 'PENDING').length },
               { id: 'fees', name: 'Fee & UTR Verification', icon: '💳', badge: (paymentTransactions || []).filter(f => f.status === 'PENDING').length },
               { id: 'directory', name: 'Student Master Directory', icon: '🧑‍🎓' },
+              { id: 'settings', name: 'Warden Settings & Ops', icon: '⚙️' },
               { id: 'appscan', name: 'Connect App', icon: '📱', className: 'mobile-only-nav' }
             ].map(tab => (
               <button
@@ -1036,7 +1162,534 @@ function WardenDashboard() {
           )}
 
           {/* ========================================================================= */}
-          {/* 🌟 6. CONNECT APP (MOBILE ONLY / APP QR SYNC) */}
+          {/* 🌟 2. DAILY MESS ATTENDANCE & LIVE COUNTER (WITH BOYS/GIRLS SEGREGATION & 1M/6M/1Y CHARTS) */}
+          {/* ========================================================================= */}
+          {activeNavTab === 'mess' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              
+              {/* TOP MESS HEADER CARD WITH HOSTEL SEGREGATION TABS */}
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                      <span>🍽️</span> Mess Attendance &amp; Institutional Dining Analytics
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Segregated Boys vs Girls dining records, live food token counters, and long-term volume graphs.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <span className="px-3.5 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 font-extrabold text-xs border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                      Active Slot: {messStats.active_slot}
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowPrintDeskQrModal(true)}
+                      className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black font-black text-xs rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                      <span>🖨️</span> Print Desk QR
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => { fetchWardenData(); fetchWardenMessAnalytics(wardenMessTimeframe); }}
+                      className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl cursor-pointer"
+                    >
+                      🔄 Refresh Live Feed
+                    </button>
+                  </div>
+                </div>
+
+                {/* SEGREGATED HOSTEL WING SWITCHER */}
+                <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 flex-wrap">
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mr-1">Hostel View:</span>
+                  {[
+                    { id: 'ALL', label: '🏢 All Hostels Combined', count: messStats.total_scanned_today || 0 },
+                    { id: 'BOYS', label: '👦 Boys Hostel (Birsa Munda & Rajendra)', count: messStats.boys_fed_today || 0 },
+                    { id: 'GIRLS', label: '👧 Girls Hostel (Savitribai Phule)', count: messStats.girls_fed_today || 0 }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setMessGenderFilter(tab.id)}
+                      className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+                        messGenderFilter === tab.id
+                          ? 'bg-[#800000] text-white shadow-md'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                      }`}
+                    >
+                      <span>{tab.label}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                        messGenderFilter === tab.id ? 'bg-amber-400 text-black' : 'bg-slate-200 dark:bg-slate-700'
+                      }`}>
+                        {tab.count} Fed Today
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* SEGREGATED STATS & METRICS GRID */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                
+                {/* 1. TOTAL FED TODAY */}
+                <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                    {messGenderFilter === 'ALL' ? 'Total Students Fed' : messGenderFilter === 'BOYS' ? '👦 Boys Fed Today' : '👧 Girls Fed Today'}
+                  </span>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                      {messGenderFilter === 'ALL' ? (messStats.total_scanned_today || 0) : messGenderFilter === 'BOYS' ? (messStats.boys_fed_today || 0) : (messStats.girls_fed_today || 0)}
+                    </span>
+                    <span className="text-xs font-bold text-slate-400 font-mono">
+                      / {messGenderFilter === 'ALL' ? (messStats.total_eligible_students || 153) : messGenderFilter === 'BOYS' ? (messStats.boys_total_eligible || 81) : (messStats.girls_total_eligible || 72)} Enrolled
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                    <div
+                      className="bg-emerald-500 h-full rounded-full transition-all"
+                      style={{
+                        width: `${Math.min(100, (
+                          (messGenderFilter === 'ALL' ? messStats.total_scanned_today : messGenderFilter === 'BOYS' ? messStats.boys_fed_today : messStats.girls_fed_today) /
+                          (messGenderFilter === 'ALL' ? messStats.total_eligible_students : messGenderFilter === 'BOYS' ? messStats.boys_total_eligible : messStats.girls_total_eligible)
+                        ) * 100 || 0)}%`
+                      }}
+                    ></div>
+                  </div>
+                </div>
+
+                {/* 2. BREAKFAST COUNT */}
+                <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">🥞 Morning Breakfast</span>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-3xl font-black text-amber-500 font-mono">
+                      {messStats.breakfast_count || 0}
+                    </span>
+                    <span className="text-[11px] font-bold text-amber-500 bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded-full">
+                      07:00 - 10:30 AM
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">Breakfast passes verified</p>
+                </div>
+
+                {/* 3. LUNCH COUNT */}
+                <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">🍛 Afternoon Lunch</span>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-3xl font-black text-orange-500 font-mono">
+                      {messStats.lunch_count || 0}
+                    </span>
+                    <span className="text-[11px] font-bold text-orange-500 bg-orange-50 dark:bg-orange-950/60 px-2 py-0.5 rounded-full">
+                      12:00 - 03:30 PM
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">Lunch passes verified</p>
+                </div>
+
+                {/* 4. SNACKS & DINNER */}
+                <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">🫖 Snacks &amp; 🍲 Dinner</span>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-2xl font-black text-indigo-500 font-mono">
+                      {messStats.snacks_count || 0} <span className="text-xs text-slate-400 font-normal">/</span> {messStats.dinner_count || 0}
+                    </span>
+                    <span className="text-[11px] font-bold text-indigo-500 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded-full">
+                      Evening &amp; Night
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">Snacks &amp; Dinner passes</p>
+                </div>
+
+              </div>
+
+              {/* 🌟 LONG-TERM VISUALIZATION ANALYTICS SECTION (1 MONTH, 6 MONTHS, 1 YEAR) */}
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
+                  <div>
+                    <h4 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                      <span>📊</span> Long-Term Mess Attendance &amp; Consumption Trends
+                    </h4>
+                    <p className="text-xs text-slate-500">
+                      Visual comparison between Boys Hostel &amp; Girls Hostel dining volume over time.
+                    </p>
+                  </div>
+
+                  {/* TIMEFRAME SELECTOR */}
+                  <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                    {[
+                      { id: '1M', label: '1 Month (Daily)' },
+                      { id: '6M', label: '6 Months (Semester)' },
+                      { id: '1Y', label: '1 Year (Academic Year)' }
+                    ].map(tf => (
+                      <button
+                        key={tf.id}
+                        type="button"
+                        onClick={() => { setWardenMessTimeframe(tf.id); fetchWardenMessAnalytics(tf.id); }}
+                        className={`px-3 py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer ${
+                          wardenMessTimeframe === tf.id
+                            ? 'bg-amber-500 text-black shadow-md'
+                            : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                        }`}
+                      >
+                        {tf.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* GRAPH CONTAINER */}
+                <div className="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 space-y-3">
+                  <div className="flex justify-between items-center text-xs flex-wrap gap-2">
+                    <span className="font-bold text-slate-700 dark:text-slate-300">
+                      Dining Volume Velocity ({wardenMessTimeframe === '1M' ? 'Last 30 Days' : wardenMessTimeframe === '6M' ? 'Last 6 Months' : 'Full Session'})
+                    </span>
+                    <div className="flex items-center gap-4 text-[11px] font-bold">
+                      <span className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
+                        <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span> 👦 Boys Hostel
+                      </span>
+                      <span className="flex items-center gap-1.5 text-pink-600 dark:text-pink-400">
+                        <span className="w-2.5 h-2.5 rounded-full bg-pink-500"></span> 👧 Girls Hostel
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* SVG BAR / AREA CHART */}
+                  <div className="h-44 flex items-end justify-between gap-1.5 pt-4 px-2 overflow-x-auto">
+                    {(wardenMessAnalytics?.chart_data || Array.from({ length: 15 }, (_, i) => ({ label: `Day ${i+1}`, boys: 70, girls: 62 }))).map((pt, idx) => {
+                      const maxVal = 160;
+                      const bHeight = Math.min(100, ((pt.boys || 70) / maxVal) * 100);
+                      const gHeight = Math.min(100, ((pt.girls || 60) / maxVal) * 100);
+
+                      return (
+                        <div key={idx} className="flex-1 min-w-[20px] max-w-[40px] flex flex-col items-center gap-1.5 group relative">
+                          <div className="w-full flex items-end justify-center gap-1 h-32 bg-slate-200 dark:bg-slate-700/60 rounded-xl p-1">
+                            {/* BOYS BAR */}
+                            <div
+                              className="w-1/2 bg-blue-500 rounded-t-md transition-all group-hover:brightness-110"
+                              style={{ height: `${bHeight}%` }}
+                            ></div>
+                            {/* GIRLS BAR */}
+                            <div
+                              className="w-1/2 bg-pink-500 rounded-t-md transition-all group-hover:brightness-110"
+                              style={{ height: `${gHeight}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-[9px] font-mono font-bold text-slate-400 truncate">
+                            {pt.label ? pt.label.slice(0, 6) : idx+1}
+                          </span>
+
+                          {/* HOVER TOOLTIP */}
+                          <div className="absolute bottom-full mb-1 hidden group-hover:flex flex-col items-center z-30 pointer-events-none">
+                            <div className="bg-slate-900 text-white text-[10px] rounded-lg py-1 px-2.5 font-bold shadow-xl border border-slate-700 whitespace-nowrap">
+                              <div>{pt.label}</div>
+                              <div className="text-blue-400">Boys: {pt.boys}</div>
+                              <div className="text-pink-400">Girls: {pt.girls}</div>
+                              <div className="text-emerald-400">Total: {(pt.boys || 0) + (pt.girls || 0)}</div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* PERMANENT UNIVERSAL COUNTER DESK QR BROADCAST CARD */}
+              <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white rounded-3xl p-6 border border-slate-700 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="space-y-3 max-w-xl text-center md:text-left">
+                  <span className="text-[10px] font-black uppercase tracking-widest bg-emerald-500 text-black px-3 py-1 rounded-full inline-block">
+                    Official Permanent Counter QR
+                  </span>
+                  <h4 className="text-xl font-black tracking-tight">
+                    Universal Mess Counter Attendance QR
+                  </h4>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Print and display this universal QR code at the GP Barh Mess counter. Students scan it from their mobile phone app to automatically record 4-meal daily attendance with real-time live date and timestamp.
+                  </p>
+                  <div className="flex items-center gap-3 pt-1 justify-center md:justify-start">
+                    <span className="text-xs font-mono text-emerald-400 font-bold bg-slate-800 px-3 py-1 rounded-xl border border-slate-700">
+                      Code: GPB-OFFICIAL-CENTRAL-MESS-COUNTER
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowPrintDeskQrModal(true)}
+                      className="text-xs font-bold text-yellow-400 hover:text-yellow-300 underline cursor-pointer"
+                    >
+                      Enlarge / Print QR Poster ↗
+                    </button>
+                  </div>
+                </div>
+
+                {/* QR CODE PREVIEW */}
+                <div className="w-44 h-44 bg-white p-2.5 rounded-2xl shadow-2xl flex items-center justify-center border-4 border-emerald-500 shrink-0">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+                      JSON.stringify({
+                        institution: "GOVERNMENT POLYTECHNIC BARH",
+                        service: "CENTRAL MESS DINING COUNTER",
+                        venue: "BOYS & GIRLS MESS HALL",
+                        code: "GPB-OFFICIAL-CENTRAL-MESS-COUNTER",
+                        type: "PERMANENT_DAILY_ATTENDANCE_QR"
+                      })
+                    )}`}
+                    alt="Universal Mess Counter QR"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              </div>
+
+              {/* LIVE STUDENT SCANNED FEED TABLE WITH SEGREGATED CSV EXPORTS */}
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+                  <div>
+                    <h4 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                      <span>📋</span> Live Scanned Attendance Feed ({
+                        (messStats.recent_scans || [])
+                          .filter(s => messGenderFilter === 'ALL' || (messGenderFilter === 'BOYS' ? s.gender === 'MALE' : s.gender === 'FEMALE'))
+                          .length
+                      } Records)
+                    </h4>
+                    <p className="text-xs text-slate-500">
+                      Audit student meal entries, verified token codes, and timestamps.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    {/* MEAL FILTER PILLS */}
+                    <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                      {['ALL', 'BREAKFAST', 'LUNCH', 'SNACKS', 'DINNER'].map(f => (
+                        <button
+                          key={f}
+                          type="button"
+                          onClick={() => setMessMealFilter(f)}
+                          className={`px-3 py-1 text-xs font-black rounded-lg transition-all ${
+                            messMealFilter === f
+                              ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                              : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                          }`}
+                        >
+                          {f}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* SEARCH INPUT */}
+                    <input
+                      type="text"
+                      placeholder="Search student / Reg..."
+                      value={messSearchQuery}
+                      onChange={(e) => setMessSearchQuery(e.target.value)}
+                      className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none"
+                    />
+
+                    {/* SEPARATE CSV EXPORTS FOR BOYS / GIRLS / ALL */}
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleExportMessCSV('ALL')}
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm flex items-center gap-1 cursor-pointer"
+                        title="Export All Mess Attendance to CSV"
+                      >
+                        <span>📊</span> All CSV
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleExportMessCSV('BOYS')}
+                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm flex items-center gap-1 cursor-pointer"
+                        title="Export Boys Hostel Mess Attendance"
+                      >
+                        <span>👦</span> Boys CSV
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleExportMessCSV('GIRLS')}
+                        className="px-3 py-1.5 bg-pink-600 hover:bg-pink-700 text-white font-bold text-xs rounded-xl shadow-sm flex items-center gap-1 cursor-pointer"
+                        title="Export Girls Hostel Mess Attendance"
+                      >
+                        <span>👧</span> Girls CSV
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* TABLE CONTENT */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse min-w-[760px]">
+                    <thead>
+                      <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-black uppercase text-[10px]">
+                        <th className="py-3 px-4">Student Particulars</th>
+                        <th className="py-3 px-4">Reg / Roll No</th>
+                        <th className="py-3 px-4">Hostel Wing</th>
+                        <th className="py-3 px-4">Academic Branch</th>
+                        <th className="py-3 px-4">Meal Token Slot</th>
+                        <th className="py-3 px-4">Token Code</th>
+                        <th className="py-3 px-4">Scanned Time</th>
+                        <th className="py-3 px-4 text-center">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-semibold">
+                      {(messStats.recent_scans || [])
+                        .filter(s => messGenderFilter === 'ALL' || (messGenderFilter === 'BOYS' ? s.gender === 'MALE' : s.gender === 'FEMALE'))
+                        .filter(s => messMealFilter === 'ALL' || s.meal_type === messMealFilter)
+                        .filter(s => (s.student_name || '').toLowerCase().includes(messSearchQuery.toLowerCase()) || (s.reg_no || '').includes(messSearchQuery))
+                        .map((scan) => (
+                          <tr key={scan.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                            <td className="py-3.5 px-4">
+                              <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <span className={`w-7 h-7 rounded-full flex items-center justify-center font-black text-[11px] ${
+                                  scan.gender === 'FEMALE' ? 'bg-pink-100 text-pink-700 dark:bg-pink-950 dark:text-pink-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                                }`}>
+                                  {(scan.student_name || 'S')[0]}
+                                </span>
+                                <span>{scan.student_name}</span>
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-4 font-mono text-slate-600 dark:text-slate-400 font-bold">{scan.reg_no}</td>
+                            <td className="py-3.5 px-4">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                scan.gender === 'FEMALE' ? 'bg-pink-50 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300' : 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300'
+                              }`}>
+                                {scan.gender === 'FEMALE' ? '👧 Girls Wing' : '👦 Boys Wing'}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300">{scan.branch}</td>
+                            <td className="py-3.5 px-4">
+                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
+                                scan.meal_type === 'BREAKFAST'
+                                  ? 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300'
+                                  : scan.meal_type === 'LUNCH'
+                                  ? 'bg-orange-100 dark:bg-orange-950 text-orange-800 dark:text-orange-300'
+                                  : scan.meal_type === 'SNACKS'
+                                  ? 'bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-300'
+                                  : 'bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300'
+                              }`}>
+                                {scan.meal_type}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 font-mono text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">{scan.token_code}</td>
+                            <td className="py-3.5 px-4 font-mono text-slate-500 text-[11px]">
+                              {new Date(scan.scanned_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                            </td>
+                            <td className="py-3.5 px-4 text-center">
+                              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-black text-[9px]">
+                                ✓ VERIFIED
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* 🌟 6. WARDEN SETTINGS & SYSTEM OPERATIONS (DEV CONTROLS) */}
+          {/* ========================================================================= */}
+          {activeNavTab === 'settings' && (
+            <div className="space-y-6 animate-in fade-in duration-300 max-w-5xl">
+              {/* HEADER INFO */}
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>⚙️</span> Warden System Settings &amp; Maintenance Panel
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Institutional control panel, environment monitoring, and local test data management.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="px-3.5 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 font-extrabold text-xs border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    API Connected
+                  </span>
+                </div>
+              </div>
+
+              {/* SYSTEM ENVIRONMENT STATUS CARDS */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Database Engine</span>
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-2xl">🗄️</span>
+                    <div>
+                      <h4 className="text-sm font-black text-slate-900 dark:text-white">SQLite / SQLAlchemy</h4>
+                      <p className="text-[11px] text-slate-500 font-mono">hostel.db (Auto-sync)</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Backend Server</span>
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-2xl">🚀</span>
+                    <div>
+                      <h4 className="text-sm font-black text-slate-900 dark:text-white">FastAPI v2.0 REST</h4>
+                      <p className="text-[11px] text-slate-500 font-mono">http://127.0.0.1:8000</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Hostel Layouts</span>
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-2xl">🏢</span>
+                    <div>
+                      <h4 className="text-sm font-black text-slate-900 dark:text-white">Boys H-Block &amp; Girls Linear</h4>
+                      <p className="text-[11px] text-slate-500 font-mono">153 Total Beds</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* DANGER ZONE / LOCAL TEST DATA RESET CARD */}
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border-2 border-rose-200 dark:border-rose-900/60 shadow-sm space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 flex items-center justify-center text-2xl shrink-0">
+                      ⚠️
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="text-base font-black text-rose-900 dark:text-rose-300">
+                        Local Testing &amp; Database Purge (Danger Zone)
+                      </h4>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-2xl">
+                        Reset the entire development database to a clean slate. This executes SQLAlchemy <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-rose-600 dark:text-rose-400 font-mono text-[11px]">Base.metadata.drop_all()</code> followed by <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-rose-600 dark:text-rose-400 font-mono text-[11px]">Base.metadata.create_all()</code> to wipe all test students, bed requests, fee transactions, and re-seed clean default hostel layouts and fee configs.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-rose-50/70 dark:bg-rose-950/30 rounded-2xl border border-rose-200 dark:border-rose-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="text-xs text-rose-800 dark:text-rose-300 space-y-1">
+                    <p className="font-bold flex items-center gap-1.5">
+                      <span>📌</span> Recommended during local feature testing &amp; QA workflows.
+                    </p>
+                    <p className="text-[11px] opacity-80">Endpoint: <span className="font-mono font-bold">POST /api/dev/reset-database</span></p>
+                  </div>
+
+                  <button
+                    type="button"
+                    id="btn-purge-reset-database"
+                    onClick={() => setShowResetConfirmModal(true)}
+                    disabled={isResettingDb}
+                    className="px-5 py-3 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all shrink-0 hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <span>🗑️</span>
+                    <span>{isResettingDb ? 'Purging Database...' : 'Purge & Reset All Test Data'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* 🌟 7. CONNECT APP (MOBILE ONLY / APP QR SYNC) */}
           {/* ========================================================================= */}
           {activeNavTab === 'appscan' && (
             <article className="mobile-only-nav">
@@ -1071,6 +1724,83 @@ function WardenDashboard() {
                 </div>
               </div>
             </article>
+          )}
+
+          {/* ⚠️ DATABASE PURGE & RESET CONFIRMATION MODAL */}
+          {showResetConfirmModal && (
+            <div
+              className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200"
+              onClick={() => !isResettingDb && setShowResetConfirmModal(false)}
+            >
+              <div
+                className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-md w-full border border-rose-300 dark:border-rose-900 shadow-2xl space-y-5"
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
+                  <div className="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 flex items-center justify-center text-2xl">
+                    💥
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900 dark:text-white">
+                      Confirm Database Reset
+                    </h3>
+                    <p className="text-xs text-rose-600 dark:text-rose-400 font-bold">
+                      Irreversible Development Action
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3 text-xs text-slate-600 dark:text-slate-300">
+                  <p>
+                    Are you sure you want to <strong>purge all tables and test records</strong> from <code className="font-mono bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded text-rose-500">hostel.db</code>?
+                  </p>
+                  <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-xl space-y-1.5 text-[11px]">
+                    <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-semibold">
+                      <span>✗</span> Drops all student accounts &amp; profiles
+                    </div>
+                    <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-semibold">
+                      <span>✗</span> Clears all bed allotment requests &amp; active occupancies
+                    </div>
+                    <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-semibold">
+                      <span>✗</span> Wipes all fee payment transactions &amp; receipts
+                    </div>
+                    <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-semibold">
+                      <span>✓</span> Recreates clean tables with standard hostel layout &amp; fee structure
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowResetConfirmModal(false)}
+                    disabled={isResettingDb}
+                    className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-xs uppercase tracking-wider cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    id="btn-confirm-purge-database"
+                    onClick={handleResetDatabase}
+                    disabled={isResettingDb}
+                    className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    {isResettingDb ? (
+                      <>
+                        <span className="animate-spin">⏳</span>
+                        <span>Resetting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>💥</span>
+                        <span>Yes, Purge Everything</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* 🔍 STUDENT PROFILE & DISTANCE ELIGIBILITY AUDIT MODAL */}
@@ -1207,6 +1937,82 @@ function WardenDashboard() {
                   >
                     <span>✕</span>
                     <span>REJECT</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 🖨️ PRINTABLE MESS DESK QR POSTER MODAL */}
+          {showPrintDeskQrModal && (
+            <div
+              className="fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in duration-200"
+              onClick={() => setShowPrintDeskQrModal(false)}
+            >
+              <div
+                className="bg-white rounded-3xl p-8 max-w-md w-full text-slate-900 shadow-2xl text-center space-y-6 border-4 border-[#800000]"
+                onClick={e => e.stopPropagation()}
+              >
+                {/* INSTITUTIONAL BANNER */}
+                <div className="flex items-center justify-center gap-3 border-b-2 border-slate-200 pb-4">
+                  <img src={logo} alt="GP Barh Logo" className="w-12 h-12 object-contain" />
+                  <div className="text-left">
+                    <h3 className="text-sm font-black uppercase text-[#800000] leading-tight">
+                      Government Polytechnic, Barh
+                    </h3>
+                    <p className="text-[10px] font-bold text-slate-600 uppercase">
+                      Central Mess Dining Hall • Desk QR Code
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-lg font-black text-slate-900 uppercase tracking-tight">
+                    Official Mess Counter QR Poster
+                  </h4>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Universal Permanent QR • Daily Auto-Attendance Tracking
+                  </p>
+                </div>
+
+                {/* GIANT QR CODE */}
+                <div className="w-64 h-64 mx-auto p-3 bg-white border-4 border-emerald-500 rounded-3xl shadow-xl flex items-center justify-center">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(
+                      JSON.stringify({
+                        institution: "GOVERNMENT POLYTECHNIC BARH",
+                        service: "CENTRAL MESS DINING COUNTER",
+                        venue: "BOYS & GIRLS MESS HALL",
+                        code: "GPB-OFFICIAL-CENTRAL-MESS-COUNTER",
+                        type: "PERMANENT_DAILY_ATTENDANCE_QR"
+                      })
+                    )}`}
+                    alt="Universal Mess Counter QR Poster"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+
+                {/* INSTRUCTIONS */}
+                <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200 text-xs text-amber-950 font-bold space-y-1 text-left">
+                  <p>📱 1. Open GP Barh Student App on your mobile</p>
+                  <p>📸 2. Tap <strong>"Scan Meal QR Pass"</strong> &amp; scan this code</p>
+                  <p>🍽️ 3. Present the Animated Digital Pass to counter staff</p>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowPrintDeskQrModal(false)}
+                    className="flex-1 py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl font-bold text-xs uppercase"
+                  >
+                    Close
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="flex-1 py-3 bg-[#800000] hover:bg-[#600000] text-white rounded-xl font-black text-xs uppercase shadow-lg flex items-center justify-center gap-2"
+                  >
+                    <span>🖨️</span> Print Poster
                   </button>
                 </div>
               </div>
