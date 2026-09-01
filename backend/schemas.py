@@ -237,3 +237,71 @@ class PaymentTransactionSchema(BaseModel):
 class PaymentVerifyAction(BaseModel):
     action: str # 'approve' or 'reject'
     remarks: Optional[str] = None
+
+# ==========================================
+# DYNAMIC MESS ATTENDANCE & ANALYTICS SCHEMAS
+# ==========================================
+class MessAttendanceMarkRequest(BaseModel):
+    student_id: Optional[int] = None
+    reg_no: Optional[str] = None
+    meal_type: Optional[str] = "AUTO" # 'BREAKFAST', 'LUNCH', 'DINNER', 'SNACKS', or 'AUTO'
+    qr_payload: Optional[str] = None
+
+class MessAttendanceResponse(BaseModel):
+    id: int
+    student_id: int
+    student_name: str
+    reg_no: str
+    room_number: str
+    branch: str
+    gender: str
+    meal_type: str
+    meal_label: str
+    date: str
+    scanned_at: datetime
+    token_code: str
+    status: str
+    message: str
+
+    class Config:
+        from_attributes = True
+
+class MessTodayStatsResponse(BaseModel):
+    date: str
+    active_slot: str
+    active_slot_label: str
+    total_eligible_students: int
+    total_scanned_today: int
+    breakfast_count: int
+    lunch_count: int
+    snacks_count: int = 0
+    dinner_count: int
+    boys_fed_today: int = 0
+    girls_fed_today: int = 0
+    boys_total_eligible: int = 81
+    girls_total_eligible: int = 72
+    recent_scans: List[dict] = []
+    daily_qr_token: str
+
+class WardenMessAnalyticsResponse(BaseModel):
+    timeframe: str # '1M', '6M', '1Y'
+    total_meals_served: int
+    average_daily_turnout: float
+    overall_attendance_pct: float
+    boys_fed_total: int
+    girls_fed_total: int
+    meal_slot_distribution: dict = {} # breakfast, lunch, snacks, dinner
+    chart_data: List[dict] = [] # points for visualization
+    boys_chart_data: List[dict] = []
+    girls_chart_data: List[dict] = []
+
+class StudentAnalyticsResponse(BaseModel):
+    student_id: int
+    student_name: str
+    reg_no: str
+    monthly_attendance: List[dict] = []
+    calendar_days: List[dict] = [] # 1 to 31 calendar grid with green/red/purple status
+    timeframe_trends: dict = {} # 1M, 6M, 1Y trend points
+    attendance_summary: dict = {}
+    financial_progress: dict = {}
+    activity_timeline: List[dict] = []
