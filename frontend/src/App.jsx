@@ -8,8 +8,7 @@ import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import StudentDashboard from './pages/StudentDashboard';
 import WardenDashboard from './pages/WardenDashboard';
-// 🌟 NAYE IMPORTS
-import ParentDashboard from './pages/ParentDashboard';
+import MessScanner from './pages/MessScanner';
 
 function App() {
   return (
@@ -19,6 +18,12 @@ function App() {
         <Route path="/" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        
+        {/* 🍽️ DIGITAL MESS SCANNER & MEAL TOKEN */}
+        <Route path="/mess-scanner" element={<MessScanner />} />
+        <Route path="/mess_scanner" element={<MessScanner />} />
+        <Route path="/scanner" element={<MessScanner />} />
+        <Route path="/meal-pass" element={<MessScanner />} />
         
         {/* 🎓 STUDENT DASHBOARD & ALIASES */}
         <Route path="/student-dashboard" element={<StudentDashboard />} />
@@ -36,13 +41,6 @@ function App() {
         <Route path="/wardendashboard" element={<WardenDashboard />} />
         <Route path="/warden_dashboard" element={<WardenDashboard />} />
 
-        {/* 👨‍👩‍👧 PARENT DASHBOARD & ALIASES */}
-        <Route path="/parent-dashboard" element={<ParentDashboard />} />
-        <Route path="/parent dashboard" element={<ParentDashboard />} />
-        <Route path="/parent%20dashboard" element={<ParentDashboard />} />
-        <Route path="/parent" element={<ParentDashboard />} />
-        <Route path="/parentdashboard" element={<ParentDashboard />} />
-
         {/* 🌐 SMART WILDCARD FALLBACK */}
         <Route path="*" element={<WardenFallbackRoute />} />
       </Routes>
@@ -52,9 +50,9 @@ function App() {
 
 function WardenFallbackRoute() {
   const path = window.location.pathname.toLowerCase();
+  if (path.includes('scanner') || path.includes('meal')) return <MessScanner />;
   if (path.includes('warden')) return <WardenDashboard />;
   if (path.includes('student')) return <StudentDashboard />;
-  if (path.includes('parent')) return <ParentDashboard />;
   return <Login />;
 }
 
