@@ -41,7 +41,7 @@ def run_tests():
 
         print("\n--- 3. Testing Login ---")
         login_res = main.login_user(schemas.UserLogin(
-            reg_no_email="1554424049",
+            reg_no_email="1554424991",
             password="password123"
         ), db=db)
         user_info = login_res["user"]
@@ -108,7 +108,34 @@ def run_tests():
         directory = main.get_warden_students(db=db)
         print(f"Student Directory Total Roster: {len(directory)}")
 
-        print("\n🎉 ALL BACKEND & DATABASE TESTS COMPLETED WITH 100% SUCCESS!")
+        print("\n--- 10. Testing Daily Mess Dynamic QR Token & Mark Attendance ---")
+        qr_token_payload = main.get_daily_mess_qr_token()
+        print("Daily Mess Token Payload:", qr_token_payload)
+
+        # Mark breakfast attendance for student
+        mess_res = main.mark_mess_attendance(schemas.MessAttendanceMarkRequest(
+            student_id=user_info["id"],
+            meal_type="BREAKFAST"
+        ), db=db)
+        print("Mess Attendance Result:", mess_res.student_name, mess_res.meal_label, mess_res.token_code)
+        assert mess_res.status == "VERIFIED"
+
+        print("\n--- 11. Testing Today Mess Stats Feed ---")
+        today_stats = main.get_today_mess_stats(target_date=None, db=db)
+        print(f"Today Stats: Scanned: {today_stats.total_scanned_today} | Active Slot: {today_stats.active_slot} | Breakfast Count: {today_stats.breakfast_count}")
+        assert today_stats.breakfast_count >= 1
+
+        print("\n--- 12. Testing Student Records Visual Analytics Aggregation ---")
+        analytics_agg = main.get_student_records_analytics(student_id=user_info["id"], db=db)
+        print(f"Student Analytics: Present Days: {analytics_agg.attendance_summary.get('present_days')} | Paid: {analytics_agg.financial_progress.get('total_paid')} | Timeline Items: {len(analytics_agg.activity_timeline)}")
+        assert len(analytics_agg.monthly_attendance) == 30
+
+        print("\n--- 13. Testing Dev Database Reset Endpoint ---")
+        reset_out = main.reset_database()
+        print("Dev Reset Response:", reset_out)
+        assert reset_out["status"] == "success"
+
+        print("\n🎉 ALL BACKEND, MESS ATTENDANCE & ANALYTICS TESTS COMPLETED WITH 100% SUCCESS!")
     finally:
         db.close()
 
