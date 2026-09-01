@@ -17,6 +17,7 @@ function Signup() {
   const [role, setRole] = useState("student"); // Default role
   const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [gender, setGender] = useState("MALE"); // Default selection: Male
   
   // Dynamic fields
@@ -24,9 +25,9 @@ function Signup() {
   const [session, setSession] = useState("2024-27");
   const [email, setEmail] = useState("");
   const [branch, setBranch] = useState("AI & ML");
-  const [phone, setPhone] = useState("");
   const [adminId, setAdminId] = useState("");
   const [masterKey, setMasterKey] = useState("");
+  const [showMasterKey, setShowMasterKey] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -44,10 +45,6 @@ function Signup() {
     }
     if (role === 'student' && (!regNo || !email)) {
       toast.error("Student Registration No. & Email are required! 🛑");
-      return;
-    }
-    if (role === 'parent' && (!phone || !regNo)) {
-      toast.error("Parent Phone & Student Reg No. are required! 🛑");
       return;
     }
     if (role === 'warden' && (!adminId || !masterKey)) {
@@ -72,10 +69,6 @@ function Signup() {
       payload.session = session;
       payload.semester = session;
       payload.reg_no_email = regNo; 
-    } else if (role === 'parent') {
-      payload.phone = phone;
-      payload.ward_reg_no = regNo;
-      payload.reg_no_email = phone;
     } else if (role === 'warden') {
       payload.admin_id = adminId;
       payload.master_key = masterKey;
@@ -177,7 +170,6 @@ function Signup() {
                 >
                   <option value="student">👨‍🎓 Student</option>
                   <option value="warden">🛡️ Warden / Admin</option>
-                  <option value="parent">👪 Parent / Guest</option>
                 </select>
               </div>
 
@@ -213,14 +205,14 @@ function Signup() {
               {/* COMMON FIELD: FULL NAME */}
               <div>
                 <label className={labelClass}>
-                  {role === 'parent' ? "Parent/Guardian Name" : "Full Name"}
+                  Full Name
                 </label>
                 <input
                   type="text"
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder={role === 'parent' ? "e.g. Ramesh Kumar" : "e.g. Amit Kumar Sharma"}
+                  placeholder="e.g. Amit Kumar Sharma"
                   className={inputClass}
                 />
               </div>
@@ -281,34 +273,6 @@ function Signup() {
                 </>
               )}
 
-              {/* PARENT FIELDS */}
-              {role === 'parent' && (
-                <>
-                  <div>
-                    <label className={labelClass}>Phone Number</label>
-                    <input
-                      type="tel"
-                      required
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="e.g. 9876543210"
-                      className={inputClass}
-                    />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Student's Reg No. (Ward)</label>
-                    <input
-                      type="text"
-                      required
-                      value={regNo}
-                      onChange={(e) => setRegNo(e.target.value)}
-                      placeholder="e.g. 1554424049"
-                      className={inputClass}
-                    />
-                  </div>
-                </>
-              )}
-
               {/* WARDEN FIELDS */}
               {role === 'warden' && (
                 <>
@@ -325,14 +289,34 @@ function Signup() {
                   </div>
                   <div>
                     <label className={labelClass}>Master Authorization Key</label>
-                    <input
-                      type="password"
-                      required
-                      value={masterKey}
-                      onChange={(e) => setMasterKey(e.target.value)}
-                      placeholder="Master Secret Key"
-                      className={inputClass}
-                    />
+                    <div className="relative">
+                      <input
+                        type={showMasterKey ? "text" : "password"}
+                        required
+                        value={masterKey}
+                        onChange={(e) => setMasterKey(e.target.value)}
+                        placeholder="Master Secret Key"
+                        className={`${inputClass} pr-11`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowMasterKey(!showMasterKey)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 p-1 cursor-pointer focus:outline-none transition-colors"
+                        title={showMasterKey ? "Hide key" : "Show key"}
+                      >
+                        {showMasterKey ? (
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                            <line x1="1" y1="1" x2="23" y2="23" />
+                          </svg>
+                        ) : (
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </>
               )}
@@ -340,14 +324,34 @@ function Signup() {
               {/* COMMON FIELD: PASSWORD */}
               <div>
                 <label className={labelClass}>Create Password</label>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className={inputClass}
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className={`${inputClass} pr-11`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 p-1 cursor-pointer focus:outline-none transition-colors"
+                    title={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                        <line x1="1" y1="1" x2="23" y2="23" />
+                      </svg>
+                    ) : (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
               </div>
 
               <button
