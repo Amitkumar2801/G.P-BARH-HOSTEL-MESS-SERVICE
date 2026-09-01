@@ -122,8 +122,6 @@ function Login() {
         navigate("/warden-dashboard", { state: { userRole: role, userName: loggedInUser.full_name, user: loggedInUser } });
       } else if (role === 'student') {
         navigate("/student-dashboard", { state: { userRole: role, userName: loggedInUser.full_name, user: loggedInUser } });
-      } else if (role === 'parent') {
-        navigate("/parent-dashboard", { state: { userRole: role, userName: loggedInUser.full_name, user: loggedInUser } });
       } else {
         navigate("/dashboard", { state: { userRole: role, userName: loggedInUser.full_name, user: loggedInUser } });
       }
