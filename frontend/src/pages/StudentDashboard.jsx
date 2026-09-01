@@ -454,7 +454,68 @@ const customCSS = `
   @keyframes spin { 100% { transform: rotate(360deg); } }
 `;
 
+// ================= REACT ERROR BOUNDARY =================
+class DashboardErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("Student Dashboard ErrorBoundary caught an error:", error, errorInfo);
+  }
+
+  handleReload = () => {
+    window.location.reload();
+  };
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a', color: '#f8fafc', padding: '24px', fontFamily: "'DM Sans', sans-serif" }}>
+          <div style={{ maxWidth: '480px', width: '100%', background: '#1e293b', border: '1px solid #334155', borderRadius: '24px', padding: '36px 28px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(239,68,68,0.15)', border: '2px solid rgba(239,68,68,0.3)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '30px', margin: '0 auto 20px' }}>
+              ⚠️
+            </div>
+            <h2 style={{ fontSize: '22px', fontWeight: 900, color: '#ffffff', marginBottom: '8px', fontFamily: "'Fraunces', serif" }}>
+              Student Dashboard Notice
+            </h2>
+            <p style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '20px', lineHeight: 1.6 }}>
+              A view rendering issue was safely intercepted. Your session and saved records are intact.
+            </p>
+            {this.state.error?.message && (
+              <div style={{ background: '#0f172a', padding: '12px 14px', borderRadius: '12px', border: '1px solid #334155', fontSize: '11px', color: '#fca5a5', fontFamily: 'monospace', textAlign: 'left', marginBottom: '24px', maxHeight: '100px', overflowY: 'auto' }}>
+                {this.state.error.message}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button
+                onClick={this.handleReload}
+                style={{ flex: 1, minWidth: '150px', padding: '14px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: 800, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 14px rgba(220,38,38,0.35)' }}
+              >
+                <span>🔄</span> Reload Dashboard
+              </button>
+              <button
+                onClick={() => { window.location.href = '/'; }}
+                style={{ flex: 1, minWidth: '150px', padding: '14px', background: '#334155', color: '#f8fafc', border: '1px solid #475569', borderRadius: '12px', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}
+              >
+                Return to Login
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function StudentDashboard() {
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('profile');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -462,9 +523,14 @@ function StudentDashboard() {
   const navigate = useNavigate();
 
   const [currentUser, setCurrentUser] = useState(() => {
-    const saved = localStorage.getItem('user');
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) { }
+    try {
+      const saved = localStorage.getItem('user');
+      if (saved && saved !== 'undefined' && saved !== 'null') {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') return parsed;
+      }
+    } catch (e) {
+      console.warn("Could not parse user from localStorage", e);
     }
     return {
       id: 1,
@@ -474,6 +540,30 @@ function StudentDashboard() {
       role: 'student'
     };
   });
+
+  // Session verification and authentication safeguard
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('user');
+      if (!saved || saved === 'null' || saved === 'undefined') {
+        const token = localStorage.getItem('token') || localStorage.getItem('access_token');
+        if (!token) {
+          navigate('/');
+          return;
+        }
+      }
+      if (saved && saved !== 'null' && saved !== 'undefined') {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          setCurrentUser(parsed);
+        }
+      }
+    } catch (e) {
+      console.error("Session verification error:", e);
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate]);
 
   // Payment Simulation States
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -504,20 +594,25 @@ function StudentDashboard() {
   const [complaintPreview, setComplaintPreview] = useState(null);
 
   const [profileData, setProfileData] = useState(() => {
-    const saved = localStorage.getItem('user');
     let u = {};
-    if (saved) {
-      try { u = JSON.parse(saved); } catch (e) { }
+    try {
+      const saved = localStorage.getItem('user');
+      if (saved && saved !== 'undefined' && saved !== 'null') {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') u = parsed;
+      }
+    } catch (e) {
+      console.warn("Could not parse profileData from localStorage", e);
     }
-    const fullNameStr = String(u.full_name || '');
+    const fullNameStr = String(u?.full_name || '');
     const cleanName = (fullNameStr && !fullNameStr.includes('Chief Warden')) ? fullNameStr : "AMIT SHARMA";
-    const userGender = String(u.gender || '').toUpperCase() === 'FEMALE' ? 'FEMALE' : 'MALE';
-    const userBlock = u.hostel_block || u.hostelBlock || (userGender === 'FEMALE' ? 'Savitribai Phule Girls Hostel' : 'Birsa Munda Block');
-    const regNoStr = String(u.reg_no || '');
+    const userGender = String(u?.gender || '').toUpperCase() === 'FEMALE' ? 'FEMALE' : 'MALE';
+    const userBlock = u?.hostel_block || u?.hostelBlock || (userGender === 'FEMALE' ? 'Savitribai Phule Girls Hostel' : 'Birsa Munda Block');
+    const regNoStr = String(u?.reg_no || '');
     const cleanReg = (regNoStr && !regNoStr.includes('@')) ? regNoStr : (userGender === 'FEMALE' ? '1554424000' : '1554424049');
-    const mobileStr = String(u.mobile || '');
+    const mobileStr = String(u?.mobile || '');
     const isMockMobile = mobileStr && (mobileStr.includes('42022') || mobileStr.includes('56789'));
-    const addrStr = String(u.address || '');
+    const addrStr = String(u?.address || '');
     const isMockAddress = addrStr && (addrStr.includes('Saksohara') || addrStr.includes('Agwanpur') || addrStr.includes('Village, P.O'));
     const cleanMobile = (mobileStr && !isMockMobile) ? mobileStr : "";
     const cleanAddress = (addrStr && !isMockAddress) ? addrStr : "";
@@ -526,10 +621,10 @@ function StudentDashboard() {
       fullName: cleanName,
       regNo: cleanReg,
       rollNo: userGender === 'FEMALE' ? '00' : '49',
-      branch: u.branch || "Artificial Intelligence & Machine Learning",
-      session: u.session || u.semester || "2024-27",
-      semester: u.session || u.semester || "2024-27",
-      bloodGroup: u.blood_group || "O+",
+      branch: u?.branch || "Artificial Intelligence & Machine Learning",
+      session: u?.session || u?.semester || "2024-27",
+      semester: u?.session || u?.semester || "2024-27",
+      bloodGroup: u?.blood_group || "O+",
       contact: cleanMobile,
       email: cleanEmail,
       address: cleanAddress,
@@ -912,6 +1007,15 @@ function StudentDashboard() {
     return paymentSelection.amt;
   };
 
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-900 text-white">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+        <span className="ml-3 font-medium">Loading GP Barh Dashboard...</span>
+      </div>
+    );
+  }
+
   return (
     <>
       <Toaster position="top-right" />
@@ -1225,8 +1329,8 @@ function StudentDashboard() {
               { id: 'profile', name: 'Manage Profile', icon: <><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" /></> },
               { id: 'seat-allocation', name: 'Seat & Room Allocation', icon: <><path d="M2 4v16M2 8h20M22 4v16M6 8v5a2 2 0 002 2h8a2 2 0 002-2V8" /></> },
               { id: 'registration-fee', name: 'Registration', icon: <><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></> },
-              { id: 'student-record', name: 'Student Record', icon: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></> }
-            ,
+              { id: 'student-record', name: 'Student Record & Charts', icon: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></> },
+              { id: 'mess-scanner', name: 'Scan Meal QR Pass 🍽️', isRoute: true, className: 'mobile-only-nav', icon: <><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></> },
               { id: 'payments', name: 'Payments Hub', icon: <><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /></> },
               { id: 'hostel', name: 'Hostel Passbook', icon: <><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 21V9" /></> },
               { id: 'mess', name: 'Mess Passbook', icon: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 3" /></> },
@@ -1239,7 +1343,11 @@ function StudentDashboard() {
                 key={tab.id}
                 className={`nav-item ${activeTab === tab.id ? 'active' : ''} ${tab.className || ''}`}
                 onClick={() => {
-                  setActiveTab(tab.id);
+                  if (tab.isRoute) {
+                    navigate('/mess-scanner');
+                  } else {
+                    setActiveTab(tab.id);
+                  }
                   setIsSidebarOpen(false);
                 }}
               >
@@ -3552,4 +3660,11 @@ function StudentDashboard() {
   );
 }
 
-export default StudentDashboard;
+export default function StudentDashboardWrapper(props) {
+  return (
+    <DashboardErrorBoundary>
+      <StudentDashboard {...props} />
+    </DashboardErrorBoundary>
+  );
+}
+
