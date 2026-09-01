@@ -1,0 +1,17 @@
+{
+  "short_name": "GPB Mess",
+  "name": "GP Barh Mess & Hostel Pass",
+  "description": "Official Student QR Mess Attendance & Hostel Dining App for Government Polytechnic Barh",
+  "icons": [
+    {
+      "src": "/app-icon.png",
+      "type": "image/png",
+      "sizes": "192x192 512x512"
+    }
+  ],
+  "start_url": "/mess-scanner",
+  "background_color": "#0a0f1d",
+  "theme_color": "#0a0f1d",
+  "display": "standalone",
+  "orientation": "portrait"
+}
