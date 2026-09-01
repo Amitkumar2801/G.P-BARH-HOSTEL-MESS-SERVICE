@@ -11,7 +11,7 @@ class User(Base):
     full_name = Column(String, index=True)
     reg_no_email = Column(String, unique=True, index=True)
     password = Column(String)
-    role = Column(String, default="student") # Roles: student, warden, parent
+    role = Column(String, default="student") # Roles: student, warden
 
     # Profile completion fields
     gender = Column(String, default="MALE") # 'MALE' or 'FEMALE' (or 'BOYS'/'GIRLS')
@@ -122,7 +122,17 @@ class PaymentTransaction(Base):
     receipt_number = Column(String, unique=True, nullable=True, index=True)
     remarks = Column(String, nullable=True)
     payment_period = Column(String, nullable=True) # e.g. '6 Months (Semester)', 'New Batch 1st Year (5 Months)'
-    created_at = Column(DateTime, default=datetime.utcnow)
-    verified_at = Column(DateTime, nullable=True)
+    student = relationship("User", foreign_keys=[student_id])
+
+class MessAttendance(Base):
+    __tablename__ = "mess_attendance"
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    date = Column(String, index=True) # ISO Date 'YYYY-MM-DD'
+    meal_type = Column(String, index=True) # 'BREAKFAST', 'LUNCH', 'DINNER', 'SNACKS'
+    scanned_at = Column(DateTime, default=datetime.utcnow)
+    token_code = Column(String, unique=True, index=True) # Unique token hash/code
+    status = Column(String, default="VERIFIED") # 'VERIFIED', 'MANUAL_OVERRIDE'
 
     student = relationship("User", foreign_keys=[student_id])
