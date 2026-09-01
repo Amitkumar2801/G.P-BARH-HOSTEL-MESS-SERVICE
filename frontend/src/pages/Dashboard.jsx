@@ -14,7 +14,6 @@ function Dashboard() {
   useEffect(() => {
     if (location.state?.userRole === 'student') setCurrentRole('boy');
     else if (location.state?.userRole === 'warden') setCurrentRole('warden');
-    else if (location.state?.userRole === 'parent') setCurrentRole('parent');
   }, [location.state]);
 
   // Payment Simulation States
@@ -145,7 +144,6 @@ function Dashboard() {
               <option value="boy">👨 Boys Hostel</option>
               <option value="girl">👩 Girls Hostel</option>
               <option value="warden">🛡️ Warden / Admin</option>
-              <option value="parent">👪 Parents/Guest</option>
             </select>
           </div>
         </header>
@@ -321,44 +319,6 @@ function Dashboard() {
                     </tbody>
                   </table>
                 </div>
-              </div>
-            </>
-          )}
-
-          {/* ----------------------------------------------------------------- */}
-          {/* 3. PARENTS / GUEST SECTION */}
-          {/* ----------------------------------------------------------------- */}
-          {currentRole === 'parent' && (
-            <>
-              <div className="bg-gradient-to-br from-orange-500 to-red-600 p-6 rounded-2xl shadow-lg text-white col-span-1 md:col-span-2 lg:col-span-3 flex justify-between items-center">
-                <div>
-                  <span className="bg-white/20 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest mb-2 inline-block">Guest & Guardian Portal</span>
-                  <h2 className="text-3xl font-black">Welcome, Parent</h2>
-                  <p className="opacity-90 mt-1">Viewing details for: Amit Sharma (Room 102)</p>
-                </div>
-                <div className="hidden md:block text-6xl opacity-20">👪</div>
-              </div>
-
-              <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 border-t-4 border-t-orange-500">
-                <h3 className="font-bold text-gray-800 mb-2">Visitor Entry Pass</h3>
-                <p className="text-xs text-gray-500 mb-3">Pre-approve your visit to avoid delays at the main gate.</p>
-                <button onClick={() => toast.success("Entry pass request submitted.", { style: { borderRadius: '10px', background: '#333', color: '#fff' }})} className="w-full bg-orange-50 border border-orange-200 text-orange-700 font-bold text-xs py-2.5 rounded hover:bg-orange-100 transition-colors">Request Entry Pass</button>
-              </div>
-
-              <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 border-t-4 border-t-blue-500">
-                <h3 className="font-bold text-gray-800 mb-2">Pay Ward's Dues</h3>
-                <p className="text-3xl font-black text-gray-800">₹ 2,450</p>
-                <p className="text-xs text-gray-500 mt-1 mb-3">Due for Mess Bill (March)</p>
-                <button onClick={() => simulatePayment("₹ 2,450", () => toast.success("Payment securely processed.", { style: { borderRadius: '10px', background: '#333', color: '#fff' }}))} className="w-full bg-blue-600 text-white font-bold text-xs py-2.5 rounded hover:bg-blue-700 transition-colors">Secure Payment</button>
-              </div>
-
-              <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 border-t-4 border-t-green-500">
-                <h3 className="font-bold text-gray-800 mb-2">Ward's Status</h3>
-                <div className="flex items-center space-x-2 mt-4">
-                  <div className="h-3 w-3 bg-green-500 rounded-full animate-pulse"></div>
-                  <p className="text-sm font-bold text-gray-700">Currently in Hostel</p>
-                </div>
-                <p className="text-[10px] text-gray-400 mt-2">Last entry scan: Today, 05:30 PM</p>
               </div>
             </>
           )}
