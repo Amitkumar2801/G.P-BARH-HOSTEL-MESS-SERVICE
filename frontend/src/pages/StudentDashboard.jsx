@@ -369,7 +369,7 @@ const customCSS = `
     to { opacity: 1; transform: scale(1) translateY(0); }
   }
 
-  @media (min-width: 1025px) {
+  @media (min-width: 768px) {
     .mobile-only-nav { display: none !important; }
   }
 
@@ -1324,7 +1324,7 @@ function StudentDashboard() {
             <div className="student-reg">ID: {profileData.regNo}</div>
           </div>
 
-          <nav className="nav-list">
+          <nav className="nav-list custom-sidebar-scroll">
             {[
               { id: 'profile', name: 'Manage Profile', icon: <><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" /></> },
               { id: 'seat-allocation', name: 'Seat & Room Allocation', icon: <><path d="M2 4v16M2 8h20M22 4v16M6 8v5a2 2 0 002 2h8a2 2 0 002-2V8" /></> },
