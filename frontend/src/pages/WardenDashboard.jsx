@@ -373,29 +373,31 @@ function WardenDashboard() {
       {/* 🌟 LEFT SIDEBAR */}
       {/* ========================================================================= */}
       <aside
-        className={`fixed top-0 left-0 h-[100dvh] w-72 bg-slate-900 text-gray-200 z-50 flex flex-col justify-between transform transition-transform duration-300 border-r border-slate-800 ${
+        className={`fixed top-0 left-0 h-screen w-72 bg-slate-900 text-gray-200 z-50 flex flex-col justify-between transform transition-transform duration-300 border-r border-slate-800 ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
-        <div>
-          <div className="p-6 border-b border-slate-800 text-center relative flex flex-col items-center">
-            <button
-              onClick={() => setIsSidebarOpen(false)}
-              className="lg:hidden absolute top-4 right-4 text-slate-400 hover:text-white"
-            >
-              ✕
-            </button>
+        {/* TOP PROFILE / CREST (Sticky Header) */}
+        <div className="shrink-0 p-5 border-b border-slate-800 text-center relative flex flex-col items-center bg-slate-900 z-10">
+          <button
+            onClick={() => setIsSidebarOpen(false)}
+            className="lg:hidden absolute top-4 right-4 text-slate-400 hover:text-white"
+          >
+            ✕
+          </button>
 
-            <div className="w-20 h-20 rounded-full p-3 border-2 border-yellow-500 overflow-hidden mb-3 bg-slate-800 shadow-xl">
-              <img src={wardenAvatar} alt="Warden" className="w-full h-full object-contain" />
-            </div>
-            <h2 className="text-base font-black tracking-tight text-white">Chief Warden Office</h2>
-            <p className="text-[10px] text-yellow-300 font-bold uppercase tracking-widest bg-slate-800 px-3 py-1 rounded-full mt-1.5 border border-slate-700">
-              Hostel Administrator
-            </p>
+          <div className="w-16 h-16 rounded-full p-2.5 border-2 border-yellow-500 overflow-hidden mb-2 bg-slate-800 shadow-xl">
+            <img src={wardenAvatar} alt="Warden" className="w-full h-full object-contain" />
           </div>
+          <h2 className="text-sm font-black tracking-tight text-white">Chief Warden Office</h2>
+          <p className="text-[10px] text-yellow-300 font-bold uppercase tracking-widest bg-slate-800 px-3 py-1 rounded-full mt-1.5 border border-slate-700">
+            Hostel Administrator
+          </p>
+        </div>
 
-          <nav className="p-4 space-y-1.5 text-sm font-bold">
+        {/* SCROLLABLE NAV BUTTONS LIST (UPPER-NICHE SLIDE / SCROLL) */}
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-sidebar-scroll p-3">
+          <nav className="space-y-1.5 text-sm font-bold">
             {[
               { id: 'allocations', name: 'Hostel Seat Allocations', icon: '🛏️', badge: (pendingRequests || []).length },
               { id: 'mess', name: 'Daily Mess Counter & QR', icon: '🍽️', badge: messStats.total_scanned_today || 0 },
@@ -409,7 +411,7 @@ function WardenDashboard() {
               <button
                 key={tab.id}
                 onClick={() => { setActiveNavTab(tab.id); if (window.innerWidth < 1024) setIsSidebarOpen(false); }}
-                className={`w-full text-left py-3.5 px-4 rounded-xl transition-all flex items-center justify-between ${tab.className || ''} ${
+                className={`w-full text-left py-3 px-3.5 rounded-xl transition-all flex items-center justify-between ${tab.className || ''} ${
                   activeNavTab === tab.id
                     ? 'bg-[#800000] text-white shadow-lg border-l-4 border-yellow-500'
                     : 'hover:bg-slate-800 text-slate-300'
@@ -417,7 +419,7 @@ function WardenDashboard() {
               >
                 <div className="flex items-center gap-3">
                   <span className="text-lg">{tab.icon}</span>
-                  <span>{tab.name}</span>
+                  <span className="text-xs md:text-sm">{tab.name}</span>
                 </div>
                 {tab.badge !== undefined && tab.badge > 0 && (
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-yellow-500 text-black">
@@ -429,10 +431,11 @@ function WardenDashboard() {
           </nav>
         </div>
 
-        <div className="p-4 border-t border-slate-800">
+        {/* BOTTOM LOGOUT BUTTON (Sticky Footer) */}
+        <div className="shrink-0 p-3.5 border-t border-slate-800 bg-slate-900 z-10">
           <button
             onClick={handleLogout}
-            className="w-full py-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-colors flex justify-center items-center gap-2 shadow-md cursor-pointer"
+            className="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-colors flex justify-center items-center gap-2 shadow-md cursor-pointer"
           >
             <span>🚪</span> Log Out
           </button>
