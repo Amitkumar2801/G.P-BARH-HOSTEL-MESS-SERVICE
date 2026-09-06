@@ -152,7 +152,7 @@ function RoomAllocationGrid({
     // 🌟 Gold = Selected by Student
     if (isSelectedRoom) {
       style =
-        'bg-gradient-to-b from-yellow-300 via-amber-400 to-yellow-500 text-black font-black border-white shadow-[0_0_0_2px_rgba(255,255,255,0.9),0_0_22px_rgba(245,158,11,0.95)] scale-[1.06] ring-0 z-20 animate-pulse';
+        'bg-gradient-to-b from-yellow-300 via-amber-400 to-yellow-500 text-black font-black border-white shadow-[0_0_0_2px_rgba(255,255,255,0.9),0_0_18px_rgba(245,158,11,0.9)] scale-[1.05] ring-0 z-20';
     }
 
     return (
@@ -346,10 +346,10 @@ function RoomAllocationGrid({
           </div>
         </div>
 
-        {/* Status Legend HUD (Safe container, shrink-0, perfectly proportioned) */}
-        <div className="flex items-center gap-1 sm:gap-2 bg-[#10121a]/95 px-2.5 sm:px-3 py-1.5 rounded-xl border border-zinc-700/60 shadow-inner shrink-0 overflow-x-auto max-w-full">
+        {/* Status Legend HUD (Clean, static dots, zero scrollbar) */}
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 bg-[#10121a]/95 px-2.5 sm:px-3 py-1.5 rounded-xl border border-zinc-700/60 shadow-inner shrink-0">
           <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-emerald-950/50 border border-emerald-500/40 text-emerald-300 text-[10px] sm:text-xs font-bold whitespace-nowrap">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.9)] animate-pulse" />
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.9)]" />
             <span>Available</span>
           </div>
 
@@ -364,7 +364,7 @@ function RoomAllocationGrid({
           </div>
 
           <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-yellow-950/50 border border-yellow-400/60 text-yellow-300 text-[10px] sm:text-xs font-black whitespace-nowrap">
-            <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,1)] animate-ping" />
+            <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,1)]" />
             <span>Selected</span>
           </div>
         </div>
