@@ -1363,7 +1363,7 @@ function StudentDashboard() {
         </aside>
 
         {/* ================= MAIN CONTENT ================= */}
-        <main className="main-content-area">
+        <main className={`main-content-area ${activeTab === 'seat-allocation' ? '!bg-[#0d0e12]' : ''}`}>
           <header className="header">
             <div className="header-left">
               <button className="hamburger" onClick={() => setIsSidebarOpen(true)}>
@@ -1384,8 +1384,8 @@ function StudentDashboard() {
             </div>
           </header>
 
-          <section className="scroll-content">
-            <div className="content-wrapper">
+          <section className={`scroll-content ${activeTab === 'seat-allocation' ? '!p-0 !bg-[#0d0e12] !overflow-x-hidden' : ''}`}>
+            <div className={`content-wrapper ${activeTab === 'seat-allocation' ? '!max-w-none !m-0 !p-0 !gap-0 !bg-[#0d0e12] !overflow-x-hidden' : ''}`}>
 
               {/* 1. MANAGE PROFILE (1ST POSITION) */}
               {activeTab === 'profile' && (
@@ -1706,11 +1706,7 @@ function StudentDashboard() {
 
               {/* 2. SEAT & ROOM ALLOCATION SECTION (2ND POSITION) */}
               {activeTab === 'seat-allocation' && (
-                <div>
-                  <div style={{ marginBottom: '24px' }}>
-                    <h2 className="page-title">Hostel Seat &amp; Room Allocation</h2>
-                    <p className="page-sub">Interactive Cinema-style bed booking engine with real-time floor architecture.</p>
-                  </div>
+                <div className="animate-fade-in w-full pb-8">
                   <RoomAllocationGrid
                     gender={profileData.gender || currentUser?.gender || 'MALE'}
                     studentId={currentUser?.id || 1}
