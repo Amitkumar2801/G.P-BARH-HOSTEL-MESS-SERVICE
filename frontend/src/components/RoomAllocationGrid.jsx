@@ -126,7 +126,8 @@ function RoomAllocationGrid({
   const rajendraVacant = rajendraRooms.reduce((acc, r) => acc + (r.capacity - r.occupied_count), 0);
 
   /* ------------------------------------------------------------------ */
-  /*  Luxury High-Tech Room Pods with 3-Bed Micro LED Matrix            */
+  /*  Simple & Professional High-Contrast Room Card Design              */
+  /*  (100% Uniform Size, Clean Borders & High-Visibility Typography)   */
   /* ------------------------------------------------------------------ */
   const renderTile = (room) => {
     const isSelectedRoom = selectedBed && selectedBed.room.id === room.id;
@@ -136,23 +137,23 @@ function RoomAllocationGrid({
 
     // 🟢 Green = All Available
     let style =
-      'bg-gradient-to-b from-emerald-500 via-emerald-600 to-[#064e3b] text-white border border-emerald-400/80 shadow-[0_4px_14px_rgba(16,185,129,0.35),inset_0_1px_1px_rgba(255,255,255,0.4)] hover:brightness-115 hover:shadow-[0_6px_18px_rgba(16,185,129,0.5)]';
+      'bg-[#064e3b]/90 border border-emerald-500/80 text-white shadow-sm hover:bg-[#065f46] hover:border-emerald-300 hover:shadow-emerald-900/40';
 
     // 🔴 Red = Fully Occupied
     if (isFull) {
       style =
-        'bg-gradient-to-b from-red-600 via-red-700 to-[#450a0a] text-red-100 border border-red-500/70 shadow-[0_3px_10px_rgba(239,68,68,0.25),inset_0_1px_1px_rgba(255,255,255,0.2)] cursor-not-allowed opacity-85';
+        'bg-[#3a0c0c]/85 border border-red-800/70 text-red-200/60 cursor-not-allowed opacity-75';
     } 
     // 🟡 Amber = Partially Booked
     else if (isPartiallyBooked) {
       style =
-        'bg-gradient-to-b from-amber-500 via-amber-600 to-[#78350f] text-amber-50 border border-amber-300/80 shadow-[0_4px_14px_rgba(245,158,11,0.35),inset_0_1px_1px_rgba(255,255,255,0.4)] hover:brightness-115 hover:shadow-[0_6px_18px_rgba(245,158,11,0.5)]';
+        'bg-[#78350f]/90 border border-amber-500/80 text-amber-50 shadow-sm hover:bg-[#92400e] hover:border-amber-300 hover:shadow-amber-900/40';
     }
 
     // 🌟 Gold = Selected by Student
     if (isSelectedRoom) {
       style =
-        'bg-gradient-to-b from-[#fef08a] via-[#facc15] to-[#ca8a04] text-black font-black border-2 border-white shadow-[0_0_26px_rgba(250,204,21,1),inset_0_1px_2px_rgba(255,255,255,0.9)] scale-[1.06] ring-0 z-20';
+        'bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-400 text-black font-black border-2 border-white shadow-[0_0_20px_rgba(251,191,36,0.95)] scale-[1.04] ring-0 z-20';
     }
 
     return (
@@ -163,41 +164,22 @@ function RoomAllocationGrid({
         onClick={() => handleRoomClick(room)}
         aria-label={`Room ${room.room_number}, ${isFull ? 'fully occupied' : `${freeBeds} of ${room.capacity} beds free`}`}
         title={`Room ${room.room_number} • ${freeBeds} of ${room.capacity} beds available`}
-        className={`relative overflow-hidden w-full h-12 sm:h-13 md:h-14 rounded-2xl transition-all duration-150 flex flex-col items-center justify-center select-none active:scale-95 before:absolute before:top-0 before:inset-x-2 before:h-[1.5px] before:bg-gradient-to-r before:from-transparent before:via-white/60 before:to-transparent ${style}`}
+        className={`w-full h-11 sm:h-12 md:h-13 rounded-xl transition-all duration-150 flex flex-col items-center justify-center select-none active:scale-95 ${style}`}
       >
-        <div className="flex items-center gap-1 opacity-80 leading-none">
-          <span className="text-[7px] sm:text-[7.5px] md:text-[8px] font-mono font-black uppercase tracking-widest">
-            ROOM
-          </span>
-        </div>
         <span
-          className={`text-xs sm:text-sm md:text-base font-mono font-black tracking-tight leading-none mt-0.5 ${
+          className={`text-[7.5px] sm:text-[8px] md:text-[8.5px] font-mono font-bold uppercase tracking-widest leading-none ${
+            isSelectedRoom ? 'text-black/80' : 'opacity-75'
+          }`}
+        >
+          ROOM
+        </span>
+        <span
+          className={`text-xs sm:text-sm md:text-base font-mono font-black tracking-tight leading-none mt-1 ${
             isSelectedRoom ? 'text-black' : 'text-white'
           }`}
         >
           {room.room_number}
         </span>
-
-        {/* 🛏️ 3-Bed Live Micro LED Bar */}
-        <div className="flex items-center gap-1 mt-1">
-          {[0, 1, 2].map((bedIdx) => {
-            const isOccupied = bedIdx < room.occupied_count;
-            return (
-              <span
-                key={bedIdx}
-                className={`w-1.5 h-1 sm:w-2 sm:h-1 rounded-full ${
-                  isSelectedRoom
-                    ? isOccupied
-                      ? 'bg-black/80'
-                      : 'bg-white shadow-[0_0_3px_rgba(255,255,255,0.9)]'
-                    : isOccupied
-                    ? 'bg-red-400/90 shadow-[0_0_4px_rgba(239,68,68,0.9)]'
-                    : 'bg-emerald-300/90 shadow-[0_0_4px_rgba(110,231,183,0.9)]'
-                }`}
-              />
-            );
-          })}
-        </div>
       </button>
     );
   };
@@ -205,7 +187,7 @@ function RoomAllocationGrid({
   const renderPlaceholder = (num) => (
     <div
       key={num}
-      className="w-full h-12 sm:h-13 md:h-14 rounded-2xl border border-zinc-800/80 bg-zinc-900/30 flex flex-col items-center justify-center text-zinc-600 font-mono leading-none"
+      className="w-full h-11 sm:h-12 md:h-13 rounded-xl border border-zinc-800/80 bg-zinc-900/30 flex flex-col items-center justify-center text-zinc-600 font-mono leading-none"
     >
       <span className="text-[7.5px] sm:text-[8px] font-bold tracking-widest opacity-60">ROOM</span>
       <span className="text-xs sm:text-sm font-bold tracking-tight mt-1">{num}</span>
@@ -333,11 +315,10 @@ function RoomAllocationGrid({
   return (
     <div className="w-full min-w-0 min-h-[calc(100vh-70px)] bg-[#0a0b0e] text-zinc-100 p-2 sm:p-3 md:p-4 flex flex-col justify-between select-none box-border overflow-y-auto overflow-x-hidden md:overflow-hidden font-sans">
       
-      {/* 🌟 1. FULL-WIDTH TOP HEADER WITH SEAT/BED BRANDING & OVERFLOW-SAFE LEGEND */}
-      <div className="relative rounded-2xl bg-gradient-to-r from-[#181a24] via-[#12131b] to-[#181a24] border border-amber-500/30 p-2.5 sm:p-3.5 md:p-4 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0">
+      {/* 🌟 1. FULL-WIDTH TOP HEADER WITH BRANDING & LEFT-ALIGNED STATUS PILLS */}
+      <div className="relative rounded-2xl bg-[#12131c] border border-amber-500/30 p-2.5 sm:p-3.5 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
-          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-amber-500/40 flex items-center justify-center shrink-0 shadow-inner">
-            {/* 🛏️ Sleek Hostel Bed & Seat Allocation SVG */}
+          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-amber-500/10 border border-amber-500/40 flex items-center justify-center shrink-0 shadow-inner">
             <svg className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M2 4v16" />
               <path d="M22 10v10" />
@@ -348,41 +329,41 @@ function RoomAllocationGrid({
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-              <span className="text-[9.5px] sm:text-[11px] font-mono font-black tracking-widest text-amber-400 uppercase">
+              <span className="text-[9.5px] sm:text-[10.5px] font-mono font-black tracking-widest text-amber-400 uppercase">
                 GOVT. POLYTECHNIC BARH
               </span>
               <span className="text-zinc-600 hidden sm:inline">•</span>
-              <span className="text-[9.5px] sm:text-[11px] font-mono text-zinc-400 font-bold uppercase hidden sm:inline">
+              <span className="text-[9.5px] sm:text-[10.5px] font-mono text-zinc-400 font-bold uppercase hidden sm:inline">
                 HOSTEL SEAT ALLOCATION
               </span>
             </div>
-            <h2 className="text-sm sm:text-base md:text-lg lg:text-xl font-black tracking-tight text-white leading-tight mt-0.5 truncate">
+            <h2 className="text-sm sm:text-base md:text-lg font-black tracking-tight text-white leading-tight mt-0.5 truncate">
               <span className="bg-gradient-to-r from-white via-zinc-100 to-amber-300 bg-clip-text text-transparent">
-                {isFemale ? 'Savitribai Phule Girls Hostel • Room & Seat Matrix' : 'Hostel Seat & Room Allocation'}
+                {isFemale ? 'Savitribai Phule Girls Hostel' : 'Hostel Seat & Room Allocation'}
               </span>
             </h2>
           </div>
         </div>
 
-        {/* Status Legend HUD (Clean, static dots, zero scrollbar) */}
-        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 bg-[#10121a]/95 px-2.5 sm:px-3 py-1.5 rounded-xl border border-zinc-700/60 shadow-inner shrink-0">
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-emerald-950/50 border border-emerald-500/40 text-emerald-300 text-[10px] sm:text-xs font-bold whitespace-nowrap">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.9)]" />
+        {/* 🌟 New Clean Segmented Status Pill Bar (Shifted Left / Integrated) */}
+        <div className="flex flex-wrap items-center gap-1 bg-[#090a0f] p-1 rounded-xl border border-zinc-800 shadow-inner">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-[10px] sm:text-xs font-semibold whitespace-nowrap">
+            <span className="w-2 h-2 rounded-full bg-emerald-400" />
             <span>Available</span>
           </div>
 
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-amber-950/50 border border-amber-500/40 text-amber-300 text-[10px] sm:text-xs font-bold whitespace-nowrap">
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.9)]" />
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-950/40 border border-amber-500/30 text-amber-300 text-[10px] sm:text-xs font-semibold whitespace-nowrap">
+            <span className="w-2 h-2 rounded-full bg-amber-400" />
             <span>Partial</span>
           </div>
 
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-red-950/50 border border-red-500/40 text-red-300 text-[10px] sm:text-xs font-bold whitespace-nowrap">
-            <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.9)]" />
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-950/40 border border-red-500/30 text-red-300 text-[10px] sm:text-xs font-semibold whitespace-nowrap">
+            <span className="w-2 h-2 rounded-full bg-red-400" />
             <span>Full</span>
           </div>
 
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-yellow-950/50 border border-yellow-400/60 text-yellow-300 text-[10px] sm:text-xs font-black whitespace-nowrap">
-            <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,1)]" />
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-yellow-950/40 border border-yellow-400/40 text-yellow-300 text-[10px] sm:text-xs font-bold whitespace-nowrap">
+            <span className="w-2 h-2 rounded-full bg-yellow-400" />
             <span>Selected</span>
           </div>
         </div>
