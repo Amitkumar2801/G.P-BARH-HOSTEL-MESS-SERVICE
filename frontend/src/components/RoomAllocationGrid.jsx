@@ -147,7 +147,7 @@ function RoomAllocationGrid({
 
     if (isSelectedRoom) {
       style =
-        'bg-gradient-to-b from-yellow-300 via-amber-400 to-yellow-500 text-black font-black border-white shadow-[0_0_0_2px_rgba(255,255,255,0.9),0_0_20px_rgba(245,158,11,0.9)] scale-[1.06] ring-0 z-20 animate-pulse';
+        'bg-gradient-to-b from-yellow-300 via-amber-400 to-yellow-500 text-black font-black border-white shadow-[0_0_0_2px_rgba(255,255,255,0.9),0_0_20px_rgba(245,158,11,0.9)] scale-[1.05] ring-0 z-20 animate-pulse';
     }
 
     return (
@@ -158,13 +158,13 @@ function RoomAllocationGrid({
         onClick={() => handleRoomClick(room)}
         aria-label={`Room ${room.room_number}, ${isFull ? 'fully occupied' : `${freeBeds} of ${room.capacity} beds free`}`}
         title={`Room ${room.room_number} • ${freeBeds} of ${room.capacity} beds available`}
-        className={`w-full min-w-0 h-8 sm:h-9 md:h-10 lg:h-11 rounded-lg border transition-all duration-150 flex flex-col items-center justify-center relative active:scale-95 ${style}`}
+        className={`w-full min-w-0 h-10 sm:h-11 md:h-12 lg:h-13 rounded-lg sm:rounded-xl border transition-all duration-150 flex flex-col items-center justify-center relative active:scale-95 ${style}`}
       >
-        <span className="text-[10px] sm:text-[11px] md:text-xs lg:text-sm font-mono font-black tracking-tight leading-none truncate max-w-full">
+        <span className="text-[11px] sm:text-xs md:text-sm lg:text-base font-mono font-black tracking-tight leading-none truncate max-w-full">
           {room.room_number}
         </span>
         {!isSelectedRoom && (
-          <span className="text-[6.5px] sm:text-[7px] md:text-[8px] opacity-85 font-bold font-mono leading-none mt-0.5 truncate max-w-full">
+          <span className="text-[7.5px] sm:text-[8.5px] md:text-[9.5px] opacity-90 font-bold font-mono leading-none mt-1 truncate max-w-full">
             {isFull ? 'FULL' : `${freeBeds} FREE`}
           </span>
         )}
@@ -175,7 +175,7 @@ function RoomAllocationGrid({
   const renderPlaceholder = (num) => (
     <div
       key={num}
-      className="w-full min-w-0 h-8 sm:h-9 md:h-10 lg:h-11 rounded-lg border border-zinc-800/80 bg-zinc-900/30 flex items-center justify-center text-zinc-600 font-mono text-[10px] sm:text-xs font-bold"
+      className="w-full min-w-0 h-10 sm:h-11 md:h-12 lg:h-13 rounded-lg sm:rounded-xl border border-zinc-800/80 bg-zinc-900/30 flex items-center justify-center text-zinc-600 font-mono text-xs font-bold"
     >
       {num}
     </div>
@@ -197,10 +197,10 @@ function RoomAllocationGrid({
     };
 
     return (
-      <div key={floorTitle} className="space-y-1 bg-[#12141d]/90 p-1.5 sm:p-2.5 rounded-xl border border-zinc-800/90 shadow-inner w-full min-w-0">
-        <div className="flex items-center justify-center gap-1.5 py-0.5">
+      <div key={floorTitle} className="space-y-1.5 bg-[#12141d]/90 p-2 sm:p-3 rounded-2xl border border-zinc-800/90 shadow-inner w-full min-w-0">
+        <div className="flex items-center justify-center gap-2 py-0.5">
           <div className="h-px flex-1 bg-gradient-to-r from-transparent via-zinc-700 to-transparent" />
-          <span className="text-[9px] sm:text-[10px] md:text-xs font-serif font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] text-[#e0b968] whitespace-nowrap px-1">
+          <span className="text-[10px] sm:text-xs font-serif font-black uppercase tracking-[0.2em] text-[#e0b968] whitespace-nowrap px-1">
             ✦ {floorTitle} ✦
           </span>
           <div className="h-px flex-1 bg-gradient-to-r from-transparent via-zinc-700 to-transparent" />
@@ -248,7 +248,7 @@ function RoomAllocationGrid({
     const findGirlRoom = (num) => rooms.find((r) => r.room_number === num && r.floor_number === floorNum);
 
     return (
-      <div key={floorTitle} className="space-y-1.5 bg-[#170f1c]/80 p-2 sm:p-3 rounded-2xl border border-pink-900/50 shadow-inner w-full min-w-0">
+      <div key={floorTitle} className="space-y-2 bg-[#170f1c]/80 p-3 sm:p-4 rounded-2xl border border-pink-900/50 shadow-inner w-full min-w-0">
         <div className="flex items-center justify-center gap-2 py-0.5">
           <div className="h-px flex-1 bg-gradient-to-r from-transparent via-pink-800 to-transparent" />
           <span className="text-[10px] sm:text-xs font-serif font-black uppercase tracking-[0.2em] text-pink-400 whitespace-nowrap px-1">
@@ -257,15 +257,15 @@ function RoomAllocationGrid({
           <div className="h-px flex-1 bg-gradient-to-r from-transparent via-pink-800 to-transparent" />
         </div>
 
-        <div className="grid grid-cols-2 gap-2 sm:gap-4 relative w-full min-w-0">
+        <div className="grid grid-cols-2 gap-3 sm:gap-6 relative w-full min-w-0">
           <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-gradient-to-b from-pink-500/10 via-pink-500/60 to-pink-500/10 shadow-[0_0_8px_rgba(236,72,153,0.5)] pointer-events-none" />
 
           {[leftRooms, rightRooms].map((wingRooms, i) => (
-            <div className="space-y-1 min-w-0" key={i}>
-              <div className="text-center text-[8.5px] sm:text-[9.5px] text-pink-300/80 font-mono font-black tracking-widest uppercase">
+            <div className="space-y-1.5 min-w-0" key={i}>
+              <div className="text-center text-[9px] sm:text-[10px] text-pink-300/80 font-mono font-black tracking-widest uppercase">
                 {i === 0 ? 'LEFT WING' : 'RIGHT WING'}
               </div>
-              <div className="grid grid-cols-5 gap-1 sm:gap-1.5 min-w-0">
+              <div className="grid grid-cols-5 gap-1.5 min-w-0">
                 {wingRooms.map((num) => {
                   const r = findGirlRoom(num);
                   return r ? renderTile(r) : renderPlaceholder(num);
@@ -283,7 +283,7 @@ function RoomAllocationGrid({
   /* ------------------------------------------------------------------ */
   if (loading) {
     return (
-      <div className="w-full h-full min-h-[60vh] flex flex-col items-center justify-center gap-4 bg-[#0a0b0e]">
+      <div className="w-full h-full min-h-[70vh] flex flex-col items-center justify-center gap-4 bg-[#0a0b0e]">
         <div className="relative">
           <div className="w-12 h-12 border-4 border-amber-500/20 border-t-amber-400 rounded-full animate-spin" />
           <div className="absolute inset-0 flex items-center justify-center text-sm">🏛️</div>
@@ -310,113 +310,122 @@ function RoomAllocationGrid({
   }
 
   /* ------------------------------------------------------------------ */
-  /*  MAIN RENDER: 1-SCREEN ZERO-SCROLL SIDE-BY-SIDE MATRIX             */
+  /*  MAIN RENDER: 1-PAGE ZERO-GAP EXPANSIVE SIDE-BY-SIDE MATRIX        */
   /* ------------------------------------------------------------------ */
   return (
-    <div className="w-full min-w-0 bg-[#0a0b0e] text-zinc-100 px-2 sm:px-3 md:px-4 py-2 sm:py-3 space-y-2 sm:space-y-3 select-none box-border overflow-hidden font-sans">
+    <div className="w-full min-w-0 min-h-[calc(100vh-70px)] bg-[#0a0b0e] text-zinc-100 p-2 sm:p-3 md:p-4 flex flex-col justify-between select-none box-border overflow-hidden font-sans">
       
-      {/* 🌟 1. COMPACT CENTERED HEADER & STATUS HUD */}
-      <div className="relative rounded-2xl bg-gradient-to-b from-[#181a24] via-[#12131b] to-[#0d0e13] border border-amber-500/20 px-3 py-2 sm:px-4 sm:py-2.5 shadow-md overflow-hidden text-center flex flex-col items-center">
-        <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-96 h-20 bg-amber-500/15 blur-2xl pointer-events-none rounded-full" />
-        
-        <div className="flex items-center justify-center gap-2 flex-wrap">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#1e222f] border border-amber-500/30 text-[9px] font-black tracking-widest text-amber-300 uppercase shadow-sm">
-            <span>🏛️</span>
-            <span>GOVT. POLYTECHNIC BARH</span>
+      {/* 🌟 1. FULL-WIDTH TOP HEADER (LEFT-ALIGNED TEXT & RIGHT-ALIGNED VIP STATUS HUD) */}
+      <div className="relative rounded-2xl bg-gradient-to-r from-[#181a24] via-[#12131b] to-[#181a24] border border-amber-500/30 px-3.5 py-2.5 sm:px-5 sm:py-3 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-2.5 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-xl shrink-0 shadow-inner">
+            🏛️
           </div>
-
-          <h2 className="text-sm sm:text-base md:text-lg font-black tracking-tight leading-tight">
-            <span className="bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500 bg-clip-text text-transparent drop-shadow-[0_2px_10px_rgba(245,158,11,0.4)]">
-              {isFemale ? 'Savitribai Phule Girls Hostel' : 'Hostel Seat & Room Allocation'}
-            </span>
-          </h2>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] sm:text-[11px] font-mono font-black tracking-widest text-amber-400 uppercase">
+                GOVT. POLYTECHNIC BARH
+              </span>
+              <span className="text-zinc-600 hidden sm:inline">•</span>
+              <span className="text-[10px] sm:text-[11px] font-mono text-zinc-400 font-bold uppercase hidden sm:inline">
+                HOSTEL MANAGEMENT SYSTEM
+              </span>
+            </div>
+            <h2 className="text-sm sm:text-lg md:text-xl font-black tracking-tight text-white leading-tight mt-0.5">
+              <span className="bg-gradient-to-r from-white via-zinc-100 to-amber-300 bg-clip-text text-transparent">
+                {isFemale ? 'Savitribai Phule Girls Hostel' : 'Hostel Seat & Room Allocation'}
+              </span>
+            </h2>
+          </div>
         </div>
 
-        {/* Sleek Single-Row Status HUD */}
-        <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-3 mt-1.5 bg-[#11131c]/90 px-3 py-1 rounded-xl border border-zinc-700/60 shadow-sm">
-          <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-[9px] sm:text-[10px] font-bold">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.9)] animate-pulse" />
+        {/* Status HUD (Right-aligned) */}
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2.5 bg-[#11131c]/95 px-3 py-1.5 rounded-xl border border-zinc-700/60 shadow-md">
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-[10px] sm:text-xs font-bold">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.9)] animate-pulse" />
             <span>All 3 Free</span>
           </div>
 
-          <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-950/40 border border-amber-500/30 text-amber-300 text-[9px] sm:text-[10px] font-bold">
-            <span className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.9)]" />
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-amber-950/40 border border-amber-500/30 text-amber-300 text-[10px] sm:text-xs font-bold">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.9)]" />
             <span>1–2 Free</span>
           </div>
 
-          <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-red-950/40 border border-red-500/30 text-red-300 text-[9px] sm:text-[10px] font-bold">
-            <span className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.9)]" />
-            <span>Full (Occupied)</span>
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-red-950/40 border border-red-500/30 text-red-300 text-[10px] sm:text-xs font-bold">
+            <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.9)]" />
+            <span>Full</span>
           </div>
 
-          <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-yellow-950/40 border border-yellow-400/50 text-yellow-300 text-[9px] sm:text-[10px] font-black">
-            <span className="w-2 h-2 rounded-full bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,1)] animate-ping" />
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-yellow-950/40 border border-yellow-400/50 text-yellow-300 text-[10px] sm:text-xs font-black">
+            <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,1)] animate-ping" />
             <span>Selected</span>
           </div>
         </div>
       </div>
 
-      {/* 🌟 2. EXACT SIDE-BY-SIDE MATRIX (LEFT: BIRSA MUNDA | RIGHT: DR. RAJENDRA PRASAD) */}
-      {!isFemale ? (
-        <div className="w-full min-w-0">
-          <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 w-full min-w-0 relative">
-            
-            {/* Center Vertical Illuminated Divider */}
-            <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-gradient-to-b from-amber-500/20 via-amber-500/60 to-amber-500/20 shadow-[0_0_8px_rgba(245,158,11,0.4)] pointer-events-none z-10" />
+      {/* 🌟 2. EXPANSIVE MIDDLE BLUEPRINT MATRIX (FILLS FULL HEIGHT DOWN TO FOOTER) */}
+      <div className="w-full flex-1 flex flex-col justify-center my-auto py-2">
+        {!isFemale ? (
+          <div className="w-full min-w-0">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6 w-full min-w-0 relative">
+              
+              {/* Center Vertical Illuminated Divider */}
+              <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-gradient-to-b from-amber-500/20 via-amber-500/60 to-amber-500/20 shadow-[0_0_8px_rgba(245,158,11,0.4)] pointer-events-none z-10" />
 
-            {/* ⬅️ LEFT COLUMN: BIRSA MUNDA BOYS HOSTEL */}
-            <div className="w-full min-w-0 space-y-1.5 sm:space-y-2 bg-[#0f1118]/90 p-1.5 sm:p-2.5 rounded-2xl border border-zinc-800 shadow-md">
-              <div className="text-center py-1 px-1 bg-gradient-to-r from-amber-500/10 via-amber-500/20 to-amber-500/10 rounded-xl border border-amber-500/30">
-                <h3 className="text-[10px] sm:text-xs md:text-sm font-serif tracking-[0.15em] sm:tracking-[0.2em] text-[#f59e0b] font-black uppercase truncate">
-                  🏢 Birsa Munda Boys Hostel
-                </h3>
-                <p className="text-[8.5px] sm:text-[9.5px] text-zinc-400 font-mono">{birsaVacant} beds available</p>
+              {/* ⬅️ LEFT COLUMN: BIRSA MUNDA BOYS HOSTEL */}
+              <div className="w-full min-w-0 space-y-2 sm:space-y-3 bg-[#0f1118]/90 p-2.5 sm:p-3.5 md:p-4 rounded-3xl border border-zinc-800 shadow-xl">
+                <div className="text-center py-1.5 px-2 bg-gradient-to-r from-amber-500/10 via-amber-500/20 to-amber-500/10 rounded-xl border border-amber-500/30">
+                  <h3 className="text-xs sm:text-sm md:text-base font-serif tracking-[0.15em] sm:tracking-[0.2em] text-[#f59e0b] font-black uppercase truncate">
+                    🏢 Birsa Munda Boys Hostel
+                  </h3>
+                  <p className="text-[9px] sm:text-[10px] text-zinc-400 font-mono">{birsaVacant} beds available</p>
+                </div>
+                {BOYS_FLOORS.Birsa.map((floor) => renderBoysFloor('Birsa', floor))}
               </div>
-              {BOYS_FLOORS.Birsa.map((floor) => renderBoysFloor('Birsa', floor))}
-            </div>
 
-            {/* ➡️ RIGHT COLUMN: DR. RAJENDRA PRASAD BOYS HOSTEL */}
-            <div className="w-full min-w-0 space-y-1.5 sm:space-y-2 bg-[#0f1118]/90 p-1.5 sm:p-2.5 rounded-2xl border border-zinc-800 shadow-md">
-              <div className="text-center py-1 px-1 bg-gradient-to-r from-amber-500/10 via-amber-500/20 to-amber-500/10 rounded-xl border border-amber-500/30">
-                <h3 className="text-[10px] sm:text-xs md:text-sm font-serif tracking-[0.15em] sm:tracking-[0.2em] text-[#f59e0b] font-black uppercase truncate">
-                  🏢 Dr. Rajendra Prasad Boys Hostel
-                </h3>
-                <p className="text-[8.5px] sm:text-[9.5px] text-zinc-400 font-mono">{rajendraVacant} beds available</p>
+              {/* ➡️ RIGHT COLUMN: DR. RAJENDRA PRASAD BOYS HOSTEL */}
+              <div className="w-full min-w-0 space-y-2 sm:space-y-3 bg-[#0f1118]/90 p-2.5 sm:p-3.5 md:p-4 rounded-3xl border border-zinc-800 shadow-xl">
+                <div className="text-center py-1.5 px-2 bg-gradient-to-r from-amber-500/10 via-amber-500/20 to-amber-500/10 rounded-xl border border-amber-500/30">
+                  <h3 className="text-xs sm:text-sm md:text-base font-serif tracking-[0.15em] sm:tracking-[0.2em] text-[#f59e0b] font-black uppercase truncate">
+                    🏢 Dr. Rajendra Prasad Boys Hostel
+                  </h3>
+                  <p className="text-[9px] sm:text-[10px] text-zinc-400 font-mono">{rajendraVacant} beds available</p>
+                </div>
+                {BOYS_FLOORS.Rajendra.map((floor) => renderBoysFloor('Rajendra', floor))}
               </div>
-              {BOYS_FLOORS.Rajendra.map((floor) => renderBoysFloor('Rajendra', floor))}
             </div>
           </div>
-        </div>
-      ) : (
-        /* SAVITRIBAI PHULE GIRLS HOSTEL (2 FLOORS ONLY) */
-        <div className="w-full max-w-4xl mx-auto space-y-2 bg-[#140e18]/90 p-2 sm:p-3 rounded-2xl border border-pink-900/40 shadow-md min-w-0">
-          <div className="text-center py-1 px-2 bg-gradient-to-r from-pink-500/10 via-pink-500/20 to-pink-500/10 rounded-xl border border-pink-500/30">
-            <h3 className="text-[10px] sm:text-xs md:text-sm font-serif tracking-[0.15em] sm:tracking-[0.2em] text-pink-400 font-black uppercase">
-              🌸 Savitribai Phule Girls Hostel — 2 Floors
-            </h3>
+        ) : (
+          /* SAVITRIBAI PHULE GIRLS HOSTEL (2 FLOORS ONLY) */
+          <div className="w-full max-w-5xl mx-auto space-y-3 bg-[#140e18]/90 p-3 sm:p-5 rounded-3xl border border-pink-900/40 shadow-xl min-w-0">
+            <div className="text-center py-1.5 px-2 bg-gradient-to-r from-pink-500/10 via-pink-500/20 to-pink-500/10 rounded-xl border border-pink-500/30">
+              <h3 className="text-xs sm:text-base font-serif tracking-[0.15em] sm:tracking-[0.2em] text-pink-400 font-black uppercase">
+                🌸 Savitribai Phule Girls Hostel — 2 Floors
+              </h3>
+            </div>
+            {renderGirlsFloor(2, '2ND FLOOR')}
+            {renderGirlsFloor(1, '1ST FLOOR')}
           </div>
-          {renderGirlsFloor(2, '2ND FLOOR')}
-          {renderGirlsFloor(1, '1ST FLOOR')}
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* 🌟 3. REAL-TIME FOOTER STATS */}
-      <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 border-t border-zinc-800/80 text-[9px] sm:text-[10px] font-mono text-zinc-400">
+      {/* 🌟 3. REAL-TIME FOOTER STATS (TOUCHES BOTTOM) */}
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-zinc-800/90 text-[10px] sm:text-xs font-mono text-zinc-400 shrink-0">
         <div className="flex items-center gap-2">
           <span className="text-zinc-500">Live Status:</span>
           <span className="text-emerald-400 font-black">{availableBeds} Vacant Beds</span>
           <span className="text-zinc-600">/</span>
           <span className="text-zinc-300 font-bold">{totalBeds} Total Capacity</span>
         </div>
-        <div className="text-zinc-500 text-[8.5px] sm:text-[9.5px] font-sans">
+        <div className="text-zinc-500 text-[10px] sm:text-xs font-sans">
           Govt. Polytechnic Barh • Hostel Management System
         </div>
       </div>
 
       {/* 🌟 4. FLOATING VIP BOOKING DRAWER */}
       {!wardenMode && selectedBed && (
-        <div className="fixed bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 z-50 w-[94%] max-w-md animate-in fade-in slide-in-from-bottom-3 duration-200">
-          <div className="bg-[#15161f]/98 backdrop-blur-2xl border-2 border-amber-500/90 text-white rounded-2xl p-3 sm:p-4 shadow-[0_15px_40px_rgba(0,0,0,0.95)] flex items-center justify-between gap-2 sm:gap-3">
+        <div className="fixed bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 z-50 w-[94%] max-w-md animate-in fade-in slide-in-from-bottom-3 duration-200">
+          <div className="bg-[#15161f]/98 backdrop-blur-2xl border-2 border-amber-500/90 text-white rounded-2xl p-3.5 sm:p-4 shadow-[0_15px_40px_rgba(0,0,0,0.95)] flex items-center justify-between gap-2 sm:gap-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1 mb-0.5">
                 <span className="text-xs">🎟️</span>
