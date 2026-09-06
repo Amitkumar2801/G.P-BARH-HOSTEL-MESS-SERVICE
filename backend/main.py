@@ -295,74 +295,145 @@ def update_user_profile(profile: schemas.ProfileUpdate, db: Session = Depends(ge
 # ---------------------------------------------------------
 # HOSTEL LAYOUT & ALLOCATION SEEDING / ENDPOINTS
 # ---------------------------------------------------------
+# ---------------------------------------------------------
+# HOSTEL LAYOUT & ALLOCATION SEEDING / ENDPOINTS
+# ---------------------------------------------------------
 def seed_hostel_data(db: Session):
-    """Seed Boys (H-Shape) and Girls (Linear) Hostels, Rooms, and 3-Bed Anatomy."""
-    # 1. BOYS HOSTEL (H-SHAPE)
+    """Seed Boys (Birsa Munda & Dr. Rajendra Prasad) and Girls (Savitribai Phule) Hostels, Rooms & Beds matching Blueprints."""
+    # 1. BOYS HOSTEL (BIRSA MUNDA & DR. RAJENDRA PRASAD)
     boys_hostel = db.query(models.Hostel).filter(models.Hostel.gender_type.in_(["BOYS", "MALE"])).first()
     if not boys_hostel:
-        boys_hostel = models.Hostel(name="Boys Hostel (Birsa Munda & Dr. Rajendra Prasad Blocks)", gender_type="MALE", total_floors=3, shape_type="H_SHAPE")
+        boys_hostel = models.Hostel(name="Boys Hostel (Birsa Munda & Dr. Rajendra Prasad Blocks)", gender_type="MALE", total_floors=3, shape_type="BLUEPRINT_LAYOUT")
         db.add(boys_hostel)
         db.commit()
         db.refresh(boys_hostel)
-
-        # 3 Floors: 0 (Ground), 1 (1st), 2 (2nd)
-        for floor in range(3):
-            floor_prefix = (floor + 1) * 100
-            # Left Wing (Birsa Munda Block) Rooms (e.g. 101, 102, 103)
-            for r_num in range(1, 4):
-                room = models.Room(hostel_id=boys_hostel.id, room_number=str(floor_prefix + r_num), floor_number=floor, wing="LEFT", capacity=3, occupied_count=0)
-                db.add(room)
-                db.commit()
-                db.refresh(room)
-                for bed_code in ['A', 'B', 'C']:
-                    db.add(models.Bed(room_id=room.id, bed_code=bed_code, is_occupied=False))
-            # Central Wing / Connector Rooms (e.g. 104, 105, 106)
-            for r_num in range(4, 7):
-                room = models.Room(hostel_id=boys_hostel.id, room_number=str(floor_prefix + r_num), floor_number=floor, wing="CENTER", capacity=3, occupied_count=0)
-                db.add(room)
-                db.commit()
-                db.refresh(room)
-                for bed_code in ['A', 'B', 'C']:
-                    db.add(models.Bed(room_id=room.id, bed_code=bed_code, is_occupied=False))
-            # Right Wing (Dr. Rajendra Prasad Block) Rooms (e.g. 107, 108, 109)
-            for r_num in range(7, 10):
-                room = models.Room(hostel_id=boys_hostel.id, room_number=str(floor_prefix + r_num), floor_number=floor, wing="RIGHT", capacity=3, occupied_count=0)
-                db.add(room)
-                db.commit()
-                db.refresh(room)
-                for bed_code in ['A', 'B', 'C']:
-                    db.add(models.Bed(room_id=room.id, bed_code=bed_code, is_occupied=False))
-        db.commit()
     else:
         boys_hostel.name = "Boys Hostel (Birsa Munda & Dr. Rajendra Prasad Blocks)"
+        boys_hostel.shape_type = "BLUEPRINT_LAYOUT"
         if boys_hostel.gender_type != "MALE":
             boys_hostel.gender_type = "MALE"
         db.commit()
 
-    # 2. GIRLS HOSTEL (SAVITRIBAI PHULE GIRLS HOSTEL - LINEAR)
+    # Define Blueprint Rooms for Boys Hostel
+    boys_room_configs = [
+        # BIRSA MUNDA BLOCK
+        # 3rd Floor (floor_number = 3)
+        {"block": "Birsa Munda", "floor": 3, "row": "TOP", "rooms": ["301", "302", "303", "304", "305", "306"]},
+        {"block": "Birsa Munda", "floor": 3, "row": "MIDDLE", "rooms": ["312", "311", "310"]},
+        {"block": "Birsa Munda", "floor": 3, "row": "BOTTOM", "rooms": ["307", "308", "309"]},
+        # 2nd Floor (floor_number = 2)
+        {"block": "Birsa Munda", "floor": 2, "row": "TOP", "rooms": ["201", "202", "203", "204", "205", "206"]},
+        {"block": "Birsa Munda", "floor": 2, "row": "MIDDLE", "rooms": ["212", "211", "210"]},
+        {"block": "Birsa Munda", "floor": 2, "row": "BOTTOM", "rooms": ["207", "208", "209"]},
+        # 1st Floor (floor_number = 1)
+        {"block": "Birsa Munda", "floor": 1, "row": "TOP", "rooms": ["101", "102", "103", "104"]},
+        {"block": "Birsa Munda", "floor": 1, "row": "MIDDLE", "rooms": ["109", "108", "107"]},
+        {"block": "Birsa Munda", "floor": 1, "row": "BOTTOM", "rooms": ["110", "106", "105"]},
+
+        # DR. RAJENDRA PRASAD BLOCK
+        # 3rd Floor
+        {"block": "Dr. Rajendra Prasad", "floor": 3, "row": "TOP", "rooms": ["301", "302", "303", "304", "305", "306"]},
+        {"block": "Dr. Rajendra Prasad", "floor": 3, "row": "MIDDLE", "rooms": ["310", "311", "312"]},
+        {"block": "Dr. Rajendra Prasad", "floor": 3, "row": "BOTTOM", "rooms": ["309", "308", "307"]},
+        # 2nd Floor
+        {"block": "Dr. Rajendra Prasad", "floor": 2, "row": "TOP", "rooms": ["201", "202", "203", "204", "205", "206"]},
+        {"block": "Dr. Rajendra Prasad", "floor": 2, "row": "MIDDLE", "rooms": ["210", "211", "212"]},
+        {"block": "Dr. Rajendra Prasad", "floor": 2, "row": "BOTTOM", "rooms": ["209", "208", "207"]},
+        # 1st Floor
+        {"block": "Dr. Rajendra Prasad", "floor": 1, "row": "TOP", "rooms": ["101", "102", "103", "104"]},
+        {"block": "Dr. Rajendra Prasad", "floor": 1, "row": "MIDDLE", "rooms": ["107", "108", "109"]},
+        {"block": "Dr. Rajendra Prasad", "floor": 1, "row": "BOTTOM", "rooms": ["106", "105"]},
+    ]
+
+    for cfg in boys_room_configs:
+        block_name = cfg["block"]
+        floor_num = cfg["floor"]
+        row_pos = cfg["row"]
+        wing_val = f"{'BIRSA' if 'Birsa' in block_name else 'RAJENDRA'}_{row_pos}"
+
+        for r_num in cfg["rooms"]:
+            existing_room = db.query(models.Room).filter(
+                models.Room.hostel_id == boys_hostel.id,
+                models.Room.room_number == r_num,
+                models.Room.floor_number == floor_num,
+                models.Room.wing == wing_val
+            ).first()
+
+            if not existing_room:
+                new_room = models.Room(
+                    hostel_id=boys_hostel.id,
+                    room_number=r_num,
+                    floor_number=floor_num,
+                    wing=wing_val,
+                    capacity=3,
+                    occupied_count=0
+                )
+                db.add(new_room)
+                db.commit()
+                db.refresh(new_room)
+                for bed_code in ['A', 'B', 'C']:
+                    db.add(models.Bed(room_id=new_room.id, bed_code=bed_code, is_occupied=False))
+                db.commit()
+
+    # 2. GIRLS HOSTEL (SAVITRIBAI PHULE GIRLS HOSTEL - DUAL-WING CORRIDOR: 2 FLOORS ONLY)
     girls_hostel = db.query(models.Hostel).filter(models.Hostel.gender_type.in_(["GIRLS", "FEMALE"])).first()
     if not girls_hostel:
-        girls_hostel = models.Hostel(name="Savitribai Phule Girls Hostel", gender_type="FEMALE", total_floors=3, shape_type="LINEAR")
+        girls_hostel = models.Hostel(name="Savitribai Phule Girls Hostel", gender_type="FEMALE", total_floors=2, shape_type="CORRIDOR_DUAL_WING")
         db.add(girls_hostel)
         db.commit()
         db.refresh(girls_hostel)
-
-        # 3 Floors: 0 (Ground), 1 (1st), 2 (2nd) - Linear corridor 8 rooms each
-        for floor in range(3):
-            floor_prefix = (floor + 1) * 100
-            for r_num in range(1, 9):
-                room = models.Room(hostel_id=girls_hostel.id, room_number=str(floor_prefix + r_num), floor_number=floor, wing="MAIN", capacity=3, occupied_count=0)
-                db.add(room)
-                db.commit()
-                db.refresh(room)
-                for bed_code in ['A', 'B', 'C']:
-                    db.add(models.Bed(room_id=room.id, bed_code=bed_code, is_occupied=False))
-        db.commit()
     else:
         girls_hostel.name = "Savitribai Phule Girls Hostel"
+        girls_hostel.shape_type = "CORRIDOR_DUAL_WING"
+        girls_hostel.total_floors = 2
         if girls_hostel.gender_type != "FEMALE":
             girls_hostel.gender_type = "FEMALE"
         db.commit()
+
+    # Clean up any legacy 3rd floor rooms for Girls Hostel
+    legacy_g3_rooms = db.query(models.Room).filter(models.Room.hostel_id == girls_hostel.id, models.Room.floor_number == 3).all()
+    if legacy_g3_rooms:
+        g3_ids = [r.id for r in legacy_g3_rooms]
+        db.query(models.Bed).filter(models.Bed.room_id.in_(g3_ids)).delete(synchronize_session=False)
+        db.query(models.Room).filter(models.Room.id.in_(g3_ids)).delete(synchronize_session=False)
+        db.commit()
+
+    girls_room_configs = [
+        # 2nd Floor (floor_number = 2)
+        {"floor": 2, "wing": "LEFT", "rooms": [f"2{i:02d}" for i in range(1, 11)]},
+        {"floor": 2, "wing": "RIGHT", "rooms": [f"2{i:02d}" for i in range(11, 21)]},
+        # 1st Floor (floor_number = 1)
+        {"floor": 1, "wing": "LEFT", "rooms": [f"1{i:02d}" for i in range(1, 11)]},
+        {"floor": 1, "wing": "RIGHT", "rooms": [f"1{i:02d}" for i in range(11, 21)]},
+    ]
+
+    for cfg in girls_room_configs:
+        floor_num = cfg["floor"]
+        wing_val = cfg["wing"]
+        for r_num in cfg["rooms"]:
+            existing_room = db.query(models.Room).filter(
+                models.Room.hostel_id == girls_hostel.id,
+                models.Room.room_number == r_num,
+                models.Room.floor_number == floor_num,
+                models.Room.wing == wing_val
+            ).first()
+
+            if not existing_room:
+                new_room = models.Room(
+                    hostel_id=girls_hostel.id,
+                    room_number=r_num,
+                    floor_number=floor_num,
+                    wing=wing_val,
+                    capacity=3,
+                    occupied_count=0
+                )
+                db.add(new_room)
+                db.commit()
+                db.refresh(new_room)
+                for bed_code in ['A', 'B', 'C']:
+                    db.add(models.Bed(room_id=new_room.id, bed_code=bed_code, is_occupied=False))
+                db.commit()
+
 
 @app.get("/hostel-layout", response_model=schemas.HostelLayoutSchema, tags=["Hostel Allocation"])
 @app.get("/api/hostels/grid", response_model=schemas.HostelLayoutSchema, tags=["Hostel Allocation"])
@@ -412,11 +483,17 @@ def get_hostel_layout(gender: str = Query("MALE"), student_id: Optional[int] = N
         else:
             status_color = "RED"
 
+        # Determine Block Name and Row Position
+        block_name = "Savitribai Phule Girls Hostel" if norm_gender == "FEMALE" else ("Birsa Munda Block" if "BIRSA" in room.wing else "Dr. Rajendra Prasad Block")
+        row_pos = "LEFT" if room.wing == "LEFT" else ("RIGHT" if room.wing == "RIGHT" else (room.wing.split("_")[-1] if "_" in room.wing else room.wing))
+
         rooms_list.append(schemas.RoomSchema(
             id=room.id,
             room_number=room.room_number,
             floor_number=room.floor_number,
             wing=room.wing,
+            block_name=block_name,
+            row_position=row_pos,
             capacity=room.capacity,
             occupied_count=occupied_cnt,
             status_color=status_color,
