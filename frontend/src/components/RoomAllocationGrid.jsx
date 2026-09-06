@@ -126,7 +126,7 @@ function RoomAllocationGrid({
   const rajendraVacant = rajendraRooms.reduce((acc, r) => acc + (r.capacity - r.occupied_count), 0);
 
   /* ------------------------------------------------------------------ */
-  /*  Cinema Seat Tile Renderer                                         */
+  /*  Pure Number-Only Cinema Seat Tile (NO '3 FREE' TEXT)              */
   /* ------------------------------------------------------------------ */
   const renderTile = (room) => {
     const isSelectedRoom = selectedBed && selectedBed.room.id === room.id;
@@ -134,20 +134,25 @@ function RoomAllocationGrid({
     const isPartiallyBooked = room.occupied_count > 0 && !isFull;
     const freeBeds = room.capacity - room.occupied_count;
 
+    // 🟢 Green = All 3 Free
     let style =
-      'bg-gradient-to-b from-emerald-700 to-emerald-950 text-emerald-50 border-emerald-400/70 shadow-[0_2px_8px_-2px_rgba(16,185,129,0.45)] hover:brightness-110';
+      'bg-gradient-to-b from-emerald-600 to-emerald-900 text-white border-emerald-400/80 shadow-[0_2px_8px_-2px_rgba(16,185,129,0.5)] hover:brightness-110';
 
+    // 🔴 Red = Fully Occupied
     if (isFull) {
       style =
-        'bg-gradient-to-b from-red-800 to-red-950 text-red-100/90 border-red-500/70 cursor-not-allowed shadow-[0_2px_8px_-2px_rgba(239,68,68,0.35)] opacity-85';
-    } else if (isPartiallyBooked) {
+        'bg-gradient-to-b from-red-700 to-red-950 text-red-100 border-red-500/80 cursor-not-allowed shadow-[0_2px_8px_-2px_rgba(239,68,68,0.4)] opacity-85';
+    } 
+    // 🟡 Amber = 1 or 2 Free
+    else if (isPartiallyBooked) {
       style =
-        'bg-gradient-to-b from-amber-600 to-amber-900 text-amber-50 border-amber-400/70 shadow-[0_2px_8px_-2px_rgba(245,158,11,0.4)] hover:brightness-110';
+        'bg-gradient-to-b from-amber-500 to-amber-800 text-amber-50 border-amber-300/80 shadow-[0_2px_8px_-2px_rgba(245,158,11,0.5)] hover:brightness-110';
     }
 
+    // 🌟 Gold = Selected by Student
     if (isSelectedRoom) {
       style =
-        'bg-gradient-to-b from-yellow-300 via-amber-400 to-yellow-500 text-black font-black border-white shadow-[0_0_0_2px_rgba(255,255,255,0.9),0_0_20px_rgba(245,158,11,0.9)] scale-[1.05] ring-0 z-20 animate-pulse';
+        'bg-gradient-to-b from-yellow-300 via-amber-400 to-yellow-500 text-black font-black border-white shadow-[0_0_0_2px_rgba(255,255,255,0.9),0_0_22px_rgba(245,158,11,0.95)] scale-[1.06] ring-0 z-20 animate-pulse';
     }
 
     return (
@@ -158,16 +163,11 @@ function RoomAllocationGrid({
         onClick={() => handleRoomClick(room)}
         aria-label={`Room ${room.room_number}, ${isFull ? 'fully occupied' : `${freeBeds} of ${room.capacity} beds free`}`}
         title={`Room ${room.room_number} • ${freeBeds} of ${room.capacity} beds available`}
-        className={`w-full min-w-0 h-10 sm:h-11 md:h-12 lg:h-13 rounded-lg sm:rounded-xl border transition-all duration-150 flex flex-col items-center justify-center relative active:scale-95 ${style}`}
+        className={`w-full min-w-0 h-10 sm:h-11 md:h-12 lg:h-13 rounded-lg sm:rounded-xl border transition-all duration-150 flex items-center justify-center relative active:scale-95 ${style}`}
       >
-        <span className="text-[11px] sm:text-xs md:text-sm lg:text-base font-mono font-black tracking-tight leading-none truncate max-w-full">
+        <span className="text-xs sm:text-sm md:text-base font-mono font-black tracking-tight leading-none">
           {room.room_number}
         </span>
-        {!isSelectedRoom && (
-          <span className="text-[7.5px] sm:text-[8.5px] md:text-[9.5px] opacity-90 font-bold font-mono leading-none mt-1 truncate max-w-full">
-            {isFull ? 'FULL' : `${freeBeds} FREE`}
-          </span>
-        )}
       </button>
     );
   };
@@ -257,8 +257,8 @@ function RoomAllocationGrid({
           <div className="h-px flex-1 bg-gradient-to-r from-transparent via-pink-800 to-transparent" />
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:gap-6 relative w-full min-w-0">
-          <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-gradient-to-b from-pink-500/10 via-pink-500/60 to-pink-500/10 shadow-[0_0_8px_rgba(236,72,153,0.5)] pointer-events-none" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6 relative w-full min-w-0">
+          <div className="hidden sm:block absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-gradient-to-b from-pink-500/10 via-pink-500/60 to-pink-500/10 shadow-[0_0_8px_rgba(236,72,153,0.5)] pointer-events-none" />
 
           {[leftRooms, rightRooms].map((wingRooms, i) => (
             <div className="space-y-1.5 min-w-0" key={i}>
@@ -310,12 +310,12 @@ function RoomAllocationGrid({
   }
 
   /* ------------------------------------------------------------------ */
-  /*  MAIN RENDER: 1-PAGE ZERO-GAP EXPANSIVE SIDE-BY-SIDE MATRIX        */
+  /*  MAIN RENDER                                                       */
   /* ------------------------------------------------------------------ */
   return (
     <div className="w-full min-w-0 min-h-[calc(100vh-70px)] bg-[#0a0b0e] text-zinc-100 p-2 sm:p-3 md:p-4 flex flex-col justify-between select-none box-border overflow-hidden font-sans">
       
-      {/* 🌟 1. FULL-WIDTH TOP HEADER (LEFT-ALIGNED TEXT & RIGHT-ALIGNED VIP STATUS HUD) */}
+      {/* 🌟 1. FULL-WIDTH TOP HEADER */}
       <div className="relative rounded-2xl bg-gradient-to-r from-[#181a24] via-[#12131b] to-[#181a24] border border-amber-500/30 px-3.5 py-2.5 sm:px-5 sm:py-3 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-2.5 shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-xl shrink-0 shadow-inner">
@@ -339,11 +339,11 @@ function RoomAllocationGrid({
           </div>
         </div>
 
-        {/* Status HUD (Right-aligned) */}
+        {/* Status Legend HUD */}
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2.5 bg-[#11131c]/95 px-3 py-1.5 rounded-xl border border-zinc-700/60 shadow-md">
           <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-[10px] sm:text-xs font-bold">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.9)] animate-pulse" />
-            <span>All 3 Free</span>
+            <span>3 Free</span>
           </div>
 
           <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-amber-950/40 border border-amber-500/30 text-amber-300 text-[10px] sm:text-xs font-bold">
@@ -363,16 +363,17 @@ function RoomAllocationGrid({
         </div>
       </div>
 
-      {/* 🌟 2. EXPANSIVE MIDDLE BLUEPRINT MATRIX (FILLS FULL HEIGHT DOWN TO FOOTER) */}
+      {/* 🌟 2. EXPANSIVE MIDDLE BLUEPRINT MATRIX (PHONE: STACKED / WEB: SIDE-BY-SIDE) */}
       <div className="w-full flex-1 flex flex-col justify-center my-auto py-2">
         {!isFemale ? (
           <div className="w-full min-w-0">
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6 w-full min-w-0 relative">
+            {/* On Phone (< md): grid-cols-1 (Stacked Upper/Lower) | On Desktop (>= md): grid-cols-2 (Side-by-Side) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 w-full min-w-0 relative">
               
-              {/* Center Vertical Illuminated Divider */}
-              <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-gradient-to-b from-amber-500/20 via-amber-500/60 to-amber-500/20 shadow-[0_0_8px_rgba(245,158,11,0.4)] pointer-events-none z-10" />
+              {/* Desktop Center Divider */}
+              <div className="hidden md:block absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-gradient-to-b from-amber-500/20 via-amber-500/60 to-amber-500/20 shadow-[0_0_8px_rgba(245,158,11,0.4)] pointer-events-none z-10" />
 
-              {/* ⬅️ LEFT COLUMN: BIRSA MUNDA BOYS HOSTEL */}
+              {/* ⬅️ BIRSA MUNDA BOYS HOSTEL (Upper on Mobile, Left on Desktop) */}
               <div className="w-full min-w-0 space-y-2 sm:space-y-3 bg-[#0f1118]/90 p-2.5 sm:p-3.5 md:p-4 rounded-3xl border border-zinc-800 shadow-xl">
                 <div className="text-center py-1.5 px-2 bg-gradient-to-r from-amber-500/10 via-amber-500/20 to-amber-500/10 rounded-xl border border-amber-500/30">
                   <h3 className="text-xs sm:text-sm md:text-base font-serif tracking-[0.15em] sm:tracking-[0.2em] text-[#f59e0b] font-black uppercase truncate">
@@ -383,7 +384,7 @@ function RoomAllocationGrid({
                 {BOYS_FLOORS.Birsa.map((floor) => renderBoysFloor('Birsa', floor))}
               </div>
 
-              {/* ➡️ RIGHT COLUMN: DR. RAJENDRA PRASAD BOYS HOSTEL */}
+              {/* ➡️ DR. RAJENDRA PRASAD BOYS HOSTEL (Lower on Mobile, Right on Desktop) */}
               <div className="w-full min-w-0 space-y-2 sm:space-y-3 bg-[#0f1118]/90 p-2.5 sm:p-3.5 md:p-4 rounded-3xl border border-zinc-800 shadow-xl">
                 <div className="text-center py-1.5 px-2 bg-gradient-to-r from-amber-500/10 via-amber-500/20 to-amber-500/10 rounded-xl border border-amber-500/30">
                   <h3 className="text-xs sm:text-sm md:text-base font-serif tracking-[0.15em] sm:tracking-[0.2em] text-[#f59e0b] font-black uppercase truncate">
@@ -409,7 +410,7 @@ function RoomAllocationGrid({
         )}
       </div>
 
-      {/* 🌟 3. REAL-TIME FOOTER STATS (TOUCHES BOTTOM) */}
+      {/* 🌟 3. REAL-TIME FOOTER STATS */}
       <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-zinc-800/90 text-[10px] sm:text-xs font-mono text-zinc-400 shrink-0">
         <div className="flex items-center gap-2">
           <span className="text-zinc-500">Live Status:</span>
