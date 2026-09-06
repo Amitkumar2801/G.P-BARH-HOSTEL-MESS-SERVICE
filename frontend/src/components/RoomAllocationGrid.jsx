@@ -206,8 +206,8 @@ function RoomAllocationGrid({
     const { floorTitle, floorNum, topRooms, midRooms, botRooms } = floor;
 
     return (
-      <div key={floorTitle} className="space-y-2 bg-[#12141d]/90 p-2 sm:p-3 rounded-2xl border border-zinc-800/90 shadow-inner w-full min-w-0">
-        <div className="flex items-center justify-center gap-2 py-0.5">
+      <div key={floorTitle} className="space-y-2.5 sm:space-y-3.5 bg-[#12141d]/90 p-2.5 sm:p-3.5 rounded-2xl border border-zinc-800/90 shadow-inner w-full min-w-0">
+        <div className="flex items-center justify-center gap-2 py-0.5 mb-1">
           <div className="h-px flex-1 bg-gradient-to-r from-transparent via-zinc-700 to-transparent" />
           <span className="text-[10px] sm:text-xs font-serif font-black uppercase tracking-[0.2em] text-[#e0b968] whitespace-nowrap px-1">
             ✦ {floorTitle} ✦
@@ -215,24 +215,24 @@ function RoomAllocationGrid({
           <div className="h-px flex-1 bg-gradient-to-r from-transparent via-zinc-700 to-transparent" />
         </div>
 
-        {/* TOP ROW: Exactly 6 columns so all boxes have the EXACT same fixed width */}
-        <div className="grid grid-cols-6 gap-1.5 sm:gap-2 w-full min-w-0">
+        {/* TOP ROW */}
+        <div className="grid grid-cols-6 gap-2 sm:gap-2.5 w-full min-w-0">
           {topRooms.map((num) => {
             const r = findRoom(blockPrefix, floorNum, num);
             return r ? renderTile(r) : renderPlaceholder(num);
           })}
         </div>
 
-        {/* MID ROW: Exactly 6 columns so all boxes have the EXACT same fixed width */}
-        <div className="grid grid-cols-6 gap-1.5 sm:gap-2 w-full min-w-0">
+        {/* MID ROW */}
+        <div className="grid grid-cols-6 gap-2 sm:gap-2.5 w-full min-w-0">
           {midRooms.map((num) => {
             const r = findRoom(blockPrefix, floorNum, num);
             return r ? renderTile(r) : renderPlaceholder(num);
           })}
         </div>
 
-        {/* BOT ROW: Exactly 6 columns so all boxes have the EXACT same fixed width */}
-        <div className="grid grid-cols-6 gap-1.5 sm:gap-2 w-full min-w-0">
+        {/* BOT ROW */}
+        <div className="grid grid-cols-6 gap-2 sm:gap-2.5 w-full min-w-0">
           {botRooms.map((num) => {
             const r = findRoom(blockPrefix, floorNum, num);
             return r ? renderTile(r) : renderPlaceholder(num);
@@ -248,8 +248,8 @@ function RoomAllocationGrid({
     const findGirlRoom = (num) => rooms.find((r) => r.room_number === num && r.floor_number === floorNum);
 
     return (
-      <div key={floorTitle} className="space-y-2 bg-[#170f1c]/80 p-3 sm:p-4 rounded-2xl border border-pink-900/50 shadow-inner w-full min-w-0">
-        <div className="flex items-center justify-center gap-2 py-0.5">
+      <div key={floorTitle} className="space-y-3 bg-[#170f1c]/80 p-3 sm:p-4 rounded-2xl border border-pink-900/50 shadow-inner w-full min-w-0">
+        <div className="flex items-center justify-center gap-2 py-0.5 mb-1">
           <div className="h-px flex-1 bg-gradient-to-r from-transparent via-pink-800 to-transparent" />
           <span className="text-[10px] sm:text-xs font-serif font-black uppercase tracking-[0.2em] text-pink-400 whitespace-nowrap px-1">
             ✦ {floorTitle} ✦
@@ -261,11 +261,11 @@ function RoomAllocationGrid({
           <div className="hidden sm:block absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-gradient-to-b from-pink-500/10 via-pink-500/60 to-pink-500/10 shadow-[0_0_8px_rgba(236,72,153,0.5)] pointer-events-none" />
 
           {[leftRooms, rightRooms].map((wingRooms, i) => (
-            <div className="space-y-1.5 min-w-0" key={i}>
+            <div className="space-y-2 min-w-0" key={i}>
               <div className="text-center text-[9px] sm:text-[10px] text-pink-300/80 font-mono font-black tracking-widest uppercase">
                 {i === 0 ? 'LEFT WING' : 'RIGHT WING'}
               </div>
-              <div className="grid grid-cols-5 gap-1.5 min-w-0">
+              <div className="grid grid-cols-5 gap-x-2 gap-y-2.5 sm:gap-y-3 min-w-0">
                 {wingRooms.map((num) => {
                   const r = findGirlRoom(num);
                   return r ? renderTile(r) : renderPlaceholder(num);
