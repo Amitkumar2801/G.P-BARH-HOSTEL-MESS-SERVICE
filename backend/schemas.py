@@ -104,6 +104,8 @@ class RoomSchema(BaseModel):
     room_number: str
     floor_number: int
     wing: str
+    block_name: Optional[str] = None
+    row_position: Optional[str] = None
     capacity: int = 3
     occupied_count: int
     status_color: str # 'GREEN', 'AMBER', 'RED'
