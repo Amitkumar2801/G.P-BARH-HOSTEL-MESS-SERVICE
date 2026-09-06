@@ -126,7 +126,8 @@ function RoomAllocationGrid({
   const rajendraVacant = rajendraRooms.reduce((acc, r) => acc + (r.capacity - r.occupied_count), 0);
 
   /* ------------------------------------------------------------------ */
-  /*  Futuristic Computer-Style Cinema Seat Tile Design                */
+  /*  Realistic Cinema / Hostel Seat Silhouette Design                  */
+  /*  (Narrow Headrest Top + Wider Seat Cushion Base)                   */
   /* ------------------------------------------------------------------ */
   const renderTile = (room) => {
     const isSelectedRoom = selectedBed && selectedBed.room.id === room.id;
@@ -134,25 +135,29 @@ function RoomAllocationGrid({
     const isPartiallyBooked = room.occupied_count > 0 && !isFull;
     const freeBeds = room.capacity - room.occupied_count;
 
-    // 🟢 Green = All Available
-    let style =
-      'bg-gradient-to-b from-[#059669] via-[#047857] to-[#064e3b] text-white border border-emerald-400/90 shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_3px_10px_rgba(16,185,129,0.35)] hover:brightness-110';
+    // Default: 🟢 Green = Available
+    let headStyle = 'bg-gradient-to-b from-[#10b981] to-[#059669] border-emerald-300/80';
+    let baseStyle =
+      'bg-gradient-to-b from-[#059669] via-[#047857] to-[#064e3b] text-white border-emerald-400/90 shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_3px_8px_rgba(16,185,129,0.35)] hover:brightness-110';
 
     // 🔴 Red = Fully Occupied
     if (isFull) {
-      style =
-        'bg-gradient-to-b from-[#b91c1c] via-[#991b1b] to-[#450a0a] text-red-100 border border-red-500/70 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_3px_8px_rgba(239,68,68,0.25)] cursor-not-allowed opacity-85';
+      headStyle = 'bg-gradient-to-b from-[#ef4444] to-[#b91c1c] border-red-400/70';
+      baseStyle =
+        'bg-gradient-to-b from-[#b91c1c] via-[#991b1b] to-[#450a0a] text-red-100 border-red-500/70 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_2px_6px_rgba(239,68,68,0.25)] cursor-not-allowed opacity-85';
     } 
     // 🟡 Amber = Partially Booked
     else if (isPartiallyBooked) {
-      style =
-        'bg-gradient-to-b from-[#d97706] via-[#b45309] to-[#78350f] text-amber-50 border border-amber-400/90 shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_3px_10px_rgba(245,158,11,0.35)] hover:brightness-110';
+      headStyle = 'bg-gradient-to-b from-[#f59e0b] to-[#d97706] border-amber-300/80';
+      baseStyle =
+        'bg-gradient-to-b from-[#d97706] via-[#b45309] to-[#78350f] text-amber-50 border-amber-400/90 shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_3px_8px_rgba(245,158,11,0.35)] hover:brightness-110';
     }
 
     // 🌟 Gold = Selected by Student
     if (isSelectedRoom) {
-      style =
-        'bg-gradient-to-b from-[#fef08a] via-[#facc15] to-[#eab308] text-black border-2 border-white shadow-[0_0_22px_rgba(250,204,21,0.95),inset_0_1px_2px_rgba(255,255,255,0.9)] scale-[1.05] ring-0 z-20';
+      headStyle = 'bg-gradient-to-b from-[#fef08a] to-[#facc15] border-white border-t border-x';
+      baseStyle =
+        'bg-gradient-to-b from-[#facc15] via-[#f59e0b] to-[#d97706] text-black border-2 border-white shadow-[0_0_20px_rgba(250,204,21,0.95)] ring-0 z-20';
     }
 
     return (
@@ -163,25 +168,45 @@ function RoomAllocationGrid({
         onClick={() => handleRoomClick(room)}
         aria-label={`Room ${room.room_number}, ${isFull ? 'fully occupied' : `${freeBeds} of ${room.capacity} beds free`}`}
         title={`Room ${room.room_number} • ${freeBeds} of ${room.capacity} beds available`}
-        className={`w-full min-w-0 h-11 sm:h-12 md:h-13 rounded-xl transition-all duration-150 flex flex-col items-center justify-center relative active:scale-95 ${style}`}
+        className={`group relative flex flex-col items-center w-full min-w-0 transition-all duration-150 active:scale-95 ${
+          isSelectedRoom ? 'scale-[1.06] z-20' : ''
+        }`}
       >
-        <span className={`text-[7.5px] sm:text-[8px] md:text-[9px] font-mono font-black uppercase tracking-widest leading-none ${isSelectedRoom ? 'text-black/80' : 'opacity-80'}`}>
-          ROOM
-        </span>
-        <span className={`text-xs sm:text-sm md:text-base font-mono font-black tracking-tight leading-none mt-1 ${isSelectedRoom ? 'text-black' : 'text-white'}`}>
-          {room.room_number}
-        </span>
+        {/* 💺 Headrest Cushion (Narrow Top Tab) */}
+        <div
+          className={`w-[58%] h-2 sm:h-2.5 rounded-t-md border-t border-x transition-colors duration-150 ${headStyle}`}
+        />
+        
+        {/* 💺 Main Seat Base (Wider Rounded Bottom) */}
+        <div
+          className={`w-full h-9 sm:h-10 md:h-11 rounded-b-xl rounded-t-sm border border-t-0 shadow-md flex flex-col items-center justify-center leading-none transition-colors duration-150 ${baseStyle}`}
+        >
+          <span
+            className={`text-[7px] sm:text-[7.5px] md:text-[8px] font-mono font-black uppercase tracking-widest leading-none ${
+              isSelectedRoom ? 'text-black/80' : 'opacity-80'
+            }`}
+          >
+            ROOM
+          </span>
+          <span
+            className={`text-[11px] sm:text-xs md:text-sm font-mono font-black tracking-tight leading-none mt-0.5 ${
+              isSelectedRoom ? 'text-black' : 'text-white'
+            }`}
+          >
+            {room.room_number}
+          </span>
+        </div>
       </button>
     );
   };
 
   const renderPlaceholder = (num) => (
-    <div
-      key={num}
-      className="w-full min-w-0 h-11 sm:h-12 md:h-13 rounded-xl border border-zinc-800/80 bg-zinc-900/30 flex flex-col items-center justify-center text-zinc-600 font-mono leading-none"
-    >
-      <span className="text-[7.5px] sm:text-[8px] font-bold tracking-widest opacity-60">ROOM</span>
-      <span className="text-xs sm:text-sm font-bold tracking-tight mt-1">{num}</span>
+    <div className="flex flex-col items-center w-full min-w-0">
+      <div className="w-[58%] h-2 sm:h-2.5 rounded-t-md border-t border-x border-zinc-800 bg-zinc-900/40" />
+      <div className="w-full h-9 sm:h-10 md:h-11 rounded-b-xl rounded-t-sm border border-zinc-800 border-t-0 bg-zinc-900/30 flex flex-col items-center justify-center leading-none text-zinc-600 font-mono">
+        <span className="text-[7px] sm:text-[7.5px] font-bold tracking-widest opacity-60">ROOM</span>
+        <span className="text-[11px] sm:text-xs font-bold tracking-tight mt-0.5">{num}</span>
+      </div>
     </div>
   );
 
