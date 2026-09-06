@@ -313,7 +313,7 @@ function RoomAllocationGrid({
   /*  MAIN RENDER                                                       */
   /* ------------------------------------------------------------------ */
   return (
-    <div className="w-full min-w-0 min-h-[calc(100vh-70px)] bg-[#0a0b0e] text-zinc-100 p-2 sm:p-3 md:p-4 flex flex-col justify-between select-none box-border overflow-hidden font-sans">
+    <div className="w-full min-w-0 min-h-[calc(100vh-70px)] bg-[#0a0b0e] text-zinc-100 p-2 sm:p-3 md:p-4 flex flex-col justify-between select-none box-border overflow-y-auto overflow-x-hidden md:overflow-hidden font-sans">
       
       {/* 🌟 1. FULL-WIDTH TOP HEADER */}
       <div className="relative rounded-2xl bg-gradient-to-r from-[#181a24] via-[#12131b] to-[#181a24] border border-amber-500/30 px-3.5 py-2.5 sm:px-5 sm:py-3 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-2.5 shrink-0">
@@ -343,12 +343,12 @@ function RoomAllocationGrid({
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2.5 bg-[#11131c]/95 px-3 py-1.5 rounded-xl border border-zinc-700/60 shadow-md">
           <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-[10px] sm:text-xs font-bold">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.9)] animate-pulse" />
-            <span>3 Free</span>
+            <span>Available</span>
           </div>
 
           <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-amber-950/40 border border-amber-500/30 text-amber-300 text-[10px] sm:text-xs font-bold">
             <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.9)]" />
-            <span>1–2 Free</span>
+            <span>Partial</span>
           </div>
 
           <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-red-950/40 border border-red-500/30 text-red-300 text-[10px] sm:text-xs font-bold">
