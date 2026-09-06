@@ -126,8 +126,7 @@ function RoomAllocationGrid({
   const rajendraVacant = rajendraRooms.reduce((acc, r) => acc + (r.capacity - r.occupied_count), 0);
 
   /* ------------------------------------------------------------------ */
-  /*  Ultra-Premium Glassmorphic Room Pod Design                        */
-  /*  (100% Uniform Size, Distance & Proportions Everywhere)            */
+  /*  Luxury High-Tech Room Pods with 3-Bed Micro LED Matrix            */
   /* ------------------------------------------------------------------ */
   const renderTile = (room) => {
     const isSelectedRoom = selectedBed && selectedBed.room.id === room.id;
@@ -137,23 +136,23 @@ function RoomAllocationGrid({
 
     // 🟢 Green = All Available
     let style =
-      'bg-gradient-to-b from-emerald-500 via-emerald-600 to-emerald-900 text-white border border-emerald-400/80 shadow-[0_4px_12px_rgba(16,185,129,0.35),inset_0_1px_1px_rgba(255,255,255,0.4)] hover:brightness-110';
+      'bg-gradient-to-b from-emerald-500 via-emerald-600 to-[#064e3b] text-white border border-emerald-400/80 shadow-[0_4px_14px_rgba(16,185,129,0.35),inset_0_1px_1px_rgba(255,255,255,0.4)] hover:brightness-115 hover:shadow-[0_6px_18px_rgba(16,185,129,0.5)]';
 
     // 🔴 Red = Fully Occupied
     if (isFull) {
       style =
-        'bg-gradient-to-b from-red-600 via-red-700 to-red-950 text-red-100 border border-red-500/70 shadow-[0_3px_8px_rgba(239,68,68,0.25),inset_0_1px_1px_rgba(255,255,255,0.2)] cursor-not-allowed opacity-85';
+        'bg-gradient-to-b from-red-600 via-red-700 to-[#450a0a] text-red-100 border border-red-500/70 shadow-[0_3px_10px_rgba(239,68,68,0.25),inset_0_1px_1px_rgba(255,255,255,0.2)] cursor-not-allowed opacity-85';
     } 
     // 🟡 Amber = Partially Booked
     else if (isPartiallyBooked) {
       style =
-        'bg-gradient-to-b from-amber-500 via-amber-600 to-amber-900 text-amber-50 border border-amber-300/80 shadow-[0_4px_12px_rgba(245,158,11,0.35),inset_0_1px_1px_rgba(255,255,255,0.4)] hover:brightness-110';
+        'bg-gradient-to-b from-amber-500 via-amber-600 to-[#78350f] text-amber-50 border border-amber-300/80 shadow-[0_4px_14px_rgba(245,158,11,0.35),inset_0_1px_1px_rgba(255,255,255,0.4)] hover:brightness-115 hover:shadow-[0_6px_18px_rgba(245,158,11,0.5)]';
     }
 
     // 🌟 Gold = Selected by Student
     if (isSelectedRoom) {
       style =
-        'bg-gradient-to-b from-yellow-300 via-amber-400 to-yellow-500 text-black font-black border-2 border-white shadow-[0_0_24px_rgba(250,204,21,0.95),inset_0_1px_2px_rgba(255,255,255,0.9)] scale-[1.05] ring-0 z-20';
+        'bg-gradient-to-b from-[#fef08a] via-[#facc15] to-[#ca8a04] text-black font-black border-2 border-white shadow-[0_0_26px_rgba(250,204,21,1),inset_0_1px_2px_rgba(255,255,255,0.9)] scale-[1.06] ring-0 z-20';
     }
 
     return (
@@ -164,22 +163,41 @@ function RoomAllocationGrid({
         onClick={() => handleRoomClick(room)}
         aria-label={`Room ${room.room_number}, ${isFull ? 'fully occupied' : `${freeBeds} of ${room.capacity} beds free`}`}
         title={`Room ${room.room_number} • ${freeBeds} of ${room.capacity} beds available`}
-        className={`w-full h-11 sm:h-12 md:h-13 rounded-xl transition-all duration-150 flex flex-col items-center justify-center relative active:scale-95 ${style}`}
+        className={`relative overflow-hidden w-full h-12 sm:h-13 md:h-14 rounded-2xl transition-all duration-150 flex flex-col items-center justify-center select-none active:scale-95 before:absolute before:top-0 before:inset-x-2 before:h-[1.5px] before:bg-gradient-to-r before:from-transparent before:via-white/60 before:to-transparent ${style}`}
       >
+        <div className="flex items-center gap-1 opacity-80 leading-none">
+          <span className="text-[7px] sm:text-[7.5px] md:text-[8px] font-mono font-black uppercase tracking-widest">
+            ROOM
+          </span>
+        </div>
         <span
-          className={`text-[7.5px] sm:text-[8px] md:text-[8.5px] font-mono font-black uppercase tracking-widest leading-none ${
-            isSelectedRoom ? 'text-black/80' : 'opacity-80'
-          }`}
-        >
-          ROOM
-        </span>
-        <span
-          className={`text-xs sm:text-sm md:text-base font-mono font-black tracking-tight leading-none mt-1 ${
+          className={`text-xs sm:text-sm md:text-base font-mono font-black tracking-tight leading-none mt-0.5 ${
             isSelectedRoom ? 'text-black' : 'text-white'
           }`}
         >
           {room.room_number}
         </span>
+
+        {/* 🛏️ 3-Bed Live Micro LED Bar */}
+        <div className="flex items-center gap-1 mt-1">
+          {[0, 1, 2].map((bedIdx) => {
+            const isOccupied = bedIdx < room.occupied_count;
+            return (
+              <span
+                key={bedIdx}
+                className={`w-1.5 h-1 sm:w-2 sm:h-1 rounded-full ${
+                  isSelectedRoom
+                    ? isOccupied
+                      ? 'bg-black/80'
+                      : 'bg-white shadow-[0_0_3px_rgba(255,255,255,0.9)]'
+                    : isOccupied
+                    ? 'bg-red-400/90 shadow-[0_0_4px_rgba(239,68,68,0.9)]'
+                    : 'bg-emerald-300/90 shadow-[0_0_4px_rgba(110,231,183,0.9)]'
+                }`}
+              />
+            );
+          })}
+        </div>
       </button>
     );
   };
@@ -187,7 +205,7 @@ function RoomAllocationGrid({
   const renderPlaceholder = (num) => (
     <div
       key={num}
-      className="w-full h-11 sm:h-12 md:h-13 rounded-xl border border-zinc-800/80 bg-zinc-900/30 flex flex-col items-center justify-center text-zinc-600 font-mono leading-none"
+      className="w-full h-12 sm:h-13 md:h-14 rounded-2xl border border-zinc-800/80 bg-zinc-900/30 flex flex-col items-center justify-center text-zinc-600 font-mono leading-none"
     >
       <span className="text-[7.5px] sm:text-[8px] font-bold tracking-widest opacity-60">ROOM</span>
       <span className="text-xs sm:text-sm font-bold tracking-tight mt-1">{num}</span>
