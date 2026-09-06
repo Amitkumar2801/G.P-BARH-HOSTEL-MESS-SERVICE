@@ -126,7 +126,7 @@ function RoomAllocationGrid({
   const rajendraVacant = rajendraRooms.reduce((acc, r) => acc + (r.capacity - r.occupied_count), 0);
 
   /* ------------------------------------------------------------------ */
-  /*  Pure Number-Only Cinema Seat Tile (NO '3 FREE' TEXT)              */
+  /*  Futuristic Computer-Style Cinema Seat Tile Design                */
   /* ------------------------------------------------------------------ */
   const renderTile = (room) => {
     const isSelectedRoom = selectedBed && selectedBed.room.id === room.id;
@@ -134,25 +134,25 @@ function RoomAllocationGrid({
     const isPartiallyBooked = room.occupied_count > 0 && !isFull;
     const freeBeds = room.capacity - room.occupied_count;
 
-    // 🟢 Green = All 3 Free
+    // 🟢 Green = All Available
     let style =
-      'bg-gradient-to-b from-emerald-600 to-emerald-900 text-white border-emerald-400/80 shadow-[0_2px_8px_-2px_rgba(16,185,129,0.5)] hover:brightness-110';
+      'bg-gradient-to-b from-[#059669] via-[#047857] to-[#064e3b] text-white border border-emerald-400/90 shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_3px_10px_rgba(16,185,129,0.35)] hover:brightness-110';
 
     // 🔴 Red = Fully Occupied
     if (isFull) {
       style =
-        'bg-gradient-to-b from-red-700 to-red-950 text-red-100 border-red-500/80 cursor-not-allowed shadow-[0_2px_8px_-2px_rgba(239,68,68,0.4)] opacity-85';
+        'bg-gradient-to-b from-[#b91c1c] via-[#991b1b] to-[#450a0a] text-red-100 border border-red-500/70 shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_3px_8px_rgba(239,68,68,0.25)] cursor-not-allowed opacity-85';
     } 
-    // 🟡 Amber = 1 or 2 Free
+    // 🟡 Amber = Partially Booked
     else if (isPartiallyBooked) {
       style =
-        'bg-gradient-to-b from-amber-500 to-amber-800 text-amber-50 border-amber-300/80 shadow-[0_2px_8px_-2px_rgba(245,158,11,0.5)] hover:brightness-110';
+        'bg-gradient-to-b from-[#d97706] via-[#b45309] to-[#78350f] text-amber-50 border border-amber-400/90 shadow-[inset_0_1px_1px_rgba(255,255,255,0.35),0_3px_10px_rgba(245,158,11,0.35)] hover:brightness-110';
     }
 
     // 🌟 Gold = Selected by Student
     if (isSelectedRoom) {
       style =
-        'bg-gradient-to-b from-yellow-300 via-amber-400 to-yellow-500 text-black font-black border-white shadow-[0_0_0_2px_rgba(255,255,255,0.9),0_0_18px_rgba(245,158,11,0.9)] scale-[1.05] ring-0 z-20';
+        'bg-gradient-to-b from-[#fef08a] via-[#facc15] to-[#eab308] text-black border-2 border-white shadow-[0_0_22px_rgba(250,204,21,0.95),inset_0_1px_2px_rgba(255,255,255,0.9)] scale-[1.05] ring-0 z-20';
     }
 
     return (
@@ -163,9 +163,12 @@ function RoomAllocationGrid({
         onClick={() => handleRoomClick(room)}
         aria-label={`Room ${room.room_number}, ${isFull ? 'fully occupied' : `${freeBeds} of ${room.capacity} beds free`}`}
         title={`Room ${room.room_number} • ${freeBeds} of ${room.capacity} beds available`}
-        className={`w-full min-w-0 h-10 sm:h-11 md:h-12 lg:h-13 rounded-lg sm:rounded-xl border transition-all duration-150 flex items-center justify-center relative active:scale-95 ${style}`}
+        className={`w-full min-w-0 h-11 sm:h-12 md:h-13 rounded-xl transition-all duration-150 flex flex-col items-center justify-center relative active:scale-95 ${style}`}
       >
-        <span className="text-xs sm:text-sm md:text-base font-mono font-black tracking-tight leading-none">
+        <span className={`text-[7.5px] sm:text-[8px] md:text-[9px] font-mono font-black uppercase tracking-widest leading-none ${isSelectedRoom ? 'text-black/80' : 'opacity-80'}`}>
+          ROOM
+        </span>
+        <span className={`text-xs sm:text-sm md:text-base font-mono font-black tracking-tight leading-none mt-1 ${isSelectedRoom ? 'text-black' : 'text-white'}`}>
           {room.room_number}
         </span>
       </button>
@@ -175,9 +178,10 @@ function RoomAllocationGrid({
   const renderPlaceholder = (num) => (
     <div
       key={num}
-      className="w-full min-w-0 h-10 sm:h-11 md:h-12 lg:h-13 rounded-lg sm:rounded-xl border border-zinc-800/80 bg-zinc-900/30 flex items-center justify-center text-zinc-600 font-mono text-xs font-bold"
+      className="w-full min-w-0 h-11 sm:h-12 md:h-13 rounded-xl border border-zinc-800/80 bg-zinc-900/30 flex flex-col items-center justify-center text-zinc-600 font-mono leading-none"
     >
-      {num}
+      <span className="text-[7.5px] sm:text-[8px] font-bold tracking-widest opacity-60">ROOM</span>
+      <span className="text-xs sm:text-sm font-bold tracking-tight mt-1">{num}</span>
     </div>
   );
 
