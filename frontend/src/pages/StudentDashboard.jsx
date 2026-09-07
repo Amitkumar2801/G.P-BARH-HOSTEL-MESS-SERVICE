@@ -3060,16 +3060,30 @@ function StudentDashboard() {
                       Scan the QR Code displayed on any computer's <strong>GP Barh Login screen</strong> to link your active student session instantly without entering passwords.
                     </p>
 
-                    <div style={{ background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: '24px', padding: '28px', marginBottom: '28px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '14px' }}>
-                        <span style={{ fontSize: '24px' }}>💻</span>
-                        <span style={{ fontSize: '18px', color: '#94a3b8' }}>➔</span>
-                        <span style={{ fontSize: '24px' }}>📷</span>
-                        <span style={{ fontSize: '18px', color: '#94a3b8' }}>➔</span>
-                        <span style={{ fontSize: '24px' }}>⚡</span>
+                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '20px', padding: '22px 16px', marginBottom: '24px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>
+                          <span style={{ fontSize: '18px' }}>📱</span>
+                          <span>Phone</span>
+                        </div>
+                        <span style={{ fontSize: '14px', color: '#94a3b8', fontWeight: 'bold' }}>➔</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>
+                          <span style={{ fontSize: '18px' }}>🔲</span>
+                          <span>QR Code</span>
+                        </div>
+                        <span style={{ fontSize: '14px', color: '#94a3b8', fontWeight: 'bold' }}>➔</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>
+                          <span style={{ fontSize: '18px' }}>💻</span>
+                          <span>Website</span>
+                        </div>
+                        <span style={{ fontSize: '14px', color: '#94a3b8', fontWeight: 'bold' }}>➔</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px', fontWeight: '800', color: '#0d9e74' }}>
+                          <span style={{ fontSize: '18px' }}>⚡</span>
+                          <span>Login</span>
+                        </div>
                       </div>
-                      <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', lineHeight: '1.5' }}>
-                        Zero-Cost WhatsApp-Style Instant Web Login Bridge
+                      <div style={{ fontSize: '12px', fontWeight: '600', color: '#64748b' }}>
+                        Instant &amp; Secure Web Session Authentication
                       </div>
                     </div>
 

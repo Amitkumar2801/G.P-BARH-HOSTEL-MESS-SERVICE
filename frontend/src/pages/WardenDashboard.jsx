@@ -1726,13 +1726,30 @@ function WardenDashboard() {
                   </p>
                 </div>
 
-                <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 font-semibold space-y-2">
-                  <div className="flex items-center justify-center gap-2 text-amber-500 font-bold">
-                    <span>⚡</span>
-                    <span>Zero-Cost WhatsApp-Style Instant Login Bridge</span>
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 font-semibold space-y-2.5">
+                  <div className="flex items-center justify-center gap-2 flex-wrap text-xs font-bold text-slate-700 dark:text-slate-200">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-base">📱</span>
+                      <span>Phone</span>
+                    </div>
+                    <span className="text-slate-400">➔</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-base">🔲</span>
+                      <span>QR Code</span>
+                    </div>
+                    <span className="text-slate-400">➔</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-base">💻</span>
+                      <span>Website</span>
+                    </div>
+                    <span className="text-slate-400">➔</span>
+                    <div className="flex items-center gap-1.5 text-amber-500 font-extrabold">
+                      <span className="text-base">⚡</span>
+                      <span>Login</span>
+                    </div>
                   </div>
                   <p className="text-[11px] text-slate-400">
-                    No password required • Real-time instant verification
+                    Instant &amp; Encrypted Web Session Authentication
                   </p>
                 </div>
 
