@@ -1,7 +1,8 @@
 // src/pages/Login.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { QRCodeSVG } from 'qrcode.react';
 import toast from 'react-hot-toast';
 import '../App.css';
 
@@ -19,6 +20,15 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // QR LOGIN STATES & LOGIC
+  const [qrSessionId, setQrSessionId] = useState("");
+  const [qrPayload, setQrPayload] = useState("");
+  const [qrLoading, setQrLoading] = useState(true);
+  const [qrExpired, setQrExpired] = useState(false);
+  const [countdown, setCountdown] = useState(120);
+  const [isQrAuthenticated, setIsQrAuthenticated] = useState(false);
+  const pollingRef = useRef(null);
+
   // FORGOT PASSWORD MODAL STATES
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [forgotStep, setForgotStep] = useState(1); // 1: Verify Identity, 2: OTP, 3: Set Password
@@ -29,6 +39,155 @@ function Login() {
   const [isForgotLoading, setIsForgotLoading] = useState(false);
 
   const navigate = useNavigate();
+
+  // 🔔 Futuristic Login Success Chime
+  const playLoginSuccessChime = () => {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) {
+        const ctx = new AudioCtx();
+        const now = ctx.currentTime;
+        
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        
+        osc1.type = 'sine';
+        osc2.type = 'triangle';
+        
+        osc1.frequency.setValueAtTime(523.25, now); // C5
+        osc1.frequency.exponentialRampToValueAtTime(659.25, now + 0.12); // E5
+        osc1.frequency.exponentialRampToValueAtTime(783.99, now + 0.24); // G5
+        osc1.frequency.exponentialRampToValueAtTime(1046.50, now + 0.36); // C6
+        
+        osc2.frequency.setValueAtTime(261.63, now);
+        osc2.frequency.exponentialRampToValueAtTime(523.25, now + 0.36);
+        
+        gainNode.gain.setValueAtTime(0.35, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+        
+        osc1.connect(gainNode);
+        osc2.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 0.7);
+        osc2.stop(now + 0.7);
+      }
+    } catch (e) {
+      console.debug("Audio play error", e);
+    }
+  };
+
+  // Generate / Refresh QR Session
+  const fetchQrSession = async (showToast = false) => {
+    try {
+      setQrLoading(true);
+      setQrExpired(false);
+      setIsQrAuthenticated(false);
+      const res = await axios.get("http://127.0.0.1:8000/api/auth/qr/generate");
+      if (res.data && res.data.session_id) {
+        setQrSessionId(res.data.session_id);
+        setQrPayload(res.data.qr_payload || res.data.session_id);
+        setCountdown(res.data.expires_in || 120);
+        if (showToast) {
+          toast.success("QR Session refreshed! Ready to scan.", {
+            style: { borderRadius: '10px', background: '#333', color: '#fff' }
+          });
+        }
+      }
+    } catch (error) {
+      console.warn("Failed to fetch QR session from server:", error);
+      const fallbackId = 'gpbarh-' + Math.random().toString(36).substring(2, 10);
+      setQrSessionId(fallbackId);
+      setQrPayload(`gpbarh_login:${fallbackId}`);
+      setCountdown(120);
+    } finally {
+      setQrLoading(false);
+    }
+  };
+
+  // Initialize QR Session on mount
+  useEffect(() => {
+    fetchQrSession();
+  }, []);
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (qrLoading || isQrAuthenticated || qrExpired) return;
+
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setQrExpired(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [qrLoading, isQrAuthenticated, qrExpired, qrSessionId]);
+
+  // Polling effect for QR Login
+  useEffect(() => {
+    if (!qrSessionId || qrExpired || isQrAuthenticated) {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      return;
+    }
+
+    const pollSession = async () => {
+      try {
+        const res = await axios.get(`http://127.0.0.1:8000/api/auth/qr/poll/${qrSessionId}`);
+        if (res.data && res.data.status === "AUTHENTICATED" && res.data.user) {
+          setIsQrAuthenticated(true);
+          if (pollingRef.current) clearInterval(pollingRef.current);
+
+          playLoginSuccessChime();
+
+          const loggedInUser = res.data.user;
+          const token = res.data.token || `token_${Date.now()}`;
+          localStorage.setItem('user', JSON.stringify(loggedInUser));
+          localStorage.setItem('auth_token', token);
+
+          toast.success(`Signed in via GP Barh Mobile Pass! 🚀\nWelcome back, ${loggedInUser.full_name}`, {
+            duration: 4000,
+            style: { borderRadius: '12px', background: '#0f172a', color: '#38bdf8', border: '1px solid #38bdf8' }
+          });
+
+          const role = (loggedInUser.role || '').toLowerCase();
+          setTimeout(() => {
+            if (role === 'warden') {
+              navigate("/warden-dashboard", { state: { userRole: role, userName: loggedInUser.full_name, user: loggedInUser } });
+            } else if (role === 'student') {
+              navigate("/student-dashboard", { state: { userRole: role, userName: loggedInUser.full_name, user: loggedInUser } });
+            } else {
+              navigate("/dashboard", { state: { userRole: role, userName: loggedInUser.full_name, user: loggedInUser } });
+            }
+          }, 700);
+        } else if (res.data && res.data.status === "EXPIRED") {
+          setQrExpired(true);
+          if (pollingRef.current) clearInterval(pollingRef.current);
+        }
+      } catch (err) {
+        // network polling pass
+      }
+    };
+
+    pollingRef.current = setInterval(pollSession, 2000);
+
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [qrSessionId, qrExpired, isQrAuthenticated, navigate]);
+
+  const formatCountdown = (secs) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
 
   // FORGOT PASSWORD HANDLERS
   const handleSendOtp = (e) => {
@@ -179,156 +338,216 @@ function Login() {
       <main className="flex-grow bg-campus flex items-center justify-center p-4 md:p-8 lg:p-10 relative">
         <div className={`absolute inset-0 transition-colors duration-500 ${isDarkMode ? 'bg-black/75' : 'bg-black/40'}`}></div>
 
-        {/* 🌟 WOW-FACTOR ULTRA-EXPANDED & LUXURIOUS LOGIN DASHBOARD 🌟 */}
-        <div className={`relative z-10 backdrop-blur-2xl rounded-[36px] shadow-[0_35px_100px_-15px_rgba(0,0,0,0.65)] flex flex-col md:flex-row w-full max-w-[1050px] min-h-[640px] md:min-h-[670px] overflow-hidden border transition-all duration-300 ${isDarkMode ? 'bg-[#111115]/95 border-blue-500/20 text-white shadow-blue-900/10' : 'bg-white/95 border-white/90 text-gray-900 shadow-xl'
-          }`}>
+        {/* 🌟 SPLIT MODERN CARD (RESPONSIVE: SINGLE CARD ON MOBILE/APK, SPLIT WITH QR ON DESKTOP) 🌟 */}
+        <div className={`relative z-10 rounded-[32px] shadow-[0_25px_70px_rgba(0,0,0,0.35)] flex flex-col md:flex-row w-full max-w-[460px] md:max-w-[980px] min-h-[500px] md:min-h-[580px] overflow-hidden border transition-all duration-300 ${
+          isDarkMode 
+            ? 'bg-[#111827] border-gray-800 text-white' 
+            : 'bg-white border-gray-100 text-gray-900 shadow-2xl'
+        }`}>
 
-          {/* LEFT SIDE: SPACIOUS, TALL & GORGEOUS LOGIN FORM */}
-          <div className="w-full md:w-[56%] p-8 md:p-14 lg:p-16 flex flex-col justify-center relative">
-            <div className="text-left mb-8 md:mb-10">
-              <h2 className="text-3xl md:text-4xl lg:text-[46px] font-black tracking-tight bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-800 dark:from-blue-400 dark:via-indigo-300 dark:to-blue-200 bg-clip-text text-transparent leading-none drop-shadow-sm">
-                Student Login
-              </h2>
-              <div className="w-16 h-1.5 bg-gradient-to-r from-blue-600 to-indigo-500 rounded-full mt-3.5"></div>
-            </div>
-
-            {/* 🌟 FORM START */}
-            <form className="space-y-6 md:space-y-7" onSubmit={handleLogin}>
-              <div>
-                <label className={`block text-[11px] md:text-xs font-black uppercase tracking-wider mb-2.5 ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>
-                  Registration ID / Email
-                </label>
-                <div className="relative group">
-                  <input
-                    type="text"
-                    value={userId}
-                    onChange={(e) => setUserId(e.target.value)}
-                    placeholder="e.g. 1554424049"
-                    className={`w-full pl-4.5 pr-12 py-4 rounded-2xl border-2 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition-all text-sm md:text-base font-bold ${isDarkMode ? 'bg-gray-800/80 border-gray-700 text-white placeholder-gray-500 focus:bg-gray-800' : 'bg-gray-50/90 border-gray-200 text-black placeholder-gray-400 focus:bg-white shadow-sm'
-                      }`}
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl group-focus-within:text-blue-500 transition-colors">
-                    🆔
-                  </span>
+          {/* LEFT SIDE: CLEAN WHITE SIGN IN FORM */}
+          <div className="w-full md:w-[54%] p-6 sm:p-10 lg:p-12 flex flex-col justify-between relative bg-white dark:bg-[#111827]">
+            <div>
+              {/* BRAND HEADER */}
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-11 h-11 rounded-xl bg-white border border-gray-200 p-1.5 flex items-center justify-center shadow-sm shrink-0">
+                  <img src={logo} alt="GP Barh Logo" className="w-full h-full object-contain" />
+                </div>
+                <div>
+                  <h1 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white tracking-tight leading-tight">
+                    Government Polytechnic, Barh
+                  </h1>
+                  <p className="text-[10px] sm:text-[11px] font-semibold text-gray-400 dark:text-gray-400 uppercase tracking-wider mt-0.5">
+                    Hostel & Mess Management
+                  </p>
                 </div>
               </div>
 
-              <div>
-                <div className="flex justify-between items-center mb-2.5">
-                  <label className={`block text-[11px] md:text-xs font-black uppercase tracking-wider ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>
-                    Account Password
+              {/* WELCOME BACK TITLE */}
+              <div className="mb-6">
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
+                  Welcome Back
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  Enter your details to access your dashboard.
+                </p>
+              </div>
+
+              {/* LOGIN FORM */}
+              <form className="space-y-4" onSubmit={handleLogin}>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                    Email Address / Registration ID
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowForgotModal(true);
-                      setForgotStep(1);
-                      setForgotInput(userId || "");
-                    }}
-                    className="text-xs font-extrabold text-blue-600 hover:text-blue-500 hover:underline cursor-pointer bg-transparent border-none p-0 transition-colors"
-                  >
-                    Forgot Password?
-                  </button>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={userId}
+                      onChange={(e) => setUserId(e.target.value)}
+                      placeholder="name@example.com or Reg No."
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all placeholder:text-gray-400 font-medium"
+                    />
+                  </div>
                 </div>
-                <div className="relative group">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••••••"
-                    className={`w-full pl-4.5 pr-20 py-4 rounded-2xl border-2 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition-all text-sm md:text-base font-bold ${isDarkMode ? 'bg-gray-800/80 border-gray-700 text-white placeholder-gray-500 focus:bg-gray-800' : 'bg-gray-50/90 border-gray-200 text-black placeholder-gray-400 focus:bg-white shadow-sm'
-                      }`}
-                  />
-                  <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+
+                <div>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      Password
+                    </label>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all placeholder:text-gray-400 font-medium pr-10"
+                    />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="text-sm font-bold text-gray-400 hover:text-blue-600 p-1.5 rounded-lg transition-colors"
-                      title={showPassword ? "Hide Password" : "Show Password"}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-sm p-1 cursor-pointer bg-transparent border-none"
+                      title={showPassword ? "Hide" : "Show"}
                     >
                       {showPassword ? "🙈" : "👁️"}
                     </button>
-                    <span className="text-gray-400 text-xl">🔒</span>
+                  </div>
+                  <div className="flex justify-end mt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowForgotModal(true);
+                        setForgotStep(1);
+                        setForgotInput(userId || "");
+                      }}
+                      className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 hover:underline cursor-pointer bg-transparent border-none p-0"
+                    >
+                      Forgot Password?
+                    </button>
                   </div>
                 </div>
-              </div>
 
-              {/* LOGIN BUTTON */}
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className={`w-full font-black py-4.5 rounded-2xl transition-all duration-300 shadow-xl text-sm md:text-base tracking-widest uppercase flex items-center justify-center gap-3 ${isLoading
-                    ? 'bg-blue-400 text-white cursor-not-allowed'
-                    : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-[1.015] active:scale-[0.98]'
-                    }`}
-                >
-                  <span>{isLoading ? 'Verifying Credentials...' : 'Sign In to Portal'}</span>
-                  {!isLoading && <span className="text-lg">➔</span>}
-                </button>
-              </div>
-
-              {/* SIGNUP / REGISTER LINK */}
-              <div className="text-center pt-3">
-                <p className={`text-xs md:text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  New to GP Barh Hostel?{' '}
-                  <Link to="/signup" className="font-extrabold text-blue-600 hover:text-blue-500 hover:underline">
-                    Register
-                  </Link>
-                </p>
-              </div>
-            </form>
-            {/* 🌟 FORM END */}
-          </div>
-
-          {/* DIVIDER */}
-          <div className={`hidden md:flex flex-col items-center justify-center px-0 border-l border-r ${isDarkMode ? 'bg-gray-900/60 border-gray-800' : 'bg-gray-100/60 border-gray-200'
-            }`}>
-            <div className={`h-full w-[1px] ${isDarkMode ? 'bg-gray-700' : 'bg-gray-300'}`}></div>
-            <span className={`py-4 px-3 text-[11px] font-black uppercase rounded-full my-4 ${isDarkMode ? 'bg-gray-800 text-gray-400 border border-gray-700' : 'bg-white text-gray-400 shadow-md border border-gray-200'}`}>OR</span>
-            <div className={`h-full w-[1px] ${isDarkMode ? 'bg-gray-700' : 'bg-gray-300'}`}></div>
-          </div>
-
-          {/* RIGHT SIDE: CLEAN, TALL, HIGH-TECH QR MOBILE LOGIN */}
-          <div className={`hidden md:flex w-[44%] p-8 lg:p-14 flex-col items-center justify-between text-center relative ${isDarkMode ? 'bg-gradient-to-b from-[#18181f] to-[#0d0d10]' : 'bg-gradient-to-b from-slate-50 via-gray-50 to-blue-50/40'}`}>
-            <div className="w-full max-w-[300px] flex-1 flex flex-col items-center justify-center">
-              <h3 className={`text-lg lg:text-xl font-black uppercase tracking-wider mb-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-                Scan to Login Instantly
-              </h3>
-              <p className={`text-xs font-semibold leading-relaxed mb-7 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                Open the official <strong>GP Barh Mobile App</strong> on your phone and point the camera at this QR code.
-              </p>
-
-              {/* QR SCANNER CONTAINER WITH FLOATING LASER */}
-              <div className="relative mx-auto w-56 h-56 lg:w-60 lg:h-60 flex items-center justify-center">
-                <div className={`w-full h-full border-2 border-dashed rounded-3xl flex flex-col items-center justify-center relative overflow-hidden shadow-2xl transition-transform hover:scale-105 duration-300 ${isDarkMode ? 'bg-gray-900 border-blue-500/50 shadow-blue-900/20' : 'bg-white border-blue-400 shadow-blue-500/10'}`}>
-                  {/* SCANNING LASER BEAM */}
-                  <div className="absolute w-full h-1.5 bg-gradient-to-r from-transparent via-blue-500 to-transparent shadow-[0_0_25px_6px_rgba(59,130,246,0.95)] animate-scan"></div>
-                  
-                  <span className="text-7xl lg:text-8xl mb-3 opacity-95 drop-shadow-lg">📱</span>
-                  <span className="text-[11px] text-blue-600 dark:text-blue-400 font-black tracking-widest uppercase">
-                    Scan in GP Barh App
-                  </span>
+                {/* SIGN IN BUTTON */}
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full py-3.5 bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold text-sm rounded-xl shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer border-none flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-60"
+                  >
+                    <span>{isLoading ? 'Signing In...' : 'Sign In'}</span>
+                    {!isLoading && <span>➔</span>}
+                  </button>
                 </div>
-              </div>
+              </form>
             </div>
 
-            {/* LIVE QR STATUS & REFRESH BAR */}
-            <div className="w-full pt-5 mt-4 border-t border-gray-200/80 dark:border-gray-800 flex items-center justify-between text-[11px] font-bold">
-              <span className="text-gray-400 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>QR Session Live</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  toast.success("QR Token refreshed successfully!", { style: { borderRadius: '10px', background: '#333', color: '#fff' }});
-                }}
-                className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 font-mono font-bold cursor-pointer bg-transparent border-none"
-              >
-                <span>Auto-Refresh</span>
-                <span>🔄</span>
-              </button>
+            {/* FOOTER REGISTER LINK */}
+            <div className="text-center pt-5 mt-4 border-t border-gray-100 dark:border-gray-800">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                New to GP Barh?{' '}
+                <Link to="/signup" className="font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 hover:underline">
+                  Create an account
+                </Link>
+              </p>
+            </div>
+          </div>
+
+          {/* RIGHT SIDE: MIDNIGHT NAVY QUICK ACCESS QR CARD (DESKTOP ONLY) */}
+          <div className="hidden md:flex md:w-[46%] bg-gradient-to-br from-[#0b132b] via-[#0e1c3d] to-[#080e1e] p-8 sm:p-10 lg:p-12 flex-col justify-between items-center text-center relative border-t md:border-t-0 md:border-l border-slate-800">
+            <div className="w-full flex flex-col items-center">
+              <h3 className="text-2xl font-bold text-white tracking-tight mb-1.5">
+                Quick Access
+              </h3>
+              <p className="text-xs text-slate-300/80 mb-5 font-normal">
+                Scan to login instantly from mobile.
+              </p>
+
+              {/* SLEEK DARK QR CARD CONTAINER (BIGGER & PROMINENT) */}
+              <div className="w-full max-w-[310px] bg-[#142347]/90 border border-[#233868] rounded-3xl p-5 shadow-2xl flex flex-col items-center justify-center relative overflow-hidden">
+                {/* Inner Crisp White QR Square */}
+                <div className="bg-white p-4 rounded-2xl shadow-xl relative flex items-center justify-center w-[236px] h-[236px]">
+                  {/* 1. LOADING STATE */}
+                  {qrLoading && (
+                    <div className="flex flex-col items-center justify-center gap-2.5">
+                      <div className="w-10 h-10 border-4 border-blue-500/20 border-t-blue-600 rounded-full animate-spin"></div>
+                      <span className="text-xs font-bold text-gray-500 tracking-wider">Generating QR...</span>
+                    </div>
+                  )}
+
+                  {/* 2. AUTHENTICATED SUCCESS STATE */}
+                  {!qrLoading && isQrAuthenticated && (
+                    <div className="flex flex-col items-center justify-center gap-2 animate-in zoom-in-90 duration-300">
+                      <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-600 flex items-center justify-center text-4xl font-bold shadow-inner animate-bounce">
+                        ✓
+                      </div>
+                      <span className="text-sm font-black text-emerald-600 tracking-wide">
+                        Authenticated!
+                      </span>
+                    </div>
+                  )}
+
+                  {/* 3. ACTIVE LIVE QR CODE (BIGGER 205px) */}
+                  {!qrLoading && !isQrAuthenticated && (
+                    <div className="relative flex items-center justify-center">
+                      <QRCodeSVG
+                        value={qrPayload || "gpbarh_login_ready"}
+                        size={205}
+                        level="M"
+                        includeMargin={false}
+                      />
+
+                      {/* SCANNING LASER BEAM */}
+                      {!qrExpired && (
+                        <div className="absolute inset-x-0 h-1.5 bg-gradient-to-r from-transparent via-blue-500 to-transparent shadow-[0_0_20px_4px_rgba(59,130,246,0.95)] animate-scan pointer-events-none"></div>
+                      )}
+
+                      {/* 4. EXPIRED OVERLAY */}
+                      {qrExpired && (
+                        <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-xs rounded-xl flex flex-col items-center justify-center gap-2 text-white p-3 animate-in fade-in duration-200">
+                          <span className="text-3xl">⏳</span>
+                          <span className="text-xs font-bold uppercase tracking-wider text-amber-300">
+                            QR Code Expired
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => fetchQrSession(true)}
+                            className="mt-1 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold text-xs rounded-lg shadow-md transition-all cursor-pointer border-none flex items-center gap-1"
+                          >
+                            <span>Refresh Code</span>
+                            <span>🔄</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Subtitle directly under QR Card */}
+              <p className="text-xs text-slate-300/90 mt-3.5 font-medium">
+                Scan with your mobile...
+              </p>
+            </div>
+
+            {/* Bottom helper text matching user request */}
+            <div className="w-full pt-4 mt-3 border-t border-slate-800/80 flex flex-col items-center gap-2">
+              <p className="text-xs text-slate-300 leading-snug max-w-[280px]">
+                Open the official <strong className="text-white">GP Barh Mobile App</strong> on your phone and point the camera at this QR code.
+              </p>
+              <div className="flex items-center gap-2 text-[10px] text-slate-400 font-mono">
+                <span className={`w-1.5 h-1.5 rounded-full ${qrExpired ? 'bg-red-500' : countdown <= 20 ? 'bg-amber-400 animate-ping' : 'bg-emerald-400 animate-pulse'}`}></span>
+                <span>{qrExpired ? 'Expired' : isQrAuthenticated ? 'Connected' : `Session: ${formatCountdown(countdown)}`}</span>
+                <span>•</span>
+                <button
+                  type="button"
+                  onClick={() => fetchQrSession(true)}
+                  disabled={qrLoading}
+                  className="text-blue-400 hover:text-blue-300 hover:underline cursor-pointer bg-transparent border-none p-0 text-[10px] font-bold"
+                >
+                  Refresh 🔄
+                </button>
+              </div>
             </div>
           </div>
         </div>

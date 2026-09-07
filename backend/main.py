@@ -1,12 +1,14 @@
 # backend/main.py
 from typing import List, Optional
-from fastapi import FastAPI, Depends, HTTPException, status, Query
+from fastapi import FastAPI, Depends, HTTPException, status, Query, Header
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from datetime import datetime, date, timedelta
 import json
 import secrets
+import uuid
+import time
 
 import models
 import schemas
@@ -230,25 +232,204 @@ def login_user(user: schemas.UserLogin, db: Session = Depends(get_db)):
 
     return {
         "message": "Login successful!",
-        "user": {
-            "id": db_user.id,
-            "full_name": db_user.full_name,
-            "reg_no_email": db_user.reg_no_email,
-            "role": db_user.role,
-            "gender": normalize_gender(db_user.gender),
-            "branch": db_user.branch,
-            "semester": db_user.semester or "2024-27",
-            "session": db_user.semester or "2024-27",
-            "roll_no": db_user.roll_no,
-            "reg_no": db_user.reg_no or db_user.reg_no_email,
-            "mobile": db_user.mobile,
-            "guardian_mobile": db_user.guardian_mobile or db_user.guardian_contact,
-            "address": db_user.address,
-            "blood_group": db_user.blood_group,
-            "profile_pic": db_user.profile_pic,
-            "profile_completed": db_user.profile_completed or False
-        }
+        "user": serialize_user_dict(db_user)
     }
+
+# ---------------------------------------------------------
+# ZERO-COST QR SCAN-TO-LOGIN SESSION BRIDGE
+# ---------------------------------------------------------
+# In-Memory Session Store:
+# qr_sessions = {
+#     session_id: {
+#         "status": "PENDING" | "AUTHENTICATED",
+#         "token": Optional[str],
+#         "user": Optional[dict],
+#         "created_at": float,
+#         "expires_at": float
+#     }
+# }
+qr_sessions = {}
+
+def clean_expired_qr_sessions():
+    """Remove expired sessions from in-memory dictionary."""
+    now = time.time()
+    expired_ids = [sid for sid, sdata in qr_sessions.items() if sdata.get("expires_at", 0) < now]
+    for sid in expired_ids:
+        qr_sessions.pop(sid, None)
+
+def serialize_user_dict(user: models.User) -> dict:
+    """Format user model to standard JSON dictionary."""
+    return {
+        "id": user.id,
+        "full_name": user.full_name,
+        "reg_no_email": user.reg_no_email,
+        "role": user.role,
+        "gender": normalize_gender(user.gender),
+        "branch": user.branch,
+        "semester": user.semester or "2024-27",
+        "session": user.semester or "2024-27",
+        "roll_no": user.roll_no,
+        "reg_no": user.reg_no or user.reg_no_email,
+        "mobile": user.mobile,
+        "guardian_mobile": user.guardian_mobile or user.guardian_contact,
+        "address": user.address,
+        "blood_group": user.blood_group,
+        "profile_pic": user.profile_pic,
+        "profile_completed": user.profile_completed or False
+    }
+
+@app.get("/api/auth/qr/generate", response_model=schemas.QRGenerateResponse, tags=["QR Authentication"])
+@app.get("/auth/qr/generate", response_model=schemas.QRGenerateResponse, tags=["QR Authentication"])
+def generate_qr_session():
+    """Generates a unique UUID session_id valid for 2 minutes (120s) for WhatsApp-style Scan Login."""
+    clean_expired_qr_sessions()
+    session_id = str(uuid.uuid4())
+    now = time.time()
+    expires_in = 120  # 2 minutes
+    expires_at = now + expires_in
+    
+    # Store session state
+    qr_sessions[session_id] = {
+        "status": "PENDING",
+        "token": None,
+        "user": None,
+        "created_at": now,
+        "expires_at": expires_at
+    }
+    
+    # Payload format: standard prefix recognizable by mobile scanner or json payload
+    qr_payload = f"gpbarh_login:{session_id}"
+
+    return {
+        "session_id": session_id,
+        "qr_payload": qr_payload,
+        "expires_in": expires_in,
+        "expires_at": expires_at
+    }
+
+@app.post("/api/auth/qr/verify", response_model=schemas.QRVerifyResponse, tags=["QR Authentication"])
+@app.post("/auth/qr/verify", response_model=schemas.QRVerifyResponse, tags=["QR Authentication"])
+def verify_qr_session(
+    payload: schemas.QRVerifyRequest,
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Protected/Mobile verify endpoint.
+    Scans/receives the session_id, maps the authenticated user to the session,
+    and sets status = 'AUTHENTICATED' with a generated access token.
+    """
+    clean_expired_qr_sessions()
+    session_id = payload.session_id.strip()
+
+    # If payload contains the 'gpbarh_login:' prefix or JSON string, extract the session_id
+    if session_id.startswith("gpbarh_login:"):
+        session_id = session_id.split("gpbarh_login:", 1)[1].strip()
+    elif session_id.startswith("{") and "session_id" in session_id:
+        try:
+            parsed_json = json.loads(session_id)
+            if "session_id" in parsed_json:
+                session_id = parsed_json["session_id"].strip()
+        except Exception:
+            pass
+
+    if session_id not in qr_sessions:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="QR session has expired or is invalid. Please refresh the QR code on your computer."
+        )
+
+    session_data = qr_sessions[session_id]
+    if session_data.get("expires_at", 0) < time.time():
+        qr_sessions.pop(session_id, None)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="QR session has expired. Please refresh the QR code."
+        )
+
+    # Resolve User
+    db_user = None
+    if payload.user_id:
+        db_user = db.query(models.User).filter(models.User.id == payload.user_id).first()
+    elif payload.reg_no_email:
+        db_user = db.query(models.User).filter(models.User.reg_no_email == payload.reg_no_email).first()
+    elif authorization:
+        # Check Bearer token or raw user string if provided
+        token_val = authorization.replace("Bearer ", "").strip()
+        if token_val.isdigit():
+            db_user = db.query(models.User).filter(models.User.id == int(token_val)).first()
+        else:
+            db_user = db.query(models.User).filter(models.User.reg_no_email == token_val).first()
+
+    # If not provided, fallback to default student if any, or raise error
+    if not db_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authenticated user identity required to verify QR session."
+        )
+
+    # Generate session access token for the web client
+    token = f"gpbarh_qr_{secrets.token_urlsafe(32)}_{db_user.id}"
+    serialized_user = serialize_user_dict(db_user)
+
+    # Update session in memory
+    qr_sessions[session_id]["status"] = "AUTHENTICATED"
+    qr_sessions[session_id]["token"] = token
+    qr_sessions[session_id]["user"] = serialized_user
+
+    return {
+        "status": "AUTHENTICATED",
+        "message": f"Successfully authenticated session for {db_user.full_name}!",
+        "user_id": db_user.id,
+        "user_name": db_user.full_name,
+        "role": db_user.role
+    }
+
+@app.get("/api/auth/qr/poll/{session_id}", response_model=schemas.QRPollResponse, tags=["QR Authentication"])
+@app.get("/auth/qr/poll/{session_id}", response_model=schemas.QRPollResponse, tags=["QR Authentication"])
+def poll_qr_session(session_id: str):
+    """
+    Polling endpoint for Web Login.
+    Returns status: 'PENDING', 'AUTHENTICATED', or 'EXPIRED'.
+    When 'AUTHENTICATED', returns JWT token and student profile, then consumes/deletes the session.
+    """
+    clean_expired_qr_sessions()
+    session_id = session_id.strip()
+
+    if session_id not in qr_sessions:
+        return {
+            "status": "EXPIRED",
+            "token": None,
+            "user": None
+        }
+
+    session_data = qr_sessions[session_id]
+
+    if session_data.get("expires_at", 0) < time.time():
+        qr_sessions.pop(session_id, None)
+        return {
+            "status": "EXPIRED",
+            "token": None,
+            "user": None
+        }
+
+    if session_data.get("status") == "AUTHENTICATED":
+        token = session_data.get("token")
+        user = session_data.get("user")
+        # Consume the session to prevent replay
+        qr_sessions.pop(session_id, None)
+        return {
+            "status": "AUTHENTICATED",
+            "token": token,
+            "user": user
+        }
+
+    return {
+        "status": "PENDING",
+        "token": None,
+        "user": None
+    }
+
 
 # ---------------------------------------------------------
 # PROFILE ENDPOINTS

@@ -5,13 +5,23 @@ import axios from 'axios';
 import logo from '../assets/logo.png.png';
 import toast, { Toaster } from 'react-hot-toast';
 import RoomAllocationGrid from '../components/RoomAllocationGrid';
+import ConnectAppModal from '../components/ConnectAppModal';
 
 function WardenDashboard() {
   const [activeNavTab, setActiveNavTab] = useState('allocations'); // 'allocations', 'analytics', 'leaves', 'fees', 'directory'
   const [allocationSubTab, setAllocationSubTab] = useState('pending'); // 'boys', 'girls', 'pending'
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 1024);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
   const navigate = useNavigate();
+
+  const [wardenUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('user');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return { id: 3, full_name: 'Chief Warden (Hostel Admin)', role: 'warden', reg_no_email: 'warden@gpbarh.ac.in' };
+  });
 
   // Analytics State
   const [analytics, setAnalytics] = useState({
@@ -410,7 +420,13 @@ function WardenDashboard() {
             ].map(tab => (
               <button
                 key={tab.id}
-                onClick={() => { setActiveNavTab(tab.id); if (window.innerWidth < 1024) setIsSidebarOpen(false); }}
+                onClick={() => {
+                  setActiveNavTab(tab.id);
+                  if (tab.id === 'appscan') {
+                    setIsConnectModalOpen(true);
+                  }
+                  if (window.innerWidth < 1024) setIsSidebarOpen(false);
+                }}
                 className={`w-full text-left py-3 px-3.5 rounded-xl transition-all flex items-center justify-between ${tab.className || ''} ${
                   activeNavTab === tab.id
                     ? 'bg-[#800000] text-white shadow-lg border-l-4 border-yellow-500'
@@ -1696,31 +1712,38 @@ function WardenDashboard() {
           {/* ========================================================================= */}
           {activeNavTab === 'appscan' && (
             <article className="mobile-only-nav">
-              <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-lg mx-auto text-center border border-slate-200 dark:border-slate-800 shadow-sm space-y-5 animate-in fade-in duration-300">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-lg mx-auto text-center border border-slate-200 dark:border-slate-800 shadow-sm space-y-6 animate-in fade-in duration-300">
                 <div className="w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-3xl mx-auto shadow-md">
                   📱
                 </div>
 
                 <div>
                   <h3 className="text-xl font-black text-slate-900 dark:text-white">
-                    Link Warden Mobile App
+                    Link Warden Web Session
                   </h3>
                   <p className="text-xs text-slate-500 mt-1">
-                    Scan inside the GP Barh Android Admin App to instantly sync your Chief Warden administrative session.
+                    Scan the QR code displayed on your desktop/laptop login screen to authenticate instantly with Chief Warden credentials.
                   </p>
                 </div>
 
-                <div className="w-60 h-60 border-3 border-amber-500 mx-auto rounded-3xl p-3 bg-amber-50/50 dark:bg-amber-950/20 flex items-center justify-center shadow-lg">
-                  <div className="w-full h-full bg-white rounded-2xl p-2 flex items-center justify-center border border-slate-200">
-                    <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
-                        JSON.stringify({ role: 'warden', email: 'amitkumar.arwal28@gmail.com', ts: Date.now() })
-                      )}`}
-                      alt="Warden App QR Sync"
-                      className="w-full h-full object-contain"
-                    />
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 font-semibold space-y-2">
+                  <div className="flex items-center justify-center gap-2 text-amber-500 font-bold">
+                    <span>⚡</span>
+                    <span>Zero-Cost WhatsApp-Style Instant Login Bridge</span>
                   </div>
+                  <p className="text-[11px] text-slate-400">
+                    No password required • Real-time instant verification
+                  </p>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsConnectModalOpen(true)}
+                  className="w-full py-4 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer border-none"
+                >
+                  <span>📷</span>
+                  <span>Launch QR Camera Scanner</span>
+                </button>
 
                 <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 font-bold">
                   🔐 Encrypted Session Token • Official GP Barh Authority
@@ -1728,6 +1751,13 @@ function WardenDashboard() {
               </div>
             </article>
           )}
+
+          {/* CONNECT APP MODAL */}
+          <ConnectAppModal
+            isOpen={isConnectModalOpen}
+            onClose={() => setIsConnectModalOpen(false)}
+            currentUser={wardenUser}
+          />
 
           {/* ⚠️ DATABASE PURGE & RESET CONFIRMATION MODAL */}
           {showResetConfirmModal && (

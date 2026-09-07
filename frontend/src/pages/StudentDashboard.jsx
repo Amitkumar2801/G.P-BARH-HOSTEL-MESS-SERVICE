@@ -7,6 +7,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import RoomAllocationGrid from '../components/RoomAllocationGrid';
 import StudentRecordDossier from '../components/StudentRecordDossier';
 import PaymentsHub from '../components/PaymentsHub';
+import ConnectAppModal from '../components/ConnectAppModal';
 
 // ================= THEME & STYLES (HUGE CSS FOR PIXEL PERFECT UI) =================
 const customCSS = `
@@ -739,6 +740,9 @@ function StudentDashboard() {
     return localStorage.getItem('gpbarh_admission_fee_paid') === 'true';
   });
 
+  // 📱 CONNECT APP MODAL STATE (WHATSAPP-STYLE QR SCANNER)
+  const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
+
   const handlePrintAllotmentSlip = () => {
     if (!isAdmissionFeePaid) {
       toast.error('Please complete ₹2,000 admission payment to unlock printable slip!');
@@ -1345,6 +1349,9 @@ function StudentDashboard() {
                 onClick={() => {
                   if (tab.isRoute) {
                     navigate('/mess-scanner');
+                  } else if (tab.id === 'appscan') {
+                    setActiveTab(tab.id);
+                    setIsConnectModalOpen(true);
                   } else {
                     setActiveTab(tab.id);
                   }
@@ -3041,19 +3048,66 @@ function StudentDashboard() {
                 </div>
               )}
 
-              {/* 7. APP SCAN */}
+              {/* 7. APP SCAN / CONNECT WEB APP */}
               {activeTab === 'appscan' && (
                 <article className="mobile-only-nav">
-                  <div className="custom-card" style={{ textAlign: 'center', padding: '56px 40px', maxWidth: '500px', margin: '0 auto' }}>
-                    <h2 className="page-title">Link Mobile App</h2>
-                    <p className="page-sub" style={{ marginBottom: '40px' }}>Scan inside the GP Barh Android App to sync your session.</p>
-
-                    <div style={{ width: '240px', height: '240px', border: '3px solid var(--teal)', margin: '0 auto 32px', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--teal-light)', boxShadow: '0 10px 25px rgba(14,122,90,0.15)' }}>
-                      <div style={{ fontSize: '80px' }}>📱</div>
+                  <div className="custom-card" style={{ textAlign: 'center', padding: '48px 32px', maxWidth: '540px', margin: '0 auto' }}>
+                    <div style={{ width: '70px', height: '70px', borderRadius: '20px', background: 'var(--teal-light)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', margin: '0 auto 16px', boxShadow: '0 8px 20px rgba(14,122,90,0.15)' }}>
+                      📱
                     </div>
+                    <h2 className="page-title">Connect Web App</h2>
+                    <p className="page-sub" style={{ marginBottom: '28px', fontSize: '13px' }}>
+                      Scan the QR Code displayed on any computer's <strong>GP Barh Login screen</strong> to link your active student session instantly without entering passwords.
+                    </p>
+
+                    <div style={{ background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: '24px', padding: '28px', marginBottom: '28px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '14px' }}>
+                        <span style={{ fontSize: '24px' }}>💻</span>
+                        <span style={{ fontSize: '18px', color: '#94a3b8' }}>➔</span>
+                        <span style={{ fontSize: '24px' }}>📷</span>
+                        <span style={{ fontSize: '18px', color: '#94a3b8' }}>➔</span>
+                        <span style={{ fontSize: '24px' }}>⚡</span>
+                      </div>
+                      <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569', lineHeight: '1.5' }}>
+                        Zero-Cost WhatsApp-Style Instant Web Login Bridge
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsConnectModalOpen(true)}
+                      style={{
+                        width: '100%',
+                        padding: '16px 24px',
+                        background: 'linear-gradient(135deg, #0e7a5a, #0d9e74)',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '16px',
+                        fontSize: '14px',
+                        fontWeight: '800',
+                        letterSpacing: '0.05em',
+                        textTransform: 'uppercase',
+                        boxShadow: '0 10px 25px rgba(14,122,90,0.3)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '10px'
+                      }}
+                    >
+                      <span>📷</span>
+                      <span>Launch QR Camera Scanner</span>
+                    </button>
                   </div>
                 </article>
               )}
+
+              {/* CONNECT APP MODAL */}
+              <ConnectAppModal
+                isOpen={isConnectModalOpen}
+                onClose={() => setIsConnectModalOpen(false)}
+                currentUser={currentUser}
+              />
 
             </div>
           </section>

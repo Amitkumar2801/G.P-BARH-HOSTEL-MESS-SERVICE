@@ -27,6 +27,7 @@ function App() {
         
         {/* 🎓 STUDENT DASHBOARD & ALIASES */}
         <Route path="/student-dashboard" element={<StudentDashboard />} />
+        <Route path="/student/dashboard" element={<StudentDashboard />} />
         <Route path="/student dashboard" element={<StudentDashboard />} />
         <Route path="/student%20dashboard" element={<StudentDashboard />} />
         <Route path="/student" element={<StudentDashboard />} />
@@ -35,6 +36,7 @@ function App() {
 
         {/* 🛡️ WARDEN DASHBOARD & ALIASES */}
         <Route path="/warden-dashboard" element={<WardenDashboard />} />
+        <Route path="/warden/dashboard" element={<WardenDashboard />} />
         <Route path="/warden dashboard" element={<WardenDashboard />} />
         <Route path="/warden%20dashboard" element={<WardenDashboard />} />
         <Route path="/warden" element={<WardenDashboard />} />

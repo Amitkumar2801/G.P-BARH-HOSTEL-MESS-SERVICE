@@ -307,3 +307,29 @@ class StudentAnalyticsResponse(BaseModel):
     attendance_summary: dict = {}
     financial_progress: dict = {}
     activity_timeline: List[dict] = []
+
+# ==========================================
+# QR SCAN-TO-LOGIN SCHEMAS
+# ==========================================
+class QRGenerateResponse(BaseModel):
+    session_id: str
+    qr_payload: str
+    expires_in: int = 120
+    expires_at: float
+
+class QRVerifyRequest(BaseModel):
+    session_id: str
+    user_id: Optional[int] = None
+    reg_no_email: Optional[str] = None
+
+class QRVerifyResponse(BaseModel):
+    status: str
+    message: str
+    user_id: Optional[int] = None
+    user_name: Optional[str] = None
+    role: Optional[str] = None
+
+class QRPollResponse(BaseModel):
+    status: str # "PENDING", "AUTHENTICATED", "EXPIRED", "NOT_FOUND"
+    token: Optional[str] = None
+    user: Optional[dict] = None
