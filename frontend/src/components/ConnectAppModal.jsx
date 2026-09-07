@@ -56,7 +56,7 @@ export default function ConnectAppModal({ isOpen, onClose, currentUser }) {
       const html5QrCode = new Html5Qrcode(scannerContainerId);
       html5QrCodeRef.current = html5QrCode;
 
-      const config = { fps: 20, qrbox: { width: 220, height: 220 }, aspectRatio: 1.0 };
+      const config = { fps: 20, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
 
       try {
         await html5QrCode.start(
@@ -75,7 +75,7 @@ export default function ConnectAppModal({ isOpen, onClose, currentUser }) {
       }
     } catch (err) {
       console.warn("Camera start warning:", err);
-      setCameraError('Camera access not detected or permission denied. You can enter the QR Session ID manually.');
+      setCameraError('To link your computer session to GP Barh, allow access to your camera to scan the QR code.');
       setIsScanning(false);
     }
   };
@@ -97,7 +97,9 @@ export default function ConnectAppModal({ isOpen, onClose, currentUser }) {
   };
 
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
+      startCamera();
+    } else {
       stopCamera();
       setVerifiedSession(null);
       setIsVerifying(false);
@@ -177,171 +179,141 @@ export default function ConnectAppModal({ isOpen, onClose, currentUser }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-200">
-      {/* Scoped CSS for html5-qrcode video element to fix mobile responsive scaling */}
+    <div className="fixed inset-0 z-50 flex flex-col bg-black text-white animate-in fade-in duration-200 select-none">
+      {/* Scoped CSS for html5-qrcode video element */}
       <style>{`
         #${scannerContainerId} {
           width: 100% !important;
           height: 100% !important;
-          position: relative !important;
+          position: absolute !important;
+          inset: 0 !important;
         }
         #${scannerContainerId} video {
           width: 100% !important;
           height: 100% !important;
           object-fit: cover !important;
-          border-radius: 1rem !important;
         }
         #${scannerContainerId} img, #${scannerContainerId} svg {
           display: none !important;
         }
       `}</style>
 
-      {/* 🌟 3. PERFECTLY CENTERED PHONE REAR CAMERA SCANNER MODAL */}
-      <div className="w-full max-w-[390px] bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-700 shadow-2xl space-y-3.5 text-white relative max-h-[94vh] overflow-y-auto">
-        
-        {/* Header */}
-        <div className="w-full flex items-center justify-between pb-3 border-b border-slate-800">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 flex items-center justify-center text-lg shrink-0">
-              📱
-            </div>
-            <div className="text-left">
-              <h3 className="text-sm sm:text-base font-black text-white leading-tight">Scan Web QR</h3>
-              <p className="text-[11px] text-slate-400 mt-0.5">Instant login on computer</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer border-none"
-            title="Close"
-          >
-            ✕
-          </button>
-        </div>
+      {/* 🌟 1. WHATSAPP STYLE TOP HEADER BAR */}
+      <header className="bg-white text-slate-900 px-4 py-3.5 flex items-center gap-4 shadow-sm z-30 shrink-0">
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-9 h-9 -ml-1 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-800 text-xl font-bold bg-transparent border-none cursor-pointer transition-colors active:scale-90"
+          title="Back"
+        >
+          ←
+        </button>
+        <h1 className="text-lg font-bold text-slate-900 tracking-tight">
+          Scan QR code
+        </h1>
+      </header>
 
-        {/* 1. SUCCESS VERIFIED STATE */}
-        {verifiedSession ? (
-          <div className="w-full text-center py-4 space-y-4 animate-in zoom-in-95 duration-300">
-            <div className="w-16 h-16 bg-blue-500/20 text-blue-400 rounded-3xl flex items-center justify-center text-3xl mx-auto border border-blue-500/40 shadow-lg shadow-blue-500/10">
+      {/* 🌟 2. WHATSAPP STYLE SUB-BANNER INSTRUCTION */}
+      <div className="bg-[#f0f2f5] dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs sm:text-sm text-center py-2.5 px-4 font-medium border-b border-slate-200 dark:border-slate-700 z-30 shadow-xs shrink-0">
+        Open GP Barh website on your computer or other devices.
+      </div>
+
+      {/* 🌟 3. MAIN FULLSCREEN CAMERA VIEWPORT WITH TRANSPARENT CUTOUT */}
+      <main className="relative flex-1 w-full overflow-hidden bg-black flex items-center justify-center">
+        {/* RAW FULLSCREEN CAMERA STREAM */}
+        <div id={scannerContainerId} className="absolute inset-0 w-full h-full"></div>
+
+        {/* VERIFIED SUCCESS SCREEN */}
+        {verifiedSession && (
+          <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-40 animate-in zoom-in-95 duration-300">
+            <div className="w-20 h-20 bg-emerald-500/20 text-emerald-400 rounded-3xl flex items-center justify-center text-4xl mx-auto border border-emerald-500/40 shadow-xl mb-4">
               ✓
             </div>
-            <div>
-              <h4 className="text-lg font-black text-white">Login Successful!</h4>
-              <p className="text-xs text-slate-300 mt-1">
-                Connected as <strong className="text-blue-400 font-bold">{verifiedSession.user_name}</strong>
-              </p>
-            </div>
-            <div className="p-3 bg-slate-800/80 rounded-2xl border border-slate-700/80 text-xs text-slate-300 flex items-center justify-between max-w-[280px] mx-auto">
-              <span>Time:</span>
-              <span className="font-mono text-blue-400 font-bold">{verifiedSession.time}</span>
+            <h2 className="text-xl font-black text-white">Login Successful!</h2>
+            <p className="text-sm text-slate-300 mt-1 max-w-xs">
+              Authenticated on computer as <strong className="text-emerald-400 font-bold">{verifiedSession.user_name}</strong>
+            </p>
+            <div className="my-5 p-3.5 bg-slate-900/90 rounded-2xl border border-slate-700 text-xs text-slate-300 flex items-center justify-between w-full max-w-[260px]">
+              <span>Verified At:</span>
+              <span className="font-mono text-emerald-400 font-bold">{verifiedSession.time}</span>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs uppercase tracking-wider rounded-2xl shadow-lg transition-all cursor-pointer border-none active:scale-[0.99]"
+              className="w-full max-w-[260px] py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-2xl shadow-lg transition-all cursor-pointer border-none active:scale-95"
             >
               Done
             </button>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {/* 🌟 2. SLEEK CYAN/BLUE SCANNER BOX */}
-            <div className="relative w-full aspect-square max-h-[290px] bg-black rounded-2xl overflow-hidden flex flex-col items-center justify-center border border-slate-700/80 mx-auto">
-              
-              {/* HTML5-QRCODE TARGET VIEW */}
-              <div id={scannerContainerId} className="absolute inset-0 w-full h-full flex items-center justify-center"></div>
+        )}
 
-              {/* SCANNING LASER & CORNERS (SLEEK CYAN & ROYAL BLUE THEME) */}
+        {/* SCANNER VIEWFINDER OVERLAY (EXACT WHATSAPP STYLE CUTOUT WINDOW) */}
+        {!verifiedSession && !cameraError && (
+          <div className="relative z-20 flex flex-col items-center justify-center pointer-events-none w-full h-full">
+            {/* Dark Mask with Center Cutout */}
+            <div
+              className="relative w-[260px] h-[260px] sm:w-[280px] sm:h-[280px] rounded-3xl border-2 border-white/70 overflow-hidden"
+              style={{
+                boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.65)'
+              }}
+            >
+              {/* Animated Laser Beam */}
               {isScanning && (
-                <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-4 z-10">
-                  <div className="w-48 h-48 sm:w-52 sm:h-52 border border-cyan-400/40 rounded-2xl relative shadow-[0_0_20px_rgba(6,182,212,0.25)]">
-                    <div className="absolute top-0 left-0 w-5 h-5 border-t-3 border-l-3 border-cyan-400 rounded-tl-lg"></div>
-                    <div className="absolute top-0 right-0 w-5 h-5 border-t-3 border-r-3 border-cyan-400 rounded-tr-lg"></div>
-                    <div className="absolute bottom-0 left-0 w-5 h-5 border-b-3 border-l-3 border-cyan-400 rounded-bl-lg"></div>
-                    <div className="absolute bottom-0 right-0 w-5 h-5 border-b-3 border-r-3 border-cyan-400 rounded-br-lg"></div>
-                    <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_12px_#38bdf8] absolute scanner-laser-beam"></div>
-                  </div>
-                  <span className="text-[10px] font-bold text-cyan-300 mt-3 bg-black/85 px-3 py-1 rounded-full uppercase tracking-wider border border-cyan-500/40">
-                    ⚡ Align QR inside frame
-                  </span>
-                </div>
+                <div className="absolute inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_12px_#10b981] animate-scan"></div>
               )}
-
-              {/* IDLE CENTERED PLACEHOLDER (CONCISE & SHORT) */}
-              {!isScanning && (
-                <div className="w-full h-full flex flex-col items-center justify-center text-center p-6 space-y-2 z-0">
-                  <div className="w-14 h-14 rounded-2xl bg-blue-600/10 border border-blue-500/30 text-blue-400 flex items-center justify-center text-2xl shadow-inner">
-                    📷
-                  </div>
-                  <h3 className="text-sm font-black text-white">Scan QR Code</h3>
-                  <p className="text-xs text-slate-400 max-w-[220px] leading-relaxed">
-                    Point camera at the QR code on your computer screen.
-                  </p>
-                </div>
-              )}
-
-              {/* VERIFYING OVERLAY */}
-              {isVerifying && (
-                <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-xs flex flex-col items-center justify-center gap-2.5 z-20">
-                  <div className="w-8 h-8 border-3 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
-                  <span className="text-xs font-bold text-cyan-300 tracking-wide">Signing in...</span>
-                </div>
-              )}
-
-              {/* CAMERA ERROR NOTIFICATION */}
-              {cameraError && !isScanning && !isVerifying && (
-                <div className="absolute inset-0 bg-slate-950/95 p-4 flex flex-col items-center justify-center text-center space-y-2 z-20">
-                  <span className="text-2xl">⚠️</span>
-                  <p className="text-xs text-rose-300 font-bold max-w-xs">{cameraError}</p>
-                  <button
-                    type="button"
-                    onClick={startCamera}
-                    className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all cursor-pointer border-none shadow"
-                  >
-                    Retry Camera
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* 🌟 3. ROYAL BLUE / INDIGO ACTION BUTTON */}
-            <div className="space-y-2 pt-1">
-              <button
-                type="button"
-                onClick={isScanning ? stopCamera : startCamera}
-                disabled={isVerifying}
-                className={`w-full py-3.5 px-4 rounded-2xl font-bold text-xs sm:text-sm uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 disabled:opacity-50 ${
-                  !isScanning
-                    ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-600/30'
-                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 shadow-slate-900/30'
-                }`}
-              >
-                <span>{isScanning ? '✕' : '📸'}</span>
-                <span>
-                  {isScanning
-                    ? 'Close Camera'
-                    : 'Open Camera & Scan'}
-                </span>
-              </button>
             </div>
           </div>
         )}
 
-        {/* 🌟 USER IDENTITY FOOTER (CENTERED WITH LEFT/RIGHT BREATHING ROOM) */}
-        <div className="w-full pt-3 border-t border-slate-800 flex items-center justify-between px-3 max-w-[340px] mx-auto text-xs text-slate-400">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse shrink-0"></span>
-            <span className="text-[11px] text-slate-400">User:</span>
-            <span className="font-bold text-white text-xs truncate max-w-[140px]">
-              {currentUser?.full_name || currentUser?.name || 'Active User'}
-            </span>
+        {/* VERIFYING OVERLAY */}
+        {isVerifying && (
+          <div className="absolute inset-0 bg-black/85 backdrop-blur-xs flex flex-col items-center justify-center gap-3 z-30">
+            <div className="w-10 h-10 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-sm font-bold text-emerald-300 tracking-wide">Connecting to Web Portal...</span>
           </div>
-          <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-md bg-slate-800 text-blue-300 shrink-0 border border-blue-500/20">
-            GP BARH
-          </span>
-        </div>
-      </div>
+        )}
+
+        {/* 🌟 4. WHATSAPP STYLE CAMERA PERMISSION / ERROR DIALOG */}
+        {cameraError && !isVerifying && (
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-5 z-40 animate-in fade-in duration-200">
+            <div className="w-full max-w-[320px] bg-white text-slate-900 rounded-3xl p-6 shadow-2xl flex flex-col items-center text-center animate-in zoom-in-95 duration-200">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center text-3xl mb-3 shadow-inner">
+                📷
+              </div>
+              <h3 className="text-base font-bold text-slate-900">
+                Allow Camera Access
+              </h3>
+              <p className="text-xs text-slate-600 mt-2 leading-relaxed">
+                {cameraError}
+              </p>
+              <div className="w-full flex items-center gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-semibold text-xs hover:bg-slate-50 transition-colors cursor-pointer bg-transparent"
+                >
+                  Not now
+                </button>
+                <button
+                  type="button"
+                  onClick={startCamera}
+                  className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition-all cursor-pointer border-none active:scale-95"
+                >
+                  Continue
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* 🌟 5. WHATSAPP STYLE FOOTER BAR */}
+      <footer className="bg-black/90 px-4 py-3.5 text-center text-xs text-slate-400 border-t border-slate-800/80 z-30 shrink-0">
+        <span className="text-slate-400">
+          Scanning as: <strong className="text-white font-bold">{currentUser?.full_name || currentUser?.name || 'Active User'}</strong> • <span className="text-emerald-400 font-bold">GP BARH</span>
+        </span>
+      </footer>
     </div>
   );
 }
+
