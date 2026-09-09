@@ -1752,6 +1752,19 @@ function StudentDashboard() {
                             <option value="AB-">AB-</option>
                           </select>
                         </div>
+                        <div className="form-group">
+                          <label className="form-label">Home Area Pincode</label>
+                          <input
+                            className="form-input"
+                            type="text"
+                            maxLength={6}
+                            disabled={isProfileLocked}
+                            value={profileData.pincode || ""}
+                            onChange={e => setProfileData({ ...profileData, pincode: e.target.value })}
+                            placeholder="e.g. 804401"
+                            style={isProfileLocked ? { opacity: 0.75, cursor: 'not-allowed', background: 'var(--input-bg)' } : {}}
+                          />
+                        </div>
                       </div>
                       <div className="form-group">
                         <label className="form-label">Full Permanent Address</label>
@@ -1763,138 +1776,6 @@ function StudentDashboard() {
                           placeholder="Vill - , P.O - , P.S - , Dist - , State - , PIN - "
                           style={isProfileLocked ? { opacity: 0.75, cursor: 'not-allowed', background: 'var(--input-bg)' } : {}}
                         ></textarea>
-                      </div>
-
-                      {/* 📍 INSTITUTIONAL HOSTEL ELIGIBILITY & DISTANCE CALCULATOR CARD */}
-                      <div style={{
-                        marginTop: '28px',
-                        background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%)',
-                        border: '1.5px solid #334155',
-                        borderRadius: '18px',
-                        padding: '24px',
-                        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)'
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: '18px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#2563eb', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
-                              📍
-                            </div>
-                            <div>
-                              <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#f8fafc' }}>
-                                Home Distance &amp; Hostel Eligibility Calculator
-                              </h4>
-                              <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#94a3b8' }}>
-                                Reference Point: Govt. Polytechnic Barh Campus (PIN: 803214, Patna, Bihar)
-                              </p>
-                            </div>
-                          </div>
-                          {profileData.distanceKm !== undefined && profileData.distanceKm !== null && (
-                            <span style={{
-                              padding: '6px 14px',
-                              borderRadius: '20px',
-                              background: profileData.distanceKm >= 80 ? 'rgba(16, 185, 129, 0.2)' : (profileData.distanceKm >= 40 ? 'rgba(234, 179, 8, 0.2)' : 'rgba(148, 163, 184, 0.2)'),
-                              border: `1px solid ${profileData.distanceKm >= 80 ? '#10b981' : (profileData.distanceKm >= 40 ? '#eab308' : '#64748b')}`,
-                              color: profileData.distanceKm >= 80 ? '#34d399' : (profileData.distanceKm >= 40 ? '#fde047' : '#cbd5e1'),
-                              fontSize: '12px',
-                              fontWeight: 800
-                            }}>
-                              {profileData.distancePriority || `${profileData.distanceKm} KM`}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="form-row" style={{ marginBottom: '16px' }}>
-                          <div className="form-group">
-                            <label className="form-label" style={{ color: '#cbd5e1' }}>Home Area Pincode (6 Digits)</label>
-                            <div style={{ display: 'flex', gap: '10px' }}>
-                              <input
-                                className="form-input"
-                                type="text"
-                                maxLength={6}
-                                disabled={isProfileLocked}
-                                value={profileData.pincode || ""}
-                                onChange={e => setProfileData({ ...profileData, pincode: e.target.value })}
-                                placeholder="e.g. 804401 or 800001"
-                                style={{
-                                  flex: 1,
-                                  fontWeight: 700,
-                                  letterSpacing: '1px',
-                                  background: '#0f172a',
-                                  borderColor: '#475569',
-                                  color: '#fff',
-                                  ...(isProfileLocked ? { opacity: 0.75, cursor: 'not-allowed' } : {})
-                                }}
-                              />
-                              <button
-                                type="button"
-                                disabled={isProfileLocked || isCalculatingDistance}
-                                onClick={handleCalculateDistance}
-                                style={{
-                                  padding: '0 20px',
-                                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                                  color: '#fff',
-                                  border: 'none',
-                                  borderRadius: '12px',
-                                  fontWeight: 800,
-                                  fontSize: '13px',
-                                  cursor: (isProfileLocked || isCalculatingDistance) ? 'not-allowed' : 'pointer',
-                                  opacity: (isProfileLocked || isCalculatingDistance) ? 0.6 : 1,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '6px',
-                                  whiteSpace: 'nowrap'
-                                }}
-                              >
-                                {isCalculatingDistance ? 'Calculating...' : '📍 Verify Distance'}
-                              </button>
-                            </div>
-                          </div>
-                          <div className="form-group">
-                            <label className="form-label" style={{ color: '#cbd5e1' }}>Home District &amp; State</label>
-                            <input
-                              className="form-input"
-                              type="text"
-                              disabled={isProfileLocked}
-                              value={profileData.homeDistrict ? `${profileData.homeDistrict}, ${profileData.homeState || 'Bihar'}` : ""}
-                              onChange={e => setProfileData({ ...profileData, homeDistrict: e.target.value })}
-                              placeholder="e.g. Arwal, Bihar"
-                              style={{
-                                background: '#0f172a',
-                                borderColor: '#475569',
-                                color: '#fff',
-                                ...(isProfileLocked ? { opacity: 0.75, cursor: 'not-allowed' } : {})
-                              }}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Verified Calculation Result Badge */}
-                        <div style={{
-                          background: 'rgba(15, 23, 42, 0.6)',
-                          border: '1px dashed #475569',
-                          borderRadius: '12px',
-                          padding: '14px 18px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          flexWrap: 'wrap',
-                          gap: '12px'
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <span style={{ fontSize: '24px' }}>🚗</span>
-                            <div>
-                              <div style={{ fontSize: '14px', fontWeight: 800, color: '#f1f5f9' }}>
-                                Accurate Campus Road Distance: <span style={{ color: '#38bdf8', fontSize: '16px' }}>{profileData.distanceKm !== undefined ? `${profileData.distanceKm} KM` : 'Not Calculated'}</span>
-                              </div>
-                              <div style={{ fontSize: '11.5px', color: '#94a3b8', marginTop: '2px' }}>
-                                Origin: <strong>{profileData.homeDistrict || 'Your Home Town'}</strong> → Destination: <strong>Govt. Polytechnic Barh</strong>
-                              </div>
-                            </div>
-                          </div>
-                          <div style={{ fontSize: '11.5px', color: '#64748b', textAlign: 'right' }}>
-                            *Hostel admission priority is determined by verified road distance (&gt;80 KM = Tier 1).
-                          </div>
-                        </div>
                       </div>
 
                       {/* 🔒 CLEAN, PROFESSIONAL CENTERED ACTION BUTTON 🔒 */}
