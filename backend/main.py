@@ -77,8 +77,13 @@ def seed_default_users():
                 semester="2024-27",
                 mobile="+91 98765 43210",
                 guardian_mobile="+91 98765 01234",
-                address="Savitribai Phule Girls Hostel, GP Barh",
+                address="East Champaran (Motihari), Bihar",
                 blood_group="O+",
+                pincode="845401",
+                home_district="East Champaran (Motihari)",
+                home_state="Bihar",
+                distance_km=188.0,
+                distance_verified=True,
                 profile_completed=True
             )
             db.add(girl)
@@ -86,6 +91,12 @@ def seed_default_users():
             girl.password = "SANAMIT"
             girl.gender = "FEMALE"
             girl.full_name = "SANA SHARMA"
+            if not girl.pincode:
+                girl.pincode = "845401"
+                girl.home_district = "East Champaran (Motihari)"
+                girl.home_state = "Bihar"
+                girl.distance_km = 188.0
+                girl.distance_verified = True
 
         # 2. Boy Student Account
         boy = db.query(models.User).filter(models.User.reg_no_email == "1554424049").first()
@@ -101,13 +112,25 @@ def seed_default_users():
                 semester="2024-27",
                 mobile="+91 88731 42022",
                 guardian_mobile="+91 98765 43211",
-                address="Birsa Munda Boys Hostel, GP Barh",
+                address="Arwal District, Bihar",
                 blood_group="O+",
+                pincode="804401",
+                home_district="Arwal",
+                home_state="Bihar",
+                distance_km=145.0,
+                distance_verified=True,
                 profile_completed=True
             )
             db.add(boy)
         else:
             boy.password = "SANAMIT"
+            boy.gender = "MALE"
+            if not boy.pincode:
+                boy.pincode = "804401"
+                boy.home_district = "Arwal"
+                boy.home_state = "Bihar"
+                boy.distance_km = 145.0
+                boy.distance_verified = True
 
         # 3. Chief Warden Accounts (Supports both 'warden' and 'warden@gpbarh.ac.in')
         warden_emails = ["warden", "warden@gpbarh.ac.in", "1554424001"]
