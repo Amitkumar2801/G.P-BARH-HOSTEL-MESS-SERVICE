@@ -832,42 +832,53 @@ function StudentDashboard() {
 
   const isAllotmentApproved = allotmentInfo?.status === 'APPROVED' || allotmentInfo?.fee_unlocked === true;
 
-  const lockedTabIds = [
-    'registration-fee',
-    'student-record',
-    'mess-scanner',
-    'payments',
-    'hostel',
-    'mess',
-    'clearance',
-    'complaints',
-    'appscan'
-  ];
-
   const handleNavClick = (tab) => {
-    const isLocked = !isAllotmentApproved && lockedTabIds.includes(tab.id);
-    if (isLocked) {
-      if (allotmentInfo?.status === 'PENDING') {
+    // 1. TIER 1: Seat Allotment not approved by Warden yet
+    if (!isAllotmentApproved) {
+      if (tab.id !== 'profile' && tab.id !== 'seat-allocation' && tab.id !== 'security') {
+        if (allotmentInfo?.status === 'PENDING') {
+          toast((t) => (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '18px' }}>⏳</span>
+              <span>
+                <strong>Allotment Pending Approval:</strong> Your request for Room {allotmentInfo.room_number || ''} ({allotmentInfo.bed_code || ''}) is awaiting Warden review. Once approved, the Registration tab will unlock.
+              </span>
+            </div>
+          ), {
+            id: 'locked-pending-toast',
+            duration: 4500,
+            style: { borderRadius: '12px', background: '#0f172a', color: '#facc15', border: '1px solid #eab308' }
+          });
+        } else {
+          toast.error("🔒 Please choose and request your seat in 'Seat & Room Allocation' first. Registration will unlock once approved by Warden.", {
+            id: 'locked-none-toast',
+            duration: 4500,
+            style: { borderRadius: '12px', background: '#0f172a', color: '#f87171', border: '1px solid #ef4444' }
+          });
+        }
+        return;
+      }
+    }
+
+    // 2. TIER 2: Seat is approved, but ₹2,000 Admission & Registration fee not paid yet
+    if (isAllotmentApproved && !isAdmissionFeePaid) {
+      if (tab.id !== 'profile' && tab.id !== 'seat-allocation' && tab.id !== 'registration-fee' && tab.id !== 'security') {
         toast((t) => (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '18px' }}>⏳</span>
+            <span style={{ fontSize: '18px' }}>💳</span>
             <span>
-              <strong>Allotment Pending Approval:</strong> Your request for Room {allotmentInfo.room_number || ''} ({allotmentInfo.bed_code || ''}) is awaiting Warden review. Once approved, this section will unlock automatically.
+              <strong>Registration Payment Required:</strong> Your seat is approved! Please complete the ₹2,000 Registration &amp; Caution fee in the <strong>Registration</strong> tab to unlock your Official Profile, Dossier &amp; Student Records.
             </span>
           </div>
         ), {
-          id: 'locked-pending-toast',
-          duration: 4500,
-          style: { borderRadius: '12px', background: '#0f172a', color: '#facc15', border: '1px solid #eab308' }
+          id: 'locked-reg-fee-toast',
+          duration: 5000,
+          style: { borderRadius: '12px', background: '#0f172a', color: '#38bdf8', border: '1px solid #0284c7' }
         });
-      } else {
-        toast.error("🔒 Please choose and request your seat in 'Seat & Room Allocation' first. All features will unlock after Warden approval.", {
-          id: 'locked-none-toast',
-          duration: 4500,
-          style: { borderRadius: '12px', background: '#0f172a', color: '#f87171', border: '1px solid #ef4444' }
-        });
+        setActiveTab('registration-fee');
+        setIsSidebarOpen(false);
+        return;
       }
-      return;
     }
 
     if (tab.isRoute) {
@@ -1491,19 +1502,27 @@ function StudentDashboard() {
               { id: 'security', name: 'Security & Password', icon: <><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></> },
               { id: 'appscan', name: 'Connect App', className: 'mobile-only-nav', icon: <><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></> }
             ].map(tab => {
-              const isLocked = !isAllotmentApproved && lockedTabIds.includes(tab.id);
+              const isSeatLocked = !isAllotmentApproved && (tab.id !== 'profile' && tab.id !== 'seat-allocation' && tab.id !== 'security');
+              const isFeeLocked = isAllotmentApproved && !isAdmissionFeePaid && (tab.id !== 'profile' && tab.id !== 'seat-allocation' && tab.id !== 'registration-fee' && tab.id !== 'security');
+              const isLocked = isSeatLocked || isFeeLocked;
+              const lockTooltip = isSeatLocked 
+                ? '🔒 Locked: Requires Approved Seat Allotment' 
+                : isFeeLocked 
+                ? '🔒 Locked: Requires ₹2,000 Registration Fee Payment' 
+                : tab.name;
+
               return (
                 <button
                   key={tab.id}
                   className={`nav-item ${activeTab === tab.id ? 'active' : ''} ${tab.className || ''} ${isLocked ? 'opacity-65' : ''}`}
                   onClick={() => handleNavClick(tab)}
-                  title={isLocked ? 'Locked: Requires Approved Seat Allotment' : tab.name}
+                  title={lockTooltip}
                   style={isLocked ? { cursor: 'pointer' } : {}}
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>{tab.icon}</svg>
                   <span style={{ flex: 1, textAlign: 'left' }}>{tab.name}</span>
                   {isLocked && (
-                    <span style={{ fontSize: '12px', marginLeft: 'auto', opacity: 0.85 }} title="Warden Approval Required">
+                    <span style={{ fontSize: '12px', marginLeft: 'auto', opacity: 0.85 }} title={lockTooltip}>
                       🔒
                     </span>
                   )}
@@ -2214,30 +2233,36 @@ function StudentDashboard() {
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '11.5px' }}>
                             <div>
                               <span style={{ fontSize: '9px', color: '#94a3b8', display: 'block', fontWeight: 700 }}>CONFIRMED ROOM</span>
-                              <strong style={{ color: '#38bdf8', fontSize: '13px' }}>Room No. 101</strong>
+                              <strong style={{ color: '#38bdf8', fontSize: '13px' }}>
+                                {allotmentInfo?.room_number ? `Room No. ${allotmentInfo.room_number}` : (profileData?.roomNumber ? `Room No. ${profileData.roomNumber}` : 'Room No. 101')}
+                              </strong>
                             </div>
                             <div>
                               <span style={{ fontSize: '9px', color: '#94a3b8', display: 'block', fontWeight: 700 }}>BED POSITION</span>
-                              <strong style={{ color: '#38bdf8', fontSize: '13px' }}>Bed No. 1 (Bed A)</strong>
+                              <strong style={{ color: '#38bdf8', fontSize: '13px' }}>
+                                {allotmentInfo?.bed_code ? `Bed ${allotmentInfo.bed_code}` : (profileData?.bedNumber ? `Bed ${profileData.bedNumber}` : 'Bed No. 1 (Bed A)')}
+                              </strong>
                             </div>
                           </div>
                           <div style={{ borderTop: '1px dashed rgba(255, 255, 255, 0.12)', marginTop: '8px', paddingTop: '6px', fontSize: '10px', color: '#e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span>🏢 {profileData?.gender === 'FEMALE' ? 'Savitribai Phule Girls Hostel' : (profileData?.hostelBlock?.toLowerCase().includes('rajendra') ? 'Dr. Rajendra Prasad Boys Hostel' : 'Birsa Munda Boys Hostel')}</span>
-                            <span style={{ color: '#4ade80', fontWeight: 900 }}>● ALLOTTED</span>
+                            <span>🏢 {allotmentInfo?.hostel_name || (profileData?.gender === 'FEMALE' ? 'Savitribai Phule Girls Hostel' : (profileData?.hostelBlock?.toLowerCase().includes('rajendra') ? 'Dr. Rajendra Prasad Boys Hostel' : 'Birsa Munda Boys Hostel'))}</span>
+                            <span style={{ color: isAdmissionFeePaid ? '#4ade80' : '#facc15', fontWeight: 900 }}>
+                              ● {isAdmissionFeePaid ? 'ALLOTTED & VERIFIED' : (isAllotmentApproved ? 'APPROVED (PAY TO UNLOCK)' : 'PENDING ALLOTMENT')}
+                            </span>
                           </div>
                         </div>
 
                         {/* UTR VERIFICATION & DIGITAL SEAL */}
-                        <div style={{ background: 'rgba(22, 101, 52, 0.25)', border: '1px solid rgba(74, 222, 128, 0.3)', borderRadius: '12px', padding: '8px 12px', fontSize: '10.5px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ background: isAdmissionFeePaid ? 'rgba(22, 101, 52, 0.25)' : 'rgba(234, 179, 8, 0.15)', border: isAdmissionFeePaid ? '1px solid rgba(74, 222, 128, 0.3)' : '1px solid rgba(234, 179, 8, 0.3)', borderRadius: '12px', padding: '8px 12px', fontSize: '10.5px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div>
                             <span style={{ color: 'rgba(255,255,255,0.7)', display: 'block', fontSize: '8.5px', fontWeight: 700 }}>TXN / UTR REFERENCE</span>
                             <code style={{ color: '#67e8f9', fontWeight: 900, fontFamily: 'monospace', fontSize: '10.5px' }}>
-                              {regFeeUtr || 'UPI/992140819201/HDFC'}
+                              {isAdmissionFeePaid ? (regFeeUtr || 'UPI/992140819201/HDFC') : 'AWAITING PAYMENT'}
                             </code>
                           </div>
                           <div style={{ textAlign: 'right' }}>
-                            <span style={{ background: '#16a34a', color: '#ffffff', padding: '2px 8px', borderRadius: '10px', fontSize: '9px', fontWeight: 900 }}>
-                              ✓ WARDEN MATCHED
+                            <span style={{ background: isAdmissionFeePaid ? '#16a34a' : '#ca8a04', color: '#ffffff', padding: '2px 8px', borderRadius: '10px', fontSize: '9px', fontWeight: 900 }}>
+                              {isAdmissionFeePaid ? '✓ WARDEN MATCHED' : '⏳ PAYMENT PENDING'}
                             </span>
                           </div>
                         </div>
@@ -2260,6 +2285,7 @@ function StudentDashboard() {
                     currentUser={currentUser}
                     profilePic={profilePic}
                     isDarkMode={isDarkMode}
+                    allotmentInfo={allotmentInfo}
                   />
                 </div>
               )}

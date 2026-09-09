@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import logo from '../assets/logo.png.png';
 
-function StudentRecordDossier({ profileData = {}, currentUser = {}, profilePic = null, isDarkMode = false }) {
+function StudentRecordDossier({ profileData = {}, currentUser = {}, profilePic = null, isDarkMode = false, allotmentInfo = null }) {
   const [activeViewMode, setActiveViewMode] = useState('dossier'); // 'dossier' or 'analytics'
   const [analyticsData, setAnalyticsData] = useState(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
@@ -62,8 +62,10 @@ function StudentRecordDossier({ profileData = {}, currentUser = {}, profilePic =
   const address = getCleanAddress();
 
   const bloodGroup = profileData?.bloodGroup || currentUser?.blood_group || 'O+';
-  const hostelBlock = profileData?.hostelBlock || currentUser?.hostel_block || (isFemale ? 'Savitribai Phule Girls Hostel' : 'Birsa Munda Block');
-  const roomBed = isFemale ? 'Room 101 • Bed A' : 'Room 102 • Bed B';
+  const hostelBlock = allotmentInfo?.hostel_name || profileData?.hostelBlock || currentUser?.hostel_block || (isFemale ? 'Savitribai Phule Girls Hostel' : 'Birsa Munda Boys Hostel');
+  const roomBed = (allotmentInfo?.room_number && allotmentInfo?.bed_code)
+    ? `Room ${allotmentInfo.room_number} • Bed ${allotmentInfo.bed_code}`
+    : (profileData?.roomNumber ? `Room ${profileData.roomNumber} • Bed ${profileData.bedNumber || 'A'}` : (isFemale ? 'Room 101 • Bed A' : 'Room 101 • Bed 1 (Bed A)'));
 
   // Fetch Student Analytics Data
   useEffect(() => {
