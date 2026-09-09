@@ -19,6 +19,8 @@ function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [loginError, setLoginError] = useState("");
+  const [shakeForm, setShakeForm] = useState(false);
 
   // QR LOGIN STATES & LOGIC
   const [qrSessionId, setQrSessionId] = useState("");
@@ -258,19 +260,31 @@ function Login() {
   // API CALL: HANDLE LOGIN
   const handleLogin = async (e) => {
     e.preventDefault();
-    if (!userId || !password) {
-      toast.error("Authentication Error: Student ID and Password are required. Please provide valid credentials.");
+    setLoginError("");
+
+    if (!userId.trim() || !password) {
+      const msg = "Please enter both Email/Registration ID and Password.";
+      setLoginError(msg);
+      setShakeForm(true);
+      setTimeout(() => setShakeForm(false), 500);
+      toast.error(msg, {
+        duration: 4000,
+        style: { borderRadius: '10px', background: '#7f1d1d', color: '#fff', border: '1px solid #ef4444' }
+      });
       return;
     }
+
     setIsLoading(true);
     try {
       const response = await axios.post("http://127.0.0.1:8000/login", {
-        reg_no_email: userId,
+        reg_no_email: userId.trim(),
         password: password
       });
-      toast.success(`Authentication Successful: ${response.data.message}\nWelcome, ${response.data.user.full_name}. Redirecting to dashboard...`, {
-        duration: 4000,
-        style: { borderRadius: '10px', background: '#333', color: '#fff' }
+      
+      setLoginError("");
+      toast.success(`Authentication Successful: ${response.data.message}\nWelcome, ${response.data.user.full_name}. Redirecting...`, {
+        duration: 3000,
+        style: { borderRadius: '10px', background: '#14532d', color: '#fff', border: '1px solid #22c55e' }
       });
 
       const loggedInUser = response.data.user;
@@ -286,15 +300,36 @@ function Login() {
       }
 
     } catch (error) {
-      if (error.response && error.response.data) {
-        toast.error(`Authentication Failed: ${error.response.data.detail}`);
-      } else {
-        toast.error("Connection Error: Unable to communicate with the server. Please check your network connection or try again later.");
+      let errorDetail = "Incorrect username or password. Please try again.";
+      if (error.response && error.response.status === 401) {
+        errorDetail = "Incorrect email / registration ID or password.";
+      } else if (error.response && error.response.data && error.response.data.detail) {
+        errorDetail = error.response.data.detail;
+      } else if (!error.response) {
+        errorDetail = "Unable to connect to the server. Please check your network connection.";
       }
+      
+      setLoginError(errorDetail);
+      setShakeForm(true);
+      setTimeout(() => setShakeForm(false), 500);
+
+      toast.error(errorDetail, {
+        duration: 4000,
+        id: 'login-auth-error',
+        style: {
+          borderRadius: '10px',
+          background: '#0f172a',
+          color: '#f87171',
+          border: '1px solid #ef4444',
+          fontWeight: '600',
+          fontSize: '13px'
+        }
+      });
     } finally {
       setIsLoading(false);
     }
   };
+
 
   return (
     <div className={`min-h-[100dvh] w-full flex flex-col font-sans transition-colors duration-500 overflow-x-hidden ${isDarkMode ? 'dark bg-[#0a0a0a]' : 'bg-gray-100'}`}>
@@ -364,7 +399,7 @@ function Login() {
               </div>
 
               {/* WELCOME BACK TITLE */}
-              <div className="mb-6">
+              <div className="mb-4">
                 <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
                   Welcome Back
                 </h2>
@@ -373,8 +408,30 @@ function Login() {
                 </p>
               </div>
 
+              {/* ⚠️ PROFESSIONAL ALERT BANNER */}
+              {loginError && (
+                <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 rounded-xl text-red-700 dark:text-red-300 text-xs flex items-center justify-between gap-3 shadow-xs animate-shake transition-all">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <svg className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    <span className="font-semibold text-xs text-red-800 dark:text-red-200 truncate sm:whitespace-normal">
+                      {loginError}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setLoginError("")}
+                    className="text-red-400 hover:text-red-600 dark:hover:text-red-200 text-sm font-bold p-0.5 cursor-pointer bg-transparent border-none leading-none shrink-0"
+                    title="Dismiss"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
               {/* LOGIN FORM */}
-              <form className="space-y-4" onSubmit={handleLogin}>
+              <form className={`space-y-4 ${shakeForm ? 'animate-shake' : ''}`} onSubmit={handleLogin}>
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
                     Email Address / Registration ID
@@ -383,9 +440,12 @@ function Login() {
                     <input
                       type="text"
                       value={userId}
-                      onChange={(e) => setUserId(e.target.value)}
+                      onChange={(e) => {
+                        setUserId(e.target.value);
+                        if (loginError) setLoginError("");
+                      }}
                       placeholder="name@example.com or Reg No."
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all placeholder:text-gray-400 font-medium"
+                      className={`w-full px-4 py-3 rounded-xl border ${loginError ? 'border-red-500 focus:ring-red-500/30 focus:border-red-500 ring-2 ring-red-500/20' : 'border-gray-200 dark:border-gray-700 focus:ring-blue-500/30 focus:border-blue-500'} bg-gray-50/50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 transition-all placeholder:text-gray-400 font-medium`}
                     />
                   </div>
                 </div>
@@ -400,9 +460,12 @@ function Login() {
                     <input
                       type={showPassword ? "text" : "password"}
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (loginError) setLoginError("");
+                      }}
                       placeholder="••••••••"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all placeholder:text-gray-400 font-medium pr-10"
+                      className={`w-full px-4 py-3 rounded-xl border ${loginError ? 'border-red-500 focus:ring-red-500/30 focus:border-red-500 ring-2 ring-red-500/20' : 'border-gray-200 dark:border-gray-700 focus:ring-blue-500/30 focus:border-blue-500'} bg-gray-50/50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 transition-all placeholder:text-gray-400 font-medium pr-10`}
                     />
                     <button
                       type="button"

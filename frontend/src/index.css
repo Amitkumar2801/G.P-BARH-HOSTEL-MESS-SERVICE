@@ -35,3 +35,47 @@
 .animate-scale-in {
   animation: scaleIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
+
+/* Shake Animation for Errors */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+.animate-shake {
+  animation: shake 0.4s ease-in-out;
+}
+
+/* Hide scrollbar for Chrome, Safari, Opera, Firefox, Edge */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Printable PDF Dossier Styles */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-dossier, #printable-dossier * {
+    visibility: visible;
+  }
+  #printable-dossier {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 20px;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: 2px solid #000000 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

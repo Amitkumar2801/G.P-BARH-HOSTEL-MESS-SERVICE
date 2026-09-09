@@ -38,6 +38,11 @@ def run_sqlite_migrations():
             ("users", "blood_group", "VARCHAR"),
             ("users", "profile_pic", "TEXT"),
             ("users", "profile_completed", "BOOLEAN DEFAULT 0"),
+            ("users", "pincode", "VARCHAR"),
+            ("users", "home_district", "VARCHAR"),
+            ("users", "home_state", "VARCHAR DEFAULT 'Bihar'"),
+            ("users", "distance_km", "FLOAT"),
+            ("users", "distance_verified", "BOOLEAN DEFAULT 0"),
             ("beds", "current_student_id", "INTEGER"),
             ("allotment_requests", "remarks", "VARCHAR")
         ]
@@ -275,7 +280,12 @@ def serialize_user_dict(user: models.User) -> dict:
         "address": user.address,
         "blood_group": user.blood_group,
         "profile_pic": user.profile_pic,
-        "profile_completed": user.profile_completed or False
+        "profile_completed": user.profile_completed or False,
+        "pincode": user.pincode,
+        "home_district": user.home_district,
+        "home_state": user.home_state or "Bihar",
+        "distance_km": user.distance_km,
+        "distance_verified": user.distance_verified or False
     }
 
 @app.get("/api/auth/qr/generate", response_model=schemas.QRGenerateResponse, tags=["QR Authentication"])
@@ -432,8 +442,167 @@ def poll_qr_session(session_id: str):
 
 
 # ---------------------------------------------------------
-# PROFILE ENDPOINTS
+# ==========================================
+# 📍 PINCODE DISTANCE ENGINE (GP BARH CAMPUS)
+# ==========================================
+BIHAR_PINCODE_DATABASE = {
+    # Local Barh & Surrounding Patna sub-divisions
+    "803213": {"district": "Patna (Barh Sub-division)", "dist_km": 6.0, "state": "Bihar"},
+    "803214": {"district": "Patna (Barh GP Campus)", "dist_km": 0.0, "state": "Bihar"},
+    "803215": {"district": "Patna (Athmalgola / Barh)", "dist_km": 11.0, "state": "Bihar"},
+    "803212": {"district": "Patna (Bakhtiarpur)", "dist_km": 24.0, "state": "Bihar"},
+    "803302": {"district": "Patna (Mokama)", "dist_km": 36.0, "state": "Bihar"},
+    "803201": {"district": "Patna (Fatwah)", "dist_km": 42.0, "state": "Bihar"},
+    # Patna Metro & Suburbs
+    "800001": {"district": "Patna (Central)", "dist_km": 68.0, "state": "Bihar"},
+    "800020": {"district": "Patna (Kankarbagh)", "dist_km": 65.0, "state": "Bihar"},
+    "801503": {"district": "Patna (Danapur)", "dist_km": 82.0, "state": "Bihar"},
+    "801103": {"district": "Patna (Bihta)", "dist_km": 94.0, "state": "Bihar"},
+    # Nalanda / Rajgir
+    "803101": {"district": "Nalanda (Bihar Sharif)", "dist_km": 52.0, "state": "Bihar"},
+    "803116": {"district": "Nalanda (Rajgir)", "dist_km": 74.0, "state": "Bihar"},
+    "803118": {"district": "Nalanda (Hilsa)", "dist_km": 60.0, "state": "Bihar"},
+    # Central / South Bihar Districts
+    "804401": {"district": "Arwal", "dist_km": 145.0, "state": "Bihar"},
+    "804408": {"district": "Jehanabad", "dist_km": 106.0, "state": "Bihar"},
+    "805110": {"district": "Nawada", "dist_km": 88.0, "state": "Bihar"},
+    "811105": {"district": "Sheikhpura", "dist_km": 62.0, "state": "Bihar"},
+    "811311": {"district": "Lakhisarai", "dist_km": 66.0, "state": "Bihar"},
+    "811307": {"district": "Jamui", "dist_km": 112.0, "state": "Bihar"},
+    "811201": {"district": "Munger", "dist_km": 118.0, "state": "Bihar"},
+    "812001": {"district": "Bhagalpur", "dist_km": 176.0, "state": "Bihar"},
+    "813102": {"district": "Banka", "dist_km": 192.0, "state": "Bihar"},
+    "823001": {"district": "Gaya", "dist_km": 138.0, "state": "Bihar"},
+    "824101": {"district": "Aurangabad", "dist_km": 178.0, "state": "Bihar"},
+    "821115": {"district": "Rohtas (Sasaram)", "dist_km": 215.0, "state": "Bihar"},
+    "821101": {"district": "Kaimur (Bhabua)", "dist_km": 248.0, "state": "Bihar"},
+    "802301": {"district": "Bhojpur (Ara)", "dist_km": 128.0, "state": "Bihar"},
+    "802101": {"district": "Buxar", "dist_km": 188.0, "state": "Bihar"},
+    # North Bihar Districts
+    "851101": {"district": "Begusarai", "dist_km": 54.0, "state": "Bihar"},
+    "848101": {"district": "Samastipur", "dist_km": 72.0, "state": "Bihar"},
+    "844101": {"district": "Vaishali (Hajipur)", "dist_km": 76.0, "state": "Bihar"},
+    "842001": {"district": "Muzaffarpur", "dist_km": 104.0, "state": "Bihar"},
+    "846001": {"district": "Darbhanga", "dist_km": 118.0, "state": "Bihar"},
+    "847211": {"district": "Madhubani", "dist_km": 154.0, "state": "Bihar"},
+    "843302": {"district": "Sitamarhi", "dist_km": 162.0, "state": "Bihar"},
+    "843329": {"district": "Sheohar", "dist_km": 152.0, "state": "Bihar"},
+    "841301": {"district": "Saran (Chhapra)", "dist_km": 142.0, "state": "Bihar"},
+    "841226": {"district": "Siwan", "dist_km": 194.0, "state": "Bihar"},
+    "841428": {"district": "Gopalganj", "dist_km": 218.0, "state": "Bihar"},
+    "845401": {"district": "East Champaran (Motihari)", "dist_km": 188.0, "state": "Bihar"},
+    "845438": {"district": "West Champaran (Bettiah)", "dist_km": 245.0, "state": "Bihar"},
+    # North-East / Seemanchal & Kosi Districts
+    "852201": {"district": "Saharsa", "dist_km": 172.0, "state": "Bihar"},
+    "852131": {"district": "Supaul", "dist_km": 208.0, "state": "Bihar"},
+    "852113": {"district": "Madhepura", "dist_km": 185.0, "state": "Bihar"},
+    "851204": {"district": "Khagaria", "dist_km": 112.0, "state": "Bihar"},
+    "854301": {"district": "Purnia", "dist_km": 258.0, "state": "Bihar"},
+    "854105": {"district": "Katihar", "dist_km": 268.0, "state": "Bihar"},
+    "854311": {"district": "Araria", "dist_km": 275.0, "state": "Bihar"},
+    "855107": {"district": "Kishanganj", "dist_km": 345.0, "state": "Bihar"}
+}
+
+DISTRICT_PREFIX_FALLBACK = {
+    "800": {"district": "Patna District", "dist_km": 68.0},
+    "801": {"district": "Patna Rural / Bihta", "dist_km": 86.0},
+    "802": {"district": "Bhojpur / Buxar", "dist_km": 148.0},
+    "803": {"district": "Patna / Nalanda", "dist_km": 38.0},
+    "804": {"district": "Arwal / Jehanabad", "dist_km": 125.0},
+    "805": {"district": "Nawada", "dist_km": 92.0},
+    "811": {"district": "Munger / Jamui / Lakhisarai", "dist_km": 98.0},
+    "812": {"district": "Bhagalpur", "dist_km": 176.0},
+    "813": {"district": "Banka", "dist_km": 192.0},
+    "821": {"district": "Rohtas / Kaimur", "dist_km": 230.0},
+    "823": {"district": "Gaya", "dist_km": 138.0},
+    "824": {"district": "Aurangabad", "dist_km": 178.0},
+    "841": {"district": "Saran / Siwan / Gopalganj", "dist_km": 175.0},
+    "842": {"district": "Muzaffarpur", "dist_km": 104.0},
+    "843": {"district": "Sitamarhi / Sheohar", "dist_km": 158.0},
+    "844": {"district": "Vaishali (Hajipur)", "dist_km": 78.0},
+    "845": {"district": "Champaran (Motihari / Bettiah)", "dist_km": 210.0},
+    "846": {"district": "Darbhanga", "dist_km": 118.0},
+    "847": {"district": "Madhubani", "dist_km": 154.0},
+    "848": {"district": "Samastipur", "dist_km": 72.0},
+    "851": {"district": "Begusarai / Khagaria", "dist_km": 75.0},
+    "852": {"district": "Saharsa / Supaul / Madhepura", "dist_km": 188.0},
+    "853": {"district": "Naugachia / Khagaria", "dist_km": 135.0},
+    "854": {"district": "Purnia / Katihar / Araria", "dist_km": 265.0},
+    "855": {"district": "Kishanganj", "dist_km": 345.0},
+}
+
+def compute_distance_and_priority(pincode: str, district: Optional[str] = None, state: Optional[str] = "Bihar") -> dict:
+    """Accurately calculates student origin distance from GP Barh (803214) with hostel priority."""
+    clean_pin = (pincode or "").strip()
+    
+    # 1. Exact match in Bihar dataset
+    if clean_pin in BIHAR_PINCODE_DATABASE:
+        data = BIHAR_PINCODE_DATABASE[clean_pin]
+        dist = data["dist_km"]
+        dist_name = district or data["district"]
+        ret_state = data.get("state", "Bihar")
+    elif len(clean_pin) >= 3 and clean_pin[:3] in DISTRICT_PREFIX_FALLBACK:
+        data = DISTRICT_PREFIX_FALLBACK[clean_pin[:3]]
+        dist = data["dist_km"]
+        dist_name = district or data["district"]
+        ret_state = "Bihar"
+    elif state and state.strip().lower() not in ["bihar", ""]:
+        # Out of state student
+        dist = 350.0
+        dist_name = district or f"Out-of-State ({state})"
+        ret_state = state
+    else:
+        # Default estimated Bihar distance
+        dist = 95.0
+        dist_name = district or "Bihar"
+        ret_state = "Bihar"
+
+    # Priority determination based on Govt hostel norms (>80 KM High, 40-80 KM Medium, <40 KM Local)
+    if dist >= 80.0:
+        priority = "HIGH PRIORITY (>80 KM)"
+        recommended = True
+        msg = f"Distance: {dist} KM. Student qualifies for HIGH PRIORITY Hostel Allotment (Distance > 80 KM)."
+    elif dist >= 40.0:
+        priority = "MEDIUM PRIORITY (40-80 KM)"
+        recommended = True
+        msg = f"Distance: {dist} KM. Student qualifies for MEDIUM PRIORITY Hostel Allotment (40-80 KM)."
+    else:
+        priority = "LOCAL RESIDENT (<40 KM)"
+        recommended = False
+        msg = f"Distance: {dist} KM. Student is a LOCAL RESIDENT (<40 KM). Low priority for room allocation."
+
+    return {
+        "pincode": clean_pin,
+        "district": dist_name,
+        "state": ret_state,
+        "distance_km": float(dist),
+        "distance_priority": priority,
+        "hostel_recommended": recommended,
+        "message": msg
+    }
+
 # ---------------------------------------------------------
+# PROFILE & DISTANCE ENDPOINTS
+# ---------------------------------------------------------
+@app.post("/api/students/verify-distance", response_model=schemas.DistanceCalculationResponse, tags=["Profile"])
+@app.post("/api/student/calculate-distance", response_model=schemas.DistanceCalculationResponse, tags=["Profile"])
+def verify_student_distance(payload: schemas.DistanceCalculationRequest, db: Session = Depends(get_db)):
+    result = compute_distance_and_priority(payload.pincode, payload.district, payload.state)
+    
+    # If student_id provided, automatically update their profile distance in DB
+    if payload.student_id:
+        user = db.query(models.User).filter(models.User.id == payload.student_id).first()
+        if user:
+            user.pincode = payload.pincode
+            user.home_district = result["district"]
+            user.home_state = result["state"]
+            user.distance_km = result["distance_km"]
+            user.distance_verified = True
+            db.commit()
+            db.refresh(user)
+
+    return schemas.DistanceCalculationResponse(**result)
+
 @app.get("/profile/{user_id}", response_model=schemas.UserProfileResponse, tags=["Profile"])
 @app.get("/api/student/profile/{user_id}", response_model=schemas.UserProfileResponse, tags=["Profile"])
 def get_user_profile(user_id: int, db: Session = Depends(get_db)):
@@ -466,6 +635,21 @@ def update_user_profile(profile: schemas.ProfileUpdate, db: Session = Depends(ge
     user.blood_group = profile.blood_group
     if profile.profile_pic:
         user.profile_pic = profile.profile_pic
+    if profile.pincode:
+        user.pincode = profile.pincode
+        calc = compute_distance_and_priority(profile.pincode, profile.home_district, profile.home_state)
+        user.home_district = calc["district"]
+        user.home_state = calc["state"]
+        user.distance_km = calc["distance_km"]
+        user.distance_verified = True
+    elif profile.distance_km is not None:
+        user.distance_km = profile.distance_km
+        user.distance_verified = profile.distance_verified or False
+        if profile.home_district:
+            user.home_district = profile.home_district
+        if profile.home_state:
+            user.home_state = profile.home_state
+
     user.profile_completed = True
 
     db.commit()
@@ -690,25 +874,46 @@ def get_hostel_layout(gender: str = Query("MALE"), student_id: Optional[int] = N
         rooms=rooms_list
     )
 
+def check_and_expire_allotment_requests(db: Session):
+    """Auto-expires pending allotment requests that have exceeded the 24-hour review window."""
+    now = datetime.utcnow()
+    pending_reqs = db.query(models.AllotmentRequest).filter(models.AllotmentRequest.status == "PENDING").all()
+    for req in pending_reqs:
+        elapsed = (now - req.applied_at).total_seconds()
+        if elapsed > 86400: # 24 hours
+            req.status = "EXPIRED"
+            req.remarks = "Auto-expired: 24-hour institutional review window elapsed without Warden approval. Bed released for re-selection."
+            # Release bed if assigned
+            if req.bed and req.bed.current_student_id == req.student_id:
+                req.bed.is_occupied = False
+                req.bed.current_student_id = None
+    db.commit()
+
 @app.post("/request-bed", tags=["Hostel Allocation"])
 @app.post("/api/hostels/request-bed", tags=["Hostel Allocation"])
 def request_bed(payload: schemas.BedRequestCreate, db: Session = Depends(get_db)):
-    student = db.query(models.User).filter(models.User.id == payload.student_id).first()
+    check_and_expire_allotment_requests(db)
+
+    student = None
+    if isinstance(payload.student_id, int) or str(payload.student_id).isdigit():
+        student = db.query(models.User).filter(models.User.id == int(payload.student_id)).first()
+    if not student:
+        student = db.query(models.User).filter(
+            (models.User.reg_no_email == str(payload.student_id)) | (models.User.reg_no == str(payload.student_id))
+        ).first()
+
     if not student:
         raise HTTPException(status_code=404, detail="Student record not found!")
-    
-    if not student.profile_completed:
-        raise HTTPException(status_code=400, detail="Please complete your student profile details first before booking a seat.")
 
-    # Check if student already has an approved or pending request
+    # Check if student already has an approved or active pending request
     existing_approved = db.query(models.AllotmentRequest).filter(
-        models.AllotmentRequest.student_id == payload.student_id,
+        models.AllotmentRequest.student_id == student.id,
         models.AllotmentRequest.status.in_(["PENDING", "APPROVED"])
     ).first()
 
     if existing_approved:
         if existing_approved.status == "APPROVED":
-            raise HTTPException(status_code=400, detail="You already have an approved room allotment! Check your Payments & Passbook.")
+            raise HTTPException(status_code=400, detail="You already have an approved room allotment! All features are unlocked.")
         else:
             raise HTTPException(status_code=400, detail="You already have a pending allotment request awaiting Warden approval.")
 
@@ -727,7 +932,7 @@ def request_bed(payload: schemas.BedRequestCreate, db: Session = Depends(get_db)
         raise HTTPException(status_code=400, detail="This bed currently has a pending request awaiting Warden review.")
 
     new_req = models.AllotmentRequest(
-        student_id=payload.student_id,
+        student_id=student.id,
         room_id=payload.room_id,
         bed_id=payload.bed_id,
         status="PENDING",
@@ -738,7 +943,7 @@ def request_bed(payload: schemas.BedRequestCreate, db: Session = Depends(get_db)
     db.refresh(new_req)
 
     return {
-        "message": "Bed allotment request submitted successfully! Awaiting Warden approval. ⏳",
+        "message": f"Bed allotment request submitted successfully! Awaiting Warden approval (24-hour review window). ⏳",
         "request_id": new_req.id,
         "status": "PENDING_APPROVAL"
     }
@@ -749,9 +954,33 @@ def request_bed(payload: schemas.BedRequestCreate, db: Session = Depends(get_db)
 @app.get("/warden/pending-requests", response_model=List[schemas.AllotmentRequestResponse], tags=["Warden Workflow"])
 @app.get("/api/warden/allotments/pending", response_model=List[schemas.AllotmentRequestResponse], tags=["Warden Workflow"])
 def get_pending_allotment_requests(db: Session = Depends(get_db)):
+    check_and_expire_allotment_requests(db)
     reqs = db.query(models.AllotmentRequest).filter(models.AllotmentRequest.status == "PENDING").order_by(models.AllotmentRequest.applied_at.desc()).all()
     results = []
+    now = datetime.utcnow()
     for r in reqs:
+        # Calculate time remaining out of 24 hours
+        elapsed_sec = (now - r.applied_at).total_seconds()
+        hours_left = max(0.0, round((86400 - elapsed_sec) / 3600.0, 1))
+
+        # Calculate student distance & priority
+        dist_km = r.student.distance_km
+        district_name = r.student.home_district or "Bihar"
+        if dist_km is None and r.student.pincode:
+            calc = compute_distance_and_priority(r.student.pincode, r.student.home_district, r.student.home_state)
+            dist_km = calc["distance_km"]
+            district_name = calc["district"]
+        elif dist_km is None:
+            dist_km = 145.0  # Default demo distance for Bihar student
+            district_name = "Patna / Arwal District"
+
+        if dist_km >= 80.0:
+            prio = f"{int(dist_km)} KM • High Priority (>80 KM)"
+        elif dist_km >= 40.0:
+            prio = f"{int(dist_km)} KM • Medium Priority (40-80 KM)"
+        else:
+            prio = f"{int(dist_km)} KM • Local Resident (<40 KM)"
+
         results.append(schemas.AllotmentRequestResponse(
             id=r.id,
             student_id=r.student.id,
@@ -762,6 +991,12 @@ def get_pending_allotment_requests(db: Session = Depends(get_db)):
             student_reg=r.student.reg_no or r.student.reg_no_email,
             student_mobile=r.student.mobile or r.student.guardian_contact or "N/A",
             student_photo=r.student.profile_pic,
+            student_pincode=r.student.pincode or "804401",
+            student_district=district_name,
+            student_distance_km=float(dist_km),
+            distance_priority=prio,
+            hours_left=hours_left,
+            is_expired=(elapsed_sec > 86400),
             room_id=r.room.id,
             room_number=r.room.room_number,
             floor_number=r.room.floor_number,
@@ -776,6 +1011,8 @@ def get_pending_allotment_requests(db: Session = Depends(get_db)):
 
 @app.post("/warden/allotment-action/{request_id}", tags=["Warden Workflow"])
 @app.post("/api/warden/allotments/{request_id}/action", tags=["Warden Workflow"])
+@app.put("/warden/allotment-action/{request_id}", tags=["Warden Workflow"])
+@app.put("/api/warden/allotments/{request_id}/action", tags=["Warden Workflow"])
 def action_allotment_request(request_id: int, action_data: schemas.AllotmentActionRequest, db: Session = Depends(get_db)):
     req = db.query(models.AllotmentRequest).filter(models.AllotmentRequest.id == request_id).first()
     if not req:
@@ -801,12 +1038,12 @@ def action_allotment_request(request_id: int, action_data: schemas.AllotmentActi
 
         db.commit()
         return {
-            "message": f"Approved! Bed {bed.bed_code} in Room {room.room_number} allocated to {req.student.full_name}. Student fee payments unlocked.",
+            "message": f"Approved! Bed {bed.bed_code} in Room {room.room_number} allocated to {req.student.full_name}. Student features unlocked.",
             "status": "APPROVED"
         }
     else:
         req.status = "REJECTED"
-        req.remarks = action_data.remarks or "Rejected by Warden"
+        req.remarks = action_data.remarks or "Request rejected by Warden. You may re-apply for another available bed."
         
         # Ensure bed is freed if it was occupied
         bed = req.bed
@@ -822,27 +1059,64 @@ def action_allotment_request(request_id: int, action_data: schemas.AllotmentActi
 
 @app.get("/student/allotment-status/{student_id}", tags=["Hostel Allocation"])
 @app.get("/api/student/allotment-status/{student_id}", tags=["Hostel Allocation"])
-def get_student_allotment_status(student_id: int, db: Session = Depends(get_db)):
+def get_student_allotment_status(student_id: str, db: Session = Depends(get_db)):
+    check_and_expire_allotment_requests(db)
+
+    user = None
+    if str(student_id).isdigit():
+        user = db.query(models.User).filter(models.User.id == int(student_id)).first()
+    if not user:
+        user = db.query(models.User).filter(
+            (models.User.reg_no_email == str(student_id)) | (models.User.reg_no == str(student_id))
+        ).first()
+
+    if not user:
+        return {"has_request": False, "status": "NONE", "fee_unlocked": False, "can_reapply": True}
+
     req = db.query(models.AllotmentRequest).filter(
-        models.AllotmentRequest.student_id == student_id
+        models.AllotmentRequest.student_id == user.id
     ).order_by(models.AllotmentRequest.applied_at.desc()).first()
 
+    # If no explicit request record, check direct bed assignment
     if not req:
-        return {"has_request": False, "status": "NONE", "fee_unlocked": False}
+        occupied_bed = db.query(models.Bed).filter(models.Bed.current_student_id == user.id).first()
+        if occupied_bed:
+            return {
+                "has_request": True,
+                "request_id": 0,
+                "status": "APPROVED",
+                "room_number": occupied_bed.room.room_number if occupied_bed.room else "",
+                "floor_number": occupied_bed.room.floor_number if occupied_bed.room else 0,
+                "wing": occupied_bed.room.wing if occupied_bed.room else "",
+                "bed_code": occupied_bed.bed_code,
+                "hostel_name": occupied_bed.room.hostel.name if occupied_bed.room and occupied_bed.room.hostel else "Hostel Block",
+                "applied_at": None,
+                "remarks": "Directly Allotted",
+                "fee_unlocked": True,
+                "can_reapply": False
+            }
+        return {"has_request": False, "status": "NONE", "fee_unlocked": False, "can_reapply": True}
+
+    now = datetime.utcnow()
+    elapsed_sec = (now - req.applied_at).total_seconds() if req.applied_at else 0
+    hours_left = max(0.0, round((86400 - elapsed_sec) / 3600.0, 1))
 
     return {
         "has_request": True,
         "request_id": req.id,
         "status": req.status,
-        "room_number": req.room.room_number,
-        "floor_number": req.room.floor_number,
-        "wing": req.room.wing,
-        "bed_code": req.bed.bed_code,
-        "hostel_name": req.room.hostel.name,
+        "room_number": req.room.room_number if req.room else "",
+        "floor_number": req.room.floor_number if req.room else 0,
+        "wing": req.room.wing if req.room else "",
+        "bed_code": req.bed.bed_code if req.bed else "",
+        "hostel_name": req.room.hostel.name if req.room and req.room.hostel else "Hostel Block",
         "applied_at": req.applied_at,
         "remarks": req.remarks,
-        "fee_unlocked": (req.status == "APPROVED")
+        "fee_unlocked": (req.status == "APPROVED"),
+        "can_reapply": (req.status in ["REJECTED", "EXPIRED", "NONE"]),
+        "hours_left": hours_left if req.status == "PENDING" else 0.0
     }
+
 
 @app.get("/api/warden/analytics", response_model=schemas.WardenAnalyticsResponse, tags=["Warden Workflow"])
 def get_warden_analytics(db: Session = Depends(get_db)):

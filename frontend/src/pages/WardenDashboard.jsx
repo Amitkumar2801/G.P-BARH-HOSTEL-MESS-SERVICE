@@ -148,7 +148,7 @@ function WardenDashboard() {
       if (anaRes.status === 'fulfilled' && anaRes.value.data) {
         setAnalytics(anaRes.value.data);
       }
-      if (pendRes.status === 'fulfilled' && pendRes.value.data && pendRes.value.data.length > 0) {
+      if (pendRes.status === 'fulfilled' && Array.isArray(pendRes.value.data)) {
         setPendingRequests(pendRes.value.data);
       }
       if (studRes.status === 'fulfilled' && studRes.value.data) {
@@ -251,19 +251,22 @@ function WardenDashboard() {
 
   const handleAllotmentAction = async (allotmentId, action) => {
     setProcessingId(allotmentId);
+    // Optimistically remove the request from the pending list
+    setPendingRequests(prev => prev.filter(r => r.id !== allotmentId));
     try {
       const remark = actionRemarks[allotmentId] || (action === 'approve' ? 'Allotment approved by Chief Warden' : 'Allotment request declined by Chief Warden');
       await axios.put(`http://127.0.0.1:8000/api/warden/allotments/${allotmentId}/action`, {
         action,
         remarks: remark
       });
-      toast.success(action === 'approve' ? 'Bed allocation approved! Student record updated. ✅' : 'Request rejected.', {
-        duration: 4000,
-        style: { borderRadius: '12px', background: action === 'approve' ? '#166534' : '#991b1b', color: '#fff' }
+      toast.success(action === 'approve' ? 'Bed allocation approved! 24-hour admission window granted. ✅' : 'Allotment request rejected.', {
+        duration: 4500,
+        style: { borderRadius: '12px', background: action === 'approve' ? '#166534' : '#991b1b', color: '#fff', fontWeight: 700 }
       });
       fetchWardenData();
     } catch (err) {
-      toast.error('Failed to process allotment action.');
+      toast.error('Failed to process allotment action on server.');
+      fetchWardenData();
     } finally {
       setProcessingId(null);
     }
@@ -493,28 +496,29 @@ function WardenDashboard() {
         </header>
 
         {/* MAIN SCROLLABLE VIEW */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-6 md:p-8 space-y-4 sm:space-y-6">
 
           {/* ========================================================================= */}
           {/* 🌟 2. HOSTEL ALLOCATION MASTER SWITCHER & APPROVAL WORKSPACE */}
           {/* ========================================================================= */}
           {activeNavTab === 'allocations' && (
-            <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-300">
               {/* MASTER SEGMENTED SWITCHER */}
-              <div className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
+              <div className="bg-white dark:bg-slate-900 p-2 sm:p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                <div className="flex overflow-x-auto no-scrollbar gap-1.5 p-1 bg-slate-100/80 dark:bg-slate-800/70 rounded-xl w-full sm:w-auto">
                   <button
                     onClick={() => setAllocationSubTab('pending')}
-                    className={`px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 ${
+                    className={`flex-1 sm:flex-initial px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer ${
                       allocationSubTab === 'pending'
                         ? 'bg-amber-500 text-black shadow-md font-black'
-                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700'
                     }`}
                   >
-                    <span>📋</span>
-                    <span>Pending Requests Queue</span>
+                    <span>⏳</span>
+                    <span className="sm:hidden">Pending ({pendingRequests.length})</span>
+                    <span className="hidden sm:inline">Pending Requests Queue</span>
                     {pendingRequests.length > 0 && (
-                      <span className="bg-black text-white px-2 py-0.5 rounded-full text-[10px]">
+                      <span className="hidden sm:inline-block bg-black text-white px-2 py-0.5 rounded-full text-[10px] font-black">
                         {pendingRequests.length}
                       </span>
                     )}
@@ -522,79 +526,90 @@ function WardenDashboard() {
 
                   <button
                     onClick={() => setAllocationSubTab('boys')}
-                    className={`px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 ${
+                    className={`flex-1 sm:flex-initial px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer ${
                       allocationSubTab === 'boys'
-                        ? 'bg-blue-600 text-white shadow-md'
-                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        ? 'bg-blue-600 text-white shadow-md font-black'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700'
                     }`}
                   >
                     <span>🏢</span>
-                    <span>Boys Hostel (Birsa Munda &amp; Dr. Rajendra Prasad Blocks)</span>
+                    <span className="sm:hidden">Boys Hostel</span>
+                    <span className="hidden sm:inline">Boys Hostel (Birsa Munda &amp; Dr. Rajendra Prasad)</span>
                   </button>
 
                   <button
                     onClick={() => setAllocationSubTab('girls')}
-                    className={`px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 ${
+                    className={`flex-1 sm:flex-initial px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer ${
                       allocationSubTab === 'girls'
-                        ? 'bg-pink-600 text-white shadow-md'
-                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        ? 'bg-pink-600 text-white shadow-md font-black'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700'
                     }`}
                   >
                     <span>🏢</span>
-                    <span>Girls Hostel (Savitribai Phule Block)</span>
+                    <span className="sm:hidden">Girls Hostel</span>
+                    <span className="hidden sm:inline">Girls Hostel (Savitribai Phule Block)</span>
                   </button>
                 </div>
 
-                <div className="text-xs font-bold text-slate-400 px-2">
+                <div className="text-[11px] font-bold text-slate-400 text-center sm:text-right px-2 hidden md:block">
                   Warden Super-View Active
                 </div>
               </div>
 
               {/* VIEW 1: PENDING REQUESTS ACTION PANEL */}
               {allocationSubTab === 'pending' && (
-                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl p-4 sm:p-7 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4 sm:space-y-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
                     <div>
-                      <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                        <span>⏳</span> Pending Bed Allotment Queue (24-Hour Approval Policy)
-                      </h3>
-                      <p className="text-xs text-slate-500">
-                        Warden Verification: Inspect student home distance, branch merit, and approve/reject within 24 hours. Unapproved holds automatically expire and release back to pool.
+                      <div className="flex items-center gap-2">
+                        <span className="p-1.5 sm:p-2 rounded-xl bg-amber-500/10 text-amber-500 text-base sm:text-lg">⏳</span>
+                        <h3 className="text-base sm:text-xl font-black text-slate-900 dark:text-white tracking-tight">
+                          Pending Bed Allotment Queue
+                        </h3>
+                        <span className="px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-black bg-amber-500 text-white shadow-sm">
+                          {pendingRequests.length}
+                        </span>
+                      </div>
+                      <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                        Institutional 24-Hour Policy: Verify student home distance, branch merit, and review full PDF Dossier before granting hostel admission.
                       </p>
                     </div>
                     <button
                       onClick={fetchWardenData}
-                      className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 self-start sm:self-auto cursor-pointer"
+                      className="px-3.5 py-1.5 sm:px-4 sm:py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer self-stretch sm:self-auto"
                     >
-                      🔄 Refresh Queue
+                      <span>🔄</span>
+                      <span>Refresh Queue</span>
                     </button>
                   </div>
 
                   {pendingRequests.length === 0 ? (
-                    <div className="text-center py-16 space-y-2">
-                      <span className="text-4xl">🎉</span>
-                      <h4 className="text-base font-bold text-slate-700 dark:text-slate-300">All caught up!</h4>
-                      <p className="text-xs text-slate-400">There are no pending bed allotment requests awaiting review.</p>
+                    <div className="text-center py-16 sm:py-20 space-y-3 bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                      <span className="text-4xl sm:text-5xl block">🎉</span>
+                      <h4 className="text-base font-black text-slate-800 dark:text-slate-200">All Queue Items Processed!</h4>
+                      <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                        There are currently no student bed allotment requests awaiting Chief Warden verification.
+                      </p>
                     </div>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs border-collapse min-w-[840px]">
+                    <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
+                      <table className="w-full text-left text-xs border-collapse min-w-[880px]">
                         <thead>
-                          <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-black uppercase text-[10px]">
-                            <th className="py-3 px-4">Student Particulars</th>
-                            <th className="py-3 px-4">Distance &amp; Origin</th>
-                            <th className="py-3 px-4">Requested Bed &amp; Room</th>
-                            <th className="py-3 px-4">24h Expiry Countdown</th>
-                            <th className="py-3 px-4">Eligibility &amp; Profile</th>
-                            <th className="py-3 px-4 text-center">Warden Action</th>
+                          <tr className="bg-slate-50/80 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-400 font-black uppercase text-[10px] tracking-wider">
+                            <th className="py-3.5 px-4">Student Particulars</th>
+                            <th className="py-3.5 px-4">Origin &amp; Distance</th>
+                            <th className="py-3.5 px-4">Requested Bed &amp; Room</th>
+                            <th className="py-3.5 px-4">24h Expiry Window</th>
+                            <th className="py-3.5 px-4 text-center">Student Dossier</th>
+                            <th className="py-3.5 px-4 text-center">Chief Warden Action</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-semibold">
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-semibold">
                           {pendingRequests.map(req => (
-                            <tr key={req.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                            <tr key={req.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
                               <td className="py-4 px-4">
                                 <div className="flex items-center gap-3">
-                                  <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-center justify-center font-bold text-slate-600">
+                                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-600 text-white overflow-hidden flex items-center justify-center font-black text-base shadow-sm shrink-0 border border-white/20">
                                     {req.student_photo ? (
                                       <img src={req.student_photo} alt="" className="w-full h-full object-cover" />
                                     ) : (
@@ -602,42 +617,60 @@ function WardenDashboard() {
                                     )}
                                   </div>
                                   <div>
-                                    <p className="font-black text-sm text-slate-900 dark:text-white">{req.student_name || 'Student'}</p>
-                                    <p className="text-[11px] font-mono text-slate-500">Reg: {req.student_reg || 'N/A'} • Roll: {req.student_roll || '49'}</p>
-                                    <p className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">{req.student_branch}</p>
+                                    <p className="font-black text-sm text-slate-900 dark:text-white leading-tight">
+                                      {req.student_name || 'Student Candidate'}
+                                    </p>
+                                    <p className="text-[11px] font-mono text-slate-500 dark:text-slate-400 mt-0.5">
+                                      Reg: <span className="text-slate-800 dark:text-slate-200 font-bold">{req.student_reg || 'N/A'}</span> • Roll: <span className="font-bold">{req.student_roll || '49'}</span>
+                                    </p>
+                                    <span className="inline-block mt-0.5 px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-bold text-[10px]">
+                                      {req.student_branch || 'Engineering & Technology'}
+                                    </span>
                                   </div>
                                 </div>
                               </td>
                               <td className="py-4 px-4">
-                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 font-bold">
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800 text-amber-800 dark:text-amber-300 font-bold">
                                   <span>📍</span>
-                                  <span>{req.distance_km || 145} KM away</span>
+                                  <span>{req.student_distance_km !== undefined && req.student_distance_km !== null ? `${req.student_distance_km} KM` : (req.distance_km ? `${req.distance_km} KM` : '145 KM')}</span>
                                 </div>
-                                <p className="text-[10px] text-slate-400 mt-1">{req.home_district || 'Patna / Arwal'}</p>
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold mt-1">
+                                  {req.student_district || req.home_district || 'Patna / Arwal District'}
+                                </p>
+                                {req.distance_priority && (
+                                  <span className={`inline-block mt-0.5 px-2 py-0.5 rounded text-[9.5px] font-black uppercase ${
+                                    req.student_distance_km >= 80 ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300' : (req.student_distance_km >= 40 ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400')
+                                  }`}>
+                                    {req.distance_priority}
+                                  </span>
+                                )}
                               </td>
                               <td className="py-4 px-4">
-                                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 font-bold">
+                                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/80 dark:border-indigo-800 text-indigo-800 dark:text-indigo-300 font-bold">
                                   <span>🚪 Room {req.room_number || '101'}</span>
-                                  <span>•</span>
+                                  <span className="text-indigo-300 dark:text-indigo-700">•</span>
                                   <span className="font-black">Bed {req.bed_code || '1'}</span>
                                 </div>
-                                <p className="text-[10px] text-slate-400 mt-1">{req.hostel_name || 'Birsa Munda Boys Hostel'}</p>
+                                <p className="text-[10.5px] text-slate-400 mt-1 font-medium">
+                                  {req.hostel_name || 'Boys Hostel (Birsa Munda Block)'}
+                                </p>
                               </td>
                               <td className="py-4 px-4">
-                                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 text-[11px] font-black border border-rose-200 dark:border-rose-800">
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 text-[11px] font-black border border-rose-200/80 dark:border-rose-800">
                                   <span className="animate-pulse">⏳</span>
-                                  <span>23h 48m left</span>
+                                  <span>{req.hours_left !== undefined ? `${req.hours_left}h left` : '24h left'}</span>
                                 </div>
                                 <p className="text-[9.5px] text-slate-400 mt-0.5">*Auto-releases after 24 hrs</p>
                               </td>
-                              <td className="py-4 px-4">
+                              <td className="py-4 px-4 text-center">
                                 <button
                                   type="button"
                                   onClick={() => setAuditStudentModal(req)}
-                                  className="px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-xs font-extrabold hover:bg-indigo-100 flex items-center gap-1.5 cursor-pointer"
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-black shadow-sm transition-all cursor-pointer"
+                                  title="View complete official Student Dossier & PDF print preview"
                                 >
-                                  <span>🔍</span>
-                                  <span>Audit Profile</span>
+                                  <span>📄</span>
+                                  <span>View Dossier / PDF</span>
                                 </button>
                               </td>
                               <td className="py-4 px-4">
@@ -645,8 +678,8 @@ function WardenDashboard() {
                                   <button
                                     disabled={processingId === req.id}
                                     onClick={() => handleAllotmentAction(req.id, 'approve')}
-                                    className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider shadow transition-all flex items-center gap-1 cursor-pointer"
-                                    title="Approve and open 24h payment window for student"
+                                    className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-xs uppercase tracking-wider shadow-sm transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                    title="Approve request and open 24-hour admission payment window"
                                   >
                                     <span>✓</span>
                                     <span>Approve</span>
@@ -654,8 +687,8 @@ function WardenDashboard() {
                                   <button
                                     disabled={processingId === req.id}
                                     onClick={() => handleAllotmentAction(req.id, 'reject')}
-                                    className="px-2.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs uppercase tracking-wider shadow transition-all flex items-center gap-1 cursor-pointer"
-                                    title="Decline request"
+                                    className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-black text-xs uppercase tracking-wider shadow-sm transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                    title="Decline request and release bed"
                                   >
                                     <span>✕</span>
                                     <span>Reject</span>
@@ -1853,129 +1886,197 @@ function WardenDashboard() {
             </div>
           )}
 
-          {/* 🔍 STUDENT PROFILE & DISTANCE ELIGIBILITY AUDIT MODAL */}
+          {/* 🔍 OFFICIAL STUDENT DOSSIER & VERIFICATION PDF MODAL */}
           {auditStudentModal && (
             <div
-              className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200"
+              className="fixed inset-0 bg-black/85 z-50 flex items-center justify-center p-3 sm:p-4 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto"
               onClick={() => setAuditStudentModal(null)}
             >
               <div
-                className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto"
+                id="printable-dossier"
+                className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 max-w-2xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl space-y-6 max-h-[92vh] overflow-y-auto text-slate-900 dark:text-white"
                 onClick={e => e.stopPropagation()}
               >
-                {/* MODAL HEADER */}
-                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 flex items-center justify-center text-2xl">
-                      🔍
-                    </div>
+                {/* OFFICIAL EMBLEM & INSTITUTIONAL HEADER */}
+                <div className="flex items-center justify-between border-b-2 border-slate-200 dark:border-slate-800 pb-5">
+                  <div className="flex items-center gap-3.5">
+                    <img src={logo} alt="GP Barh Emblem" className="w-14 h-14 object-contain shrink-0" />
                     <div>
-                      <h3 className="text-lg font-black text-slate-900 dark:text-white">
-                        Student Eligibility &amp; Profile Audit
+                      <div className="text-[10px] font-black uppercase tracking-wider text-[#800000] dark:text-red-400">
+                        Department of Science, Technology &amp; Technical Education • Govt. of Bihar
+                      </div>
+                      <h3 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
+                        GOVERNMENT POLYTECHNIC, BARH
                       </h3>
-                      <p className="text-xs text-slate-500">
-                        Institutional 24-Hour Accommodation Review
+                      <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                        Official Student Hostel Admission &amp; Bed Allotment Verification Dossier
                       </p>
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => setAuditStudentModal(null)}
-                    className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center justify-center font-bold cursor-pointer"
+                    className="no-print w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center justify-center font-bold cursor-pointer transition-colors"
                   >
                     ✕
                   </button>
                 </div>
 
-                {/* STUDENT IDENTITY CARD */}
-                <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row gap-4 items-center">
-                  <div className="w-20 h-20 rounded-2xl bg-slate-200 dark:bg-slate-700 overflow-hidden flex-shrink-0 border-2 border-indigo-500 flex items-center justify-center text-3xl font-black text-slate-600">
+                {/* VERIFICATION METADATA BAR */}
+                <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-700 text-xs font-mono">
+                  <div>
+                    <span className="text-slate-400 font-bold uppercase text-[10px] block">Dossier Ref ID:</span>
+                    <strong className="text-slate-800 dark:text-slate-200">
+                      DOSSIER-GPB-{auditStudentModal.id || 'REQ'}-{auditStudentModal.student_reg || '2024'}
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 font-bold uppercase text-[10px] block">Verification Status:</span>
+                    <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-[11px] border border-amber-500/20">
+                      PENDING CHIEF WARDEN REVIEW
+                    </span>
+                  </div>
+                </div>
+
+                {/* STUDENT IDENTITY & ACADEMIC PARTICULARS */}
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200/80 dark:border-slate-700 flex flex-col sm:flex-row gap-5 items-center">
+                  <div className="relative w-24 h-24 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-600 overflow-hidden flex-shrink-0 border-2 border-indigo-500 shadow-md flex items-center justify-center text-4xl font-black text-white">
                     {auditStudentModal.student_photo ? (
                       <img src={auditStudentModal.student_photo} alt="" className="w-full h-full object-cover" />
                     ) : (
                       (auditStudentModal.student_name || 'S')[0]
                     )}
                   </div>
-                  <div className="flex-1 text-center sm:text-left space-y-1">
-                    <h4 className="text-base font-black text-slate-900 dark:text-white">
-                      {auditStudentModal.student_name}
-                    </h4>
-                    <p className="text-xs font-mono text-indigo-600 dark:text-indigo-400 font-bold">
-                      Reg: {auditStudentModal.student_reg} • Roll: {auditStudentModal.student_roll || '49'}
-                    </p>
-                    <p className="text-xs text-slate-600 dark:text-slate-300 font-semibold">
-                      {auditStudentModal.student_branch || 'AI & Machine Learning'} (Session 2024-27)
-                    </p>
+                  <div className="flex-1 text-center sm:text-left space-y-1.5 w-full">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                      <h4 className="text-lg font-black text-slate-900 dark:text-white">
+                        {auditStudentModal.student_name || 'Student Candidate'}
+                      </h4>
+                      <span className="px-2.5 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-bold text-xs self-center sm:self-auto border border-indigo-200 dark:border-indigo-800">
+                        {auditStudentModal.student_branch || 'AI & Machine Learning'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs font-mono text-slate-600 dark:text-slate-300">
+                      <div>
+                        <span className="text-slate-400 text-[10px] block uppercase font-sans">Registration No:</span>
+                        <strong className="text-slate-900 dark:text-white font-bold">{auditStudentModal.student_reg || 'N/A'}</strong>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 text-[10px] block uppercase font-sans">Class Roll No:</span>
+                        <strong className="text-slate-900 dark:text-white font-bold">{auditStudentModal.student_roll || '49'}</strong>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 text-[10px] block uppercase font-sans">Academic Session:</span>
+                        <strong className="text-slate-900 dark:text-white font-bold">2024 - 2027</strong>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 text-[10px] block uppercase font-sans">Category / Gender:</span>
+                        <strong className="text-slate-900 dark:text-white font-bold">General / Male</strong>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* DISTANCE & ELIGIBILITY VERDICT */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl space-y-1">
-                    <span className="text-[10px] font-black uppercase text-amber-700 dark:text-amber-400 tracking-wider">
-                      📍 Distance from GP Barh
-                    </span>
-                    <p className="text-lg font-black text-amber-900 dark:text-amber-200 font-mono">
+                {/* DISTANCE & RESIDENTIAL PARTICULARS */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+                  <div className="p-4 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800 rounded-2xl space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase text-amber-700 dark:text-amber-400 tracking-wider">
+                        📍 Distance from GP Barh
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                        ✓ PRIORITY MET (&gt;40 KM)
+                      </span>
+                    </div>
+                    <p className="text-2xl font-black text-amber-900 dark:text-amber-200 font-mono">
                       {auditStudentModal.distance_km || 145} KM
                     </p>
-                    <p className="text-[10px] text-amber-700 dark:text-amber-400">
-                      Origin: {auditStudentModal.home_district || 'Patna / Arwal District'}
+                    <p className="text-[11px] text-amber-800 dark:text-amber-300 font-medium">
+                      Native Origin: {auditStudentModal.home_district || 'Patna / Arwal District, Bihar'}
                     </p>
                   </div>
 
-                  <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl space-y-1">
-                    <span className="text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-400 tracking-wider">
-                      🎯 Merit &amp; Priority Score
+                  <div className="p-4 bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-800 rounded-2xl space-y-1.5">
+                    <span className="text-[10px] font-black uppercase text-indigo-700 dark:text-indigo-400 tracking-wider">
+                      🏢 Requested Accommodation
                     </span>
-                    <p className="text-lg font-black text-emerald-900 dark:text-emerald-200">
-                      HIGH PRIORITY
+                    <p className="text-lg font-black text-indigo-900 dark:text-indigo-200 font-mono">
+                      Room {auditStudentModal.room_number || '101'} • Bed {auditStudentModal.bed_code || '1'}
                     </p>
-                    <p className="text-[10px] text-emerald-700 dark:text-emerald-400">
-                      Distance exceeds 40km threshold. Recommended for allocation.
+                    <p className="text-[11px] text-indigo-800 dark:text-indigo-300 font-medium">
+                      {auditStudentModal.hostel_name || 'Boys Hostel (Birsa Munda Block)'}
                     </p>
                   </div>
                 </div>
 
                 {/* CONTACT & RESIDENCE PARTICULARS */}
-                <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2 text-xs">
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200/80 dark:border-slate-700 space-y-2.5 text-xs">
                   <div>
-                    <span className="text-slate-400 font-bold block text-[10px] uppercase">Permanent Residential Address:</span>
-                    <strong className="text-slate-800 dark:text-slate-200">
+                    <span className="text-slate-400 font-bold block text-[10px] uppercase tracking-wider">
+                      Permanent Residential Address:
+                    </span>
+                    <strong className="text-slate-800 dark:text-slate-200 leading-relaxed block mt-0.5">
                       {auditStudentModal.address || 'Vill - Agwanpur, P.O - Agwanpur, Dist - Patna, State - Bihar, PIN - 803213'}
                     </strong>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2.5 border-t border-slate-200 dark:border-slate-700">
                     <div>
-                      <span className="text-slate-400 font-bold block text-[10px]">Student Mobile:</span>
-                      <strong className="text-slate-800 dark:text-slate-200 font-mono">{auditStudentModal.mobile || '+91 88731 42022'}</strong>
+                      <span className="text-slate-400 font-bold block text-[10px] uppercase">Candidate Contact:</span>
+                      <strong className="text-slate-800 dark:text-slate-200 font-mono text-[11px]">{auditStudentModal.mobile || '+91 88731 42022'}</strong>
                     </div>
                     <div>
-                      <span className="text-slate-400 font-bold block text-[10px]">Guardian Emergency Contact:</span>
-                      <strong className="text-slate-800 dark:text-slate-200 font-mono">{auditStudentModal.guardian_mobile || '+91 98765 43211'}</strong>
+                      <span className="text-slate-400 font-bold block text-[10px] uppercase">Parent / Guardian Emergency Contact:</span>
+                      <strong className="text-slate-800 dark:text-slate-200 font-mono text-[11px]">{auditStudentModal.guardian_mobile || '+91 98765 43211'}</strong>
                     </div>
                   </div>
                 </div>
 
-                {/* 24-HOUR POLICY WARNING */}
-                <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl flex items-center gap-3 text-xs text-rose-800 dark:text-rose-300">
-                  <span className="text-xl">⚠️</span>
-                  <div>
-                    <strong>24-Hour Allotment Window:</strong> Once approved, the student has 24 hours to complete ₹2,000 admission fee payment. Unpaid holds are automatically revoked and released to queue.
+                {/* 24-HOUR POLICY WARNING & ADMISSION TERMS */}
+                <div className="p-3.5 bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 rounded-2xl flex items-start gap-3 text-xs text-rose-800 dark:text-rose-300">
+                  <span className="text-xl shrink-0 mt-0.5">⚠️</span>
+                  <div className="space-y-1">
+                    <strong className="font-black block">Institutional 24-Hour Admission Guarantee Rule:</strong>
+                    <p className="text-[11px] text-rose-700 dark:text-rose-300 leading-relaxed">
+                      Upon approval by Chief Warden, the candidate is allocated this bed on provisional hold for 24 hours. Candidate must submit ₹2,000 admission &amp; caution fee through the student portal within 24 hours. Unpaid requests auto-expire and release the seat to the waiting queue.
+                    </p>
                   </div>
                 </div>
 
-                {/* ACTION BUTTONS */}
-                <div className="flex gap-3 pt-2">
+                {/* DIGITAL SIGNATURE / STAMP SECTION */}
+                <div className="flex items-center justify-between border-t border-slate-200 dark:border-slate-800 pt-4 text-xs">
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">Authorized Authority:</p>
+                    <p className="font-black text-slate-900 dark:text-white">Chief Warden Office</p>
+                    <p className="text-[10px] text-slate-400">Govt. Polytechnic Barh (Patna)</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="inline-block px-3 py-1 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-700 text-[10px] font-mono font-bold text-slate-500">
+                      DIGITALLY STAMPED &amp; VERIFIED
+                    </div>
+                  </div>
+                </div>
+
+                {/* MODAL ACTIONS (HIDDEN ON PRINT) */}
+                <div className="no-print flex flex-col sm:flex-row gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="px-4 py-3 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all"
+                    title="Print or Save PDF of this official student dossier"
+                  >
+                    <span>🖨️</span>
+                    <span>Print PDF Dossier</span>
+                  </button>
                   <button
                     type="button"
                     onClick={() => {
                       handleAllotmentAction(auditStudentModal.id, 'approve');
                       setAuditStudentModal(null);
                     }}
-                    className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+                    className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all"
                   >
                     <span>✓</span>
-                    <span>APPROVE &amp; GRANT 24H PAYMENT WINDOW</span>
+                    <span>Approve &amp; Grant 24H Window</span>
                   </button>
                   <button
                     type="button"
@@ -1983,10 +2084,10 @@ function WardenDashboard() {
                       handleAllotmentAction(auditStudentModal.id, 'reject');
                       setAuditStudentModal(null);
                     }}
-                    className="px-5 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="px-5 py-3 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-1.5 cursor-pointer transition-all"
                   >
                     <span>✕</span>
-                    <span>REJECT</span>
+                    <span>Reject</span>
                   </button>
                 </div>
               </div>

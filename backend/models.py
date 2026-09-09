@@ -26,6 +26,11 @@ class User(Base):
     blood_group = Column(String, nullable=True)
     profile_pic = Column(Text, nullable=True)
     profile_completed = Column(Boolean, default=False)
+    pincode = Column(String, nullable=True)
+    home_district = Column(String, nullable=True)
+    home_state = Column(String, default="Bihar")
+    distance_km = Column(Float, nullable=True)
+    distance_verified = Column(Boolean, default=False)
 
     transactions = relationship("Transaction", back_populates="owner")
     allotment_requests = relationship("AllotmentRequest", back_populates="student", foreign_keys="[AllotmentRequest.student_id]")

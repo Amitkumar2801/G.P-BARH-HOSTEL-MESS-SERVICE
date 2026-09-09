@@ -617,7 +617,13 @@ function StudentDashboard() {
     const isMockAddress = addrStr && (addrStr.includes('Saksohara') || addrStr.includes('Agwanpur') || addrStr.includes('Village, P.O'));
     const cleanMobile = (mobileStr && !isMockMobile) ? mobileStr : "";
     const cleanAddress = (addrStr && !isMockAddress) ? addrStr : "";
-    const cleanEmail = userGender === 'FEMALE' ? "sanasharma.gpb.ai@gmail.com" : "amitkumar.gpb.ai@gmail.com";
+    const userPincode = u?.pincode || (userGender === 'FEMALE' ? '803214' : '804401');
+    const userDistrict = u?.home_district || (userGender === 'FEMALE' ? 'Patna (Barh Sub-division)' : 'Arwal');
+    const userState = u?.home_state || 'Bihar';
+    const userDistKm = u?.distance_km !== undefined && u?.distance_km !== null ? u.distance_km : (userGender === 'FEMALE' ? 0.0 : 145.0);
+    const userVerified = u?.distance_verified || false;
+    const userPriority = userDistKm >= 80 ? 'HIGH PRIORITY (>80 KM)' : (userDistKm >= 40 ? 'MEDIUM PRIORITY (40-80 KM)' : 'LOCAL RESIDENT (<40 KM)');
+
     return {
       fullName: cleanName,
       regNo: cleanReg,
@@ -630,9 +636,56 @@ function StudentDashboard() {
       email: cleanEmail,
       address: cleanAddress,
       gender: userGender,
-      hostelBlock: userBlock
+      hostelBlock: userBlock,
+      pincode: userPincode,
+      homeDistrict: userDistrict,
+      homeState: userState,
+      distanceKm: userDistKm,
+      distanceVerified: userVerified,
+      distancePriority: userPriority
     };
   });
+
+  const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
+  const [distanceResult, setDistanceResult] = useState(null);
+
+  const handleCalculateDistance = async () => {
+    const pin = (profileData.pincode || '').trim();
+    if (!pin || pin.length < 6) {
+      toast.error("Please enter a valid 6-digit Pincode to calculate distance!");
+      return;
+    }
+    setIsCalculatingDistance(true);
+    try {
+      const res = await axios.post('http://127.0.0.1:8000/api/students/verify-distance', {
+        pincode: pin,
+        student_id: currentUser?.id,
+        district: profileData.homeDistrict,
+        state: profileData.homeState || 'Bihar'
+      });
+      if (res.data) {
+        setDistanceResult(res.data);
+        setProfileData(prev => ({
+          ...prev,
+          pincode: res.data.pincode,
+          homeDistrict: res.data.district,
+          homeState: res.data.state,
+          distanceKm: res.data.distance_km,
+          distanceVerified: true,
+          distancePriority: res.data.distance_priority
+        }));
+        toast.success(`Distance Verified: ${res.data.distance_km} KM (${res.data.distance_priority}) 📍`, {
+          duration: 4500,
+          style: { borderRadius: '12px', background: '#0f172a', color: '#10b981', border: '1px solid #10b981' }
+        });
+      }
+    } catch (err) {
+      console.error("Distance verification error:", err);
+      toast.error("Could not calculate distance. Please try again.");
+    } finally {
+      setIsCalculatingDistance(false);
+    }
+  };
 
   const [paymentSelection, setPaymentSelection] = useState(null);
   const [customAmount, setCustomAmount] = useState("");
@@ -742,6 +795,90 @@ function StudentDashboard() {
 
   // 📱 CONNECT APP MODAL STATE (WHATSAPP-STYLE QR SCANNER)
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
+
+  // 🛏️ ALLOTMENT & WARDEN APPROVAL AUTHORIZATION STATE
+  const [allotmentInfo, setAllotmentInfo] = useState({
+    has_request: false,
+    status: 'NONE', // 'NONE', 'PENDING', 'APPROVED', 'REJECTED'
+    room_number: '',
+    floor_number: 0,
+    wing: '',
+    bed_code: '',
+    hostel_name: '',
+    applied_at: null,
+    remarks: '',
+    fee_unlocked: false
+  });
+
+  const fetchStudentAllotment = async () => {
+    try {
+      const studentIdentifier = currentUser?.id || currentUser?.reg_no || currentUser?.reg_no_email || profileData?.regNo;
+      if (!studentIdentifier) return;
+      const res = await axios.get(`http://127.0.0.1:8000/api/student/allotment-status/${studentIdentifier}`);
+      if (res.data) {
+        setAllotmentInfo(res.data);
+      }
+    } catch (err) {
+      console.warn("Could not fetch student allotment status:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchStudentAllotment();
+    const interval = setInterval(fetchStudentAllotment, 6000);
+    return () => clearInterval(interval);
+  }, [currentUser, profileData]);
+
+  const isAllotmentApproved = allotmentInfo?.status === 'APPROVED' || allotmentInfo?.fee_unlocked === true;
+
+  const lockedTabIds = [
+    'registration-fee',
+    'student-record',
+    'mess-scanner',
+    'payments',
+    'hostel',
+    'mess',
+    'clearance',
+    'complaints',
+    'appscan'
+  ];
+
+  const handleNavClick = (tab) => {
+    const isLocked = !isAllotmentApproved && lockedTabIds.includes(tab.id);
+    if (isLocked) {
+      if (allotmentInfo?.status === 'PENDING') {
+        toast((t) => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '18px' }}>⏳</span>
+            <span>
+              <strong>Allotment Pending Approval:</strong> Your request for Room {allotmentInfo.room_number || ''} ({allotmentInfo.bed_code || ''}) is awaiting Warden review. Once approved, this section will unlock automatically.
+            </span>
+          </div>
+        ), {
+          id: 'locked-pending-toast',
+          duration: 4500,
+          style: { borderRadius: '12px', background: '#0f172a', color: '#facc15', border: '1px solid #eab308' }
+        });
+      } else {
+        toast.error("🔒 Please choose and request your seat in 'Seat & Room Allocation' first. All features will unlock after Warden approval.", {
+          id: 'locked-none-toast',
+          duration: 4500,
+          style: { borderRadius: '12px', background: '#0f172a', color: '#f87171', border: '1px solid #ef4444' }
+        });
+      }
+      return;
+    }
+
+    if (tab.isRoute) {
+      navigate('/mess-scanner');
+    } else if (tab.id === 'appscan') {
+      setActiveTab(tab.id);
+      setIsConnectModalOpen(true);
+    } else {
+      setActiveTab(tab.id);
+    }
+    setIsSidebarOpen(false);
+  };
 
   const handlePrintAllotmentSlip = () => {
     if (!isAdmissionFeePaid) {
@@ -857,7 +994,12 @@ function StudentDashboard() {
           mobile: profileData.contact,
           address: profileData.address,
           blood_group: profileData.bloodGroup,
-          profile_pic: profilePic
+          profile_pic: profilePic,
+          pincode: profileData.pincode,
+          home_district: profileData.homeDistrict,
+          home_state: profileData.homeState || 'Bihar',
+          distance_km: profileData.distanceKm,
+          distance_verified: profileData.distanceVerified || false
         });
       }
     } catch (e) {
@@ -874,7 +1016,12 @@ function StudentDashboard() {
       session: sessionVal,
       mobile: profileData.contact,
       address: profileData.address,
-      blood_group: profileData.bloodGroup
+      blood_group: profileData.bloodGroup,
+      pincode: profileData.pincode,
+      home_district: profileData.homeDistrict,
+      home_state: profileData.homeState || 'Bihar',
+      distance_km: profileData.distanceKm,
+      distance_verified: profileData.distanceVerified || false
     };
     setCurrentUser(updatedUser);
     localStorage.setItem('user', JSON.stringify(updatedUser));
@@ -1342,26 +1489,26 @@ function StudentDashboard() {
               { id: 'complaints', name: 'Complaints', icon: <><path d="M18 8h1a4 4 0 010 8h-1" /><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z" /><line x1="6" y1="1" x2="6" y2="4" /><line x1="10" y1="1" x2="10" y2="4" /><line x1="14" y1="1" x2="14" y2="4" /></> },
               { id: 'security', name: 'Security & Password', icon: <><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></> },
               { id: 'appscan', name: 'Connect App', className: 'mobile-only-nav', icon: <><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></> }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                className={`nav-item ${activeTab === tab.id ? 'active' : ''} ${tab.className || ''}`}
-                onClick={() => {
-                  if (tab.isRoute) {
-                    navigate('/mess-scanner');
-                  } else if (tab.id === 'appscan') {
-                    setActiveTab(tab.id);
-                    setIsConnectModalOpen(true);
-                  } else {
-                    setActiveTab(tab.id);
-                  }
-                  setIsSidebarOpen(false);
-                }}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>{tab.icon}</svg>
-                {tab.name}
-              </button>
-            ))}
+            ].map(tab => {
+              const isLocked = !isAllotmentApproved && lockedTabIds.includes(tab.id);
+              return (
+                <button
+                  key={tab.id}
+                  className={`nav-item ${activeTab === tab.id ? 'active' : ''} ${tab.className || ''} ${isLocked ? 'opacity-65' : ''}`}
+                  onClick={() => handleNavClick(tab)}
+                  title={isLocked ? 'Locked: Requires Approved Seat Allotment' : tab.name}
+                  style={isLocked ? { cursor: 'pointer' } : {}}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>{tab.icon}</svg>
+                  <span style={{ flex: 1, textAlign: 'left' }}>{tab.name}</span>
+                  {isLocked && (
+                    <span style={{ fontSize: '12px', marginLeft: 'auto', opacity: 0.85 }} title="Warden Approval Required">
+                      🔒
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </nav>
           <button className="logout-btn" onClick={() => navigate("/")}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
@@ -1391,14 +1538,28 @@ function StudentDashboard() {
             </div>
           </header>
 
-          <section className={`scroll-content ${activeTab === 'seat-allocation' ? '!p-0 !bg-[#0d0e12] !overflow-x-hidden' : ''}`}>
-            <div className={`content-wrapper ${activeTab === 'seat-allocation' ? '!max-w-none !m-0 !p-0 !gap-0 !bg-[#0d0e12] !overflow-x-hidden' : ''}`}>
+          <section className={`scroll-content ${activeTab === 'seat-allocation' ? '!p-2 sm:!p-4 md:!p-6 !overflow-x-hidden' : ''}`}>
+            <div className={`content-wrapper ${activeTab === 'seat-allocation' ? '!max-w-7xl !m-0 !p-0 !gap-4 !overflow-x-hidden' : ''}`}>
 
               {/* 1. MANAGE PROFILE (1ST POSITION) */}
               {activeTab === 'profile' && (
                 <div>
-                  <h2 className="page-title">Manage Profile</h2>
-                  <p className="page-sub">Keep your academic and personnel records updated.</p>
+                  <div style={{ marginBottom: '26px' }}>
+                    <h2 style={{ 
+                      fontSize: '32px', 
+                      fontWeight: 900, 
+                      color: 'var(--text)', 
+                      letterSpacing: '-0.8px', 
+                      lineHeight: 1.2, 
+                      margin: '0 0 6px',
+                      fontFamily: "'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif" 
+                    }}>
+                      Manage Profile
+                    </h2>
+                    <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: 0, fontWeight: 500 }}>
+                      Keep your academic and personnel records updated.
+                    </p>
+                  </div>
 
                   <div id="non-print-profile-elements">
                     {/* PROFESSIONAL PROFILE HERO CARD */}
@@ -1546,54 +1707,6 @@ function StudentDashboard() {
                       </div>
                       <div className="form-row">
                         <div className="form-group">
-                          <label className="form-label">Hostel &amp; Block Selection</label>
-                          <select
-                            className="form-select"
-                            disabled={isProfileLocked}
-                            value={profileData.hostelBlock || (profileData.gender === 'FEMALE' ? 'Savitribai Phule Girls Hostel' : 'Birsa Munda Block')}
-                            style={isProfileLocked ? { opacity: 0.75, cursor: 'not-allowed', background: 'var(--input-bg)' } : {}}
-                            onChange={e => {
-                              const selected = e.target.value;
-                              const isFem = selected === 'Savitribai Phule Girls Hostel';
-                              setProfileData({
-                                ...profileData,
-                                hostelBlock: selected,
-                                gender: isFem ? 'FEMALE' : 'MALE'
-                              });
-                            }}
-                          >
-                            {profileData.gender === 'FEMALE' ? (
-                              <option value="Savitribai Phule Girls Hostel">👩 Savitribai Phule Girls Hostel</option>
-                            ) : (
-                              <>
-                                <option value="Birsa Munda Block">👨 Birsa Munda Block</option>
-                                <option value="Dr. Rajendra Prasad Block">👨 Dr. Rajendra Prasad Block</option>
-                              </>
-                            )}
-                          </select>
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">Blood Group</label>
-                          <select
-                            className="form-select"
-                            disabled={isProfileLocked}
-                            value={profileData.bloodGroup || "O+"}
-                            onChange={e => setProfileData({ ...profileData, bloodGroup: e.target.value })}
-                            style={isProfileLocked ? { opacity: 0.75, cursor: 'not-allowed', background: 'var(--input-bg)' } : {}}
-                          >
-                            <option value="O+">O+</option>
-                            <option value="O-">O-</option>
-                            <option value="A+">A+</option>
-                            <option value="A-">A-</option>
-                            <option value="B+">B+</option>
-                            <option value="B-">B-</option>
-                            <option value="AB+">AB+</option>
-                            <option value="AB-">AB-</option>
-                          </select>
-                        </div>
-                      </div>
-                      <div className="form-row">
-                        <div className="form-group">
                           <label className="form-label">Contact Number</label>
                           <input
                             className="form-input"
@@ -1618,6 +1731,27 @@ function StudentDashboard() {
                           />
                         </div>
                       </div>
+                      <div className="form-row">
+                        <div className="form-group">
+                          <label className="form-label">Blood Group</label>
+                          <select
+                            className="form-select"
+                            disabled={isProfileLocked}
+                            value={profileData.bloodGroup || "O+"}
+                            onChange={e => setProfileData({ ...profileData, bloodGroup: e.target.value })}
+                            style={isProfileLocked ? { opacity: 0.75, cursor: 'not-allowed', background: 'var(--input-bg)' } : {}}
+                          >
+                            <option value="O+">O+</option>
+                            <option value="O-">O-</option>
+                            <option value="A+">A+</option>
+                            <option value="A-">A-</option>
+                            <option value="B+">B+</option>
+                            <option value="B-">B-</option>
+                            <option value="AB+">AB+</option>
+                            <option value="AB-">AB-</option>
+                          </select>
+                        </div>
+                      </div>
                       <div className="form-group">
                         <label className="form-label">Full Permanent Address</label>
                         <textarea
@@ -1628,6 +1762,138 @@ function StudentDashboard() {
                           placeholder="Vill - , P.O - , P.S - , Dist - , State - , PIN - "
                           style={isProfileLocked ? { opacity: 0.75, cursor: 'not-allowed', background: 'var(--input-bg)' } : {}}
                         ></textarea>
+                      </div>
+
+                      {/* 📍 INSTITUTIONAL HOSTEL ELIGIBILITY & DISTANCE CALCULATOR CARD */}
+                      <div style={{
+                        marginTop: '28px',
+                        background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%)',
+                        border: '1.5px solid #334155',
+                        borderRadius: '18px',
+                        padding: '24px',
+                        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: '18px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#2563eb', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
+                              📍
+                            </div>
+                            <div>
+                              <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#f8fafc' }}>
+                                Home Distance &amp; Hostel Eligibility Calculator
+                              </h4>
+                              <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#94a3b8' }}>
+                                Reference Point: Govt. Polytechnic Barh Campus (PIN: 803214, Patna, Bihar)
+                              </p>
+                            </div>
+                          </div>
+                          {profileData.distanceKm !== undefined && profileData.distanceKm !== null && (
+                            <span style={{
+                              padding: '6px 14px',
+                              borderRadius: '20px',
+                              background: profileData.distanceKm >= 80 ? 'rgba(16, 185, 129, 0.2)' : (profileData.distanceKm >= 40 ? 'rgba(234, 179, 8, 0.2)' : 'rgba(148, 163, 184, 0.2)'),
+                              border: `1px solid ${profileData.distanceKm >= 80 ? '#10b981' : (profileData.distanceKm >= 40 ? '#eab308' : '#64748b')}`,
+                              color: profileData.distanceKm >= 80 ? '#34d399' : (profileData.distanceKm >= 40 ? '#fde047' : '#cbd5e1'),
+                              fontSize: '12px',
+                              fontWeight: 800
+                            }}>
+                              {profileData.distancePriority || `${profileData.distanceKm} KM`}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="form-row" style={{ marginBottom: '16px' }}>
+                          <div className="form-group">
+                            <label className="form-label" style={{ color: '#cbd5e1' }}>Home Area Pincode (6 Digits)</label>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                              <input
+                                className="form-input"
+                                type="text"
+                                maxLength={6}
+                                disabled={isProfileLocked}
+                                value={profileData.pincode || ""}
+                                onChange={e => setProfileData({ ...profileData, pincode: e.target.value })}
+                                placeholder="e.g. 804401 or 800001"
+                                style={{
+                                  flex: 1,
+                                  fontWeight: 700,
+                                  letterSpacing: '1px',
+                                  background: '#0f172a',
+                                  borderColor: '#475569',
+                                  color: '#fff',
+                                  ...(isProfileLocked ? { opacity: 0.75, cursor: 'not-allowed' } : {})
+                                }}
+                              />
+                              <button
+                                type="button"
+                                disabled={isProfileLocked || isCalculatingDistance}
+                                onClick={handleCalculateDistance}
+                                style={{
+                                  padding: '0 20px',
+                                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                                  color: '#fff',
+                                  border: 'none',
+                                  borderRadius: '12px',
+                                  fontWeight: 800,
+                                  fontSize: '13px',
+                                  cursor: (isProfileLocked || isCalculatingDistance) ? 'not-allowed' : 'pointer',
+                                  opacity: (isProfileLocked || isCalculatingDistance) ? 0.6 : 1,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                {isCalculatingDistance ? 'Calculating...' : '📍 Verify Distance'}
+                              </button>
+                            </div>
+                          </div>
+                          <div className="form-group">
+                            <label className="form-label" style={{ color: '#cbd5e1' }}>Home District &amp; State</label>
+                            <input
+                              className="form-input"
+                              type="text"
+                              disabled={isProfileLocked}
+                              value={profileData.homeDistrict ? `${profileData.homeDistrict}, ${profileData.homeState || 'Bihar'}` : ""}
+                              onChange={e => setProfileData({ ...profileData, homeDistrict: e.target.value })}
+                              placeholder="e.g. Arwal, Bihar"
+                              style={{
+                                background: '#0f172a',
+                                borderColor: '#475569',
+                                color: '#fff',
+                                ...(isProfileLocked ? { opacity: 0.75, cursor: 'not-allowed' } : {})
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Verified Calculation Result Badge */}
+                        <div style={{
+                          background: 'rgba(15, 23, 42, 0.6)',
+                          border: '1px dashed #475569',
+                          borderRadius: '12px',
+                          padding: '14px 18px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          flexWrap: 'wrap',
+                          gap: '12px'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span style={{ fontSize: '24px' }}>🚗</span>
+                            <div>
+                              <div style={{ fontSize: '14px', fontWeight: 800, color: '#f1f5f9' }}>
+                                Accurate Campus Road Distance: <span style={{ color: '#38bdf8', fontSize: '16px' }}>{profileData.distanceKm !== undefined ? `${profileData.distanceKm} KM` : 'Not Calculated'}</span>
+                              </div>
+                              <div style={{ fontSize: '11.5px', color: '#94a3b8', marginTop: '2px' }}>
+                                Origin: <strong>{profileData.homeDistrict || 'Your Home Town'}</strong> → Destination: <strong>Govt. Polytechnic Barh</strong>
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{ fontSize: '11.5px', color: '#64748b', textAlign: 'right' }}>
+                            *Hostel admission priority is determined by verified road distance (&gt;80 KM = Tier 1).
+                          </div>
+                        </div>
                       </div>
 
                       {/* 🔒 CLEAN, PROFESSIONAL CENTERED ACTION BUTTON 🔒 */}
@@ -1714,10 +1980,158 @@ function StudentDashboard() {
               {/* 2. SEAT & ROOM ALLOCATION SECTION (2ND POSITION) */}
               {activeTab === 'seat-allocation' && (
                 <div className="animate-fade-in w-full pb-8">
+                  {/* 🌟 1. PENDING NOTIFICATION BANNER */}
+                  {allotmentInfo?.status === 'PENDING' && (
+                    <div style={{
+                      background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.2) 0%, rgba(202, 138, 4, 0.1) 100%)',
+                      border: '2px solid #eab308',
+                      borderRadius: '16px',
+                      padding: '16px 22px',
+                      margin: '16px 20px 20px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '16px',
+                      flexWrap: 'wrap',
+                      boxShadow: '0 8px 30px rgba(234, 179, 8, 0.25)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                        <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#eab308', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', fontWeight: 900, flexShrink: 0 }}>
+                          ⏳
+                        </div>
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: '#fef08a' }}>
+                            Room Allotment Request Pending Warden Approval
+                          </h4>
+                          <p style={{ margin: '3px 0 0', fontSize: '12.5px', color: '#fde047', fontWeight: 500 }}>
+                            Requested: <strong>Room {allotmentInfo.room_number || ''} • Bed {allotmentInfo.bed_code || ''}</strong> ({allotmentInfo.hostel_name || 'Hostel Block'}) • Awaiting Warden Review ({allotmentInfo.hours_left !== undefined ? `${allotmentInfo.hours_left}h left in 24h window` : '24h review window'}).
+                          </p>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ padding: '6px 14px', borderRadius: '20px', background: 'rgba(234, 179, 8, 0.3)', border: '1px solid #eab308', color: '#fef08a', fontSize: '11px', fontWeight: 900, letterSpacing: '0.5px' }}>
+                          STATUS: PENDING
+                        </span>
+                        <button
+                          type="button"
+                          onClick={fetchStudentAllotment}
+                          style={{ padding: '6px 14px', borderRadius: '10px', background: '#eab308', color: '#000', border: 'none', fontSize: '12px', fontWeight: 800, cursor: 'pointer' }}
+                        >
+                          Check Status 🔄
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 🌟 2. APPROVED NOTIFICATION BANNER */}
+                  {allotmentInfo?.status === 'APPROVED' && (
+                    <div style={{
+                      background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.1) 100%)',
+                      border: '2px solid #10b981',
+                      borderRadius: '16px',
+                      padding: '16px 22px',
+                      margin: '16px 20px 20px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '16px',
+                      flexWrap: 'wrap',
+                      boxShadow: '0 8px 30px rgba(16, 185, 129, 0.25)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                        <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#10b981', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', fontWeight: 900, flexShrink: 0 }}>
+                          ✓
+                        </div>
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: '#a7f3d0' }}>
+                            Hostel Seat Allotment Approved &amp; Verified 🎉
+                          </h4>
+                          <p style={{ margin: '3px 0 0', fontSize: '12.5px', color: '#6ee7b7', fontWeight: 500 }}>
+                            Allotted: <strong>Room {allotmentInfo.room_number} • Bed {allotmentInfo.bed_code}</strong> ({allotmentInfo.hostel_name || 'Hostel Block'}) • All Payments, Mess &amp; Passbook services unlocked!
+                          </p>
+                        </div>
+                      </div>
+                      <span style={{ padding: '6px 14px', borderRadius: '20px', background: 'rgba(16, 185, 129, 0.3)', border: '1px solid #10b981', color: '#a7f3d0', fontSize: '11px', fontWeight: 900, letterSpacing: '0.5px' }}>
+                        VERIFIED ALLOTTEE
+                      </span>
+                    </div>
+                  )}
+
+                  {/* 🌟 3. REJECTED NOTIFICATION BANNER */}
+                  {allotmentInfo?.status === 'REJECTED' && (
+                    <div style={{
+                      background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(185, 28, 28, 0.1) 100%)',
+                      border: '2px solid #ef4444',
+                      borderRadius: '16px',
+                      padding: '16px 22px',
+                      margin: '16px 20px 20px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '16px',
+                      flexWrap: 'wrap',
+                      boxShadow: '0 8px 30px rgba(239, 68, 68, 0.25)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                        <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#ef4444', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', fontWeight: 900, flexShrink: 0 }}>
+                          ✕
+                        </div>
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: '#fca5a5' }}>
+                            Room Allotment Request Declined by Chief Warden
+                          </h4>
+                          <p style={{ margin: '3px 0 0', fontSize: '12.5px', color: '#f87171', fontWeight: 500 }}>
+                            {allotmentInfo.remarks || 'Request declined by Warden'}. The previous bed has been released. You can choose any available room &amp; bed from the blueprint grid below!
+                          </p>
+                        </div>
+                      </div>
+                      <span style={{ padding: '6px 14px', borderRadius: '20px', background: 'rgba(239, 68, 68, 0.3)', border: '1px solid #ef4444', color: '#fca5a5', fontSize: '11px', fontWeight: 900, letterSpacing: '0.5px' }}>
+                        RE-SELECTION UNLOCKED
+                      </span>
+                    </div>
+                  )}
+
+                  {/* 🌟 4. EXPIRED (24H WINDOW) NOTIFICATION BANNER */}
+                  {allotmentInfo?.status === 'EXPIRED' && (
+                    <div style={{
+                      background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.2) 0%, rgba(194, 65, 12, 0.1) 100%)',
+                      border: '2px solid #f97316',
+                      borderRadius: '16px',
+                      padding: '16px 22px',
+                      margin: '16px 20px 20px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '16px',
+                      flexWrap: 'wrap',
+                      boxShadow: '0 8px 30px rgba(249, 115, 22, 0.25)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                        <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#f97316', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', fontWeight: 900, flexShrink: 0 }}>
+                          ⏱️
+                        </div>
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: '#fed7aa' }}>
+                            24-Hour Review Window Expired
+                          </h4>
+                          <p style={{ margin: '3px 0 0', fontSize: '12.5px', color: '#fdba74', fontWeight: 500 }}>
+                            Your previous bed reservation expired after 24 hours without Warden action. The bed is freed. Please select an available bed from the grid below to submit a new request!
+                          </p>
+                        </div>
+                      </div>
+                      <span style={{ padding: '6px 14px', borderRadius: '20px', background: 'rgba(249, 115, 22, 0.3)', border: '1px solid #f97316', color: '#fed7aa', fontSize: '11px', fontWeight: 900, letterSpacing: '0.5px' }}>
+                        RE-SELECTION UNLOCKED
+                      </span>
+                    </div>
+                  )}
+
+                  {/* STUDENT GENDER-ISOLATED ROOM ALLOCATION BLUEPRINT */}
                   <RoomAllocationGrid
-                    gender={profileData.gender || currentUser?.gender || 'MALE'}
-                    studentId={currentUser?.id || 1}
+                    gender={String(currentUser?.gender || profileData?.gender || 'MALE').toUpperCase() === 'FEMALE' ? 'FEMALE' : 'MALE'}
+                    studentId={currentUser?.id || profileData?.regNo || 1}
                     isDarkMode={isDarkMode}
+                    onBedRequested={fetchStudentAllotment}
+                    activeAllotment={allotmentInfo}
                   />
                 </div>
               )}

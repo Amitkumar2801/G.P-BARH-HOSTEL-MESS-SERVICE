@@ -54,6 +54,11 @@ class ProfileUpdate(BaseModel):
     address: Optional[str] = None
     blood_group: Optional[str] = None
     profile_pic: Optional[str] = None
+    pincode: Optional[str] = None
+    home_district: Optional[str] = None
+    home_state: Optional[str] = "Bihar"
+    distance_km: Optional[float] = None
+    distance_verified: Optional[bool] = False
 
 class UserProfileResponse(BaseModel):
     id: int
@@ -73,6 +78,11 @@ class UserProfileResponse(BaseModel):
     blood_group: Optional[str] = None
     profile_pic: Optional[str] = None
     profile_completed: bool = False
+    pincode: Optional[str] = None
+    home_district: Optional[str] = None
+    home_state: Optional[str] = "Bihar"
+    distance_km: Optional[float] = None
+    distance_verified: Optional[bool] = False
 
     class Config:
         from_attributes = True
@@ -144,6 +154,12 @@ class AllotmentRequestResponse(BaseModel):
     student_reg: Optional[str] = None
     student_mobile: Optional[str] = None
     student_photo: Optional[str] = None
+    student_pincode: Optional[str] = None
+    student_district: Optional[str] = None
+    student_distance_km: Optional[float] = None
+    distance_priority: Optional[str] = None
+    hours_left: Optional[float] = 24.0
+    is_expired: Optional[bool] = False
     room_id: int
     room_number: str
     floor_number: int
@@ -156,6 +172,21 @@ class AllotmentRequestResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class DistanceCalculationRequest(BaseModel):
+    pincode: str
+    student_id: Optional[int] = None
+    district: Optional[str] = None
+    state: Optional[str] = "Bihar"
+
+class DistanceCalculationResponse(BaseModel):
+    pincode: str
+    district: str
+    state: str
+    distance_km: float
+    distance_priority: str
+    hostel_recommended: bool
+    message: str
 
 class WardenAnalyticsResponse(BaseModel):
     total_capacity: int

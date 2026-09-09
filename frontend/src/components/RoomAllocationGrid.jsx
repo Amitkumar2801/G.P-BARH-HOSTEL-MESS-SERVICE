@@ -186,6 +186,9 @@ function RoomAllocationGrid({
       setRequestSentInfo(`Request sent for Room ${activeRoomModal.room_number}(${selectedBedLetter}) — Awaiting Warden Approval`);
       fetchLayout();
       if (onBedRequested) onBedRequested();
+      setTimeout(() => {
+        setActiveRoomModal(null);
+      }, 700);
     } catch (error) {
       if (error.response?.data?.detail) {
         toast.error(error.response.data.detail);
@@ -243,19 +246,19 @@ function RoomAllocationGrid({
     // 🟢 Green = All Available
     let style = isDarkMode
       ? 'bg-[#064e3b]/90 border border-emerald-500/80 text-white shadow-sm hover:bg-[#065f46] hover:border-emerald-300'
-      : 'bg-emerald-50 border border-emerald-300 text-emerald-950 shadow-sm hover:bg-emerald-100 hover:border-emerald-400';
+      : 'bg-[#e6f9f0] border-2 border-[#86efac] text-emerald-950 shadow-xs hover:bg-[#dcfce7] hover:border-[#4ade80]';
 
     // 🔴 Red = Fully Occupied
     if (isFull) {
       style = isDarkMode
         ? 'bg-[#3a0c0c]/85 border border-red-800/70 text-red-200/60 cursor-not-allowed opacity-75'
-        : 'bg-rose-50 border border-rose-200 text-rose-800/50 cursor-not-allowed opacity-75';
+        : 'bg-[#fff1f2] border-2 border-rose-200 text-rose-800/50 cursor-not-allowed opacity-75';
     } 
     // 🟡 Amber = Partially Booked
     else if (isPartiallyBooked) {
       style = isDarkMode
         ? 'bg-[#78350f]/90 border border-amber-500/80 text-amber-50 shadow-sm hover:bg-[#92400e] hover:border-amber-300'
-        : 'bg-amber-50 border border-amber-300 text-amber-950 shadow-sm hover:bg-amber-100 hover:border-amber-400';
+        : 'bg-[#fef9ee] border-2 border-amber-300 text-amber-950 shadow-xs hover:bg-[#fef3c7] hover:border-amber-400';
     }
 
     // 🌟 Gold = Selected by Student
@@ -337,10 +340,10 @@ function RoomAllocationGrid({
     return (
       <div
         key={floorTitle}
-        className={`flex flex-col gap-1.5 sm:gap-2 p-2 sm:p-3 rounded-2xl border transition-all duration-150 w-full min-w-0 ${
+        className={`flex flex-col gap-2 sm:gap-2.5 p-3 sm:p-4 rounded-2xl border transition-all duration-150 w-full min-w-0 ${
           isDarkMode
             ? 'bg-[#12141d]/90 border-zinc-800/90 shadow-inner'
-            : 'bg-white border-2 border-slate-200/90 shadow-xs'
+            : 'bg-white border-2 border-amber-200/90 shadow-xs'
         }`}
       >
         <div className="flex items-center justify-center gap-2 py-0.5 mb-0.5">
@@ -515,7 +518,7 @@ function RoomAllocationGrid({
   /* ------------------------------------------------------------------ */
   return (
     <div
-      className={`w-full min-w-0 min-h-[calc(100vh-70px)] p-2 sm:p-3 md:p-4 flex flex-col justify-between select-none box-border overflow-y-auto overflow-x-hidden md:overflow-hidden font-sans transition-colors duration-200 ${
+      className={`w-full max-w-[1650px] mx-auto min-w-0 px-3 sm:px-5 md:px-7 py-3 sm:py-4 flex flex-col gap-4 sm:gap-5 select-none box-border overflow-y-auto overflow-x-hidden font-sans transition-colors duration-200 ${
         isDarkMode ? 'bg-[#0a0b0e] text-zinc-100' : 'bg-[#f8fafc] text-slate-900'
       }`}
     >
@@ -620,14 +623,14 @@ function RoomAllocationGrid({
       </div>
 
       {/* 🌟 2. EXPANSIVE MIDDLE BLUEPRINT MATRIX (PHONE: STACKED / WEB: SIDE-BY-SIDE) */}
-      <div className="w-full flex-1 flex flex-col justify-center my-auto py-2">
+      <div className="w-full flex-1 flex flex-col justify-start py-1">
         {!isFemale ? (
           <div className="w-full min-w-0">
             {/* On Phone (< md): grid-cols-1 (Stacked Upper/Lower) | On Desktop (>= md): grid-cols-2 (Side-by-Side) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 w-full min-w-0 relative">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 w-full min-w-0 relative px-1 sm:px-2">
               {/* Desktop Center Highlighted Divider */}
               <div
-                className={`hidden md:block absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[2px] pointer-events-none z-10 ${
+                className={`hidden lg:block absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[2px] pointer-events-none z-10 ${
                   isDarkMode
                     ? 'bg-gradient-to-b from-amber-500/20 via-amber-500/70 to-amber-500/20 shadow-[0_0_10px_rgba(245,158,11,0.4)]'
                     : 'bg-gradient-to-b from-amber-300/30 via-amber-500 to-amber-300/30 shadow-[0_0_8px_rgba(245,158,11,0.25)]'
@@ -636,21 +639,23 @@ function RoomAllocationGrid({
 
               {/* ⬅️ BIRSA MUNDA BOYS HOSTEL */}
               <div
-                className={`w-full min-w-0 space-y-2 sm:space-y-3 p-2.5 sm:p-3.5 md:p-4 rounded-3xl border-2 shadow-md transition-all ${
-                  isDarkMode ? 'bg-[#0f1118]/90 border-zinc-800' : 'bg-white/95 border-slate-200 ring-1 ring-slate-900/5'
+                className={`w-full min-w-0 space-y-3 sm:space-y-4 p-3.5 sm:p-5 md:p-6 rounded-3xl border-2 shadow-md transition-all ${
+                  isDarkMode
+                    ? 'bg-[#0f1118]/90 border-zinc-800'
+                    : 'bg-white border-2 border-amber-300/90 shadow-md ring-1 ring-amber-400/20'
                 }`}
               >
                 <div
-                  className={`text-center py-1.5 sm:py-2 px-2.5 rounded-2xl border-2 flex items-center justify-center gap-2 shadow-xs ${
+                  className={`text-center py-1.5 sm:py-2 px-3 sm:px-4 rounded-2xl border-2 flex items-center justify-center gap-2.5 shadow-xs ${
                     isDarkMode
                       ? 'bg-gradient-to-r from-amber-500/10 via-amber-500/20 to-amber-500/10 border-amber-500/30'
                       : 'bg-gradient-to-r from-amber-50 via-amber-100/70 to-amber-50 border-amber-300'
                   }`}
                 >
-                  <span className={`text-base sm:text-lg ${isDarkMode ? 'text-amber-400' : 'text-amber-600'}`}>🛏️</span>
-                  <div>
+                  <span className={`shrink-0 text-base sm:text-lg ${isDarkMode ? 'text-amber-400' : 'text-amber-600'}`}>🛏️</span>
+                  <div className="min-w-0">
                     <h3
-                      className={`text-xs sm:text-sm md:text-base font-serif tracking-[0.15em] sm:tracking-[0.2em] font-black uppercase truncate ${
+                      className={`text-[11px] sm:text-xs md:text-sm font-serif tracking-[0.1em] sm:tracking-[0.16em] font-black uppercase truncate ${
                         isDarkMode ? 'text-[#f59e0b]' : 'text-amber-900'
                       }`}
                     >
@@ -666,21 +671,23 @@ function RoomAllocationGrid({
 
               {/* ➡️ DR. RAJENDRA PRASAD BOYS HOSTEL */}
               <div
-                className={`w-full min-w-0 space-y-2 sm:space-y-3 p-2.5 sm:p-3.5 md:p-4 rounded-3xl border-2 shadow-md transition-all ${
-                  isDarkMode ? 'bg-[#0f1118]/90 border-zinc-800' : 'bg-white/95 border-slate-200 ring-1 ring-slate-900/5'
+                className={`w-full min-w-0 space-y-3 sm:space-y-4 p-3.5 sm:p-5 md:p-6 rounded-3xl border-2 shadow-md transition-all ${
+                  isDarkMode
+                    ? 'bg-[#0f1118]/90 border-zinc-800'
+                    : 'bg-white border-2 border-amber-300/90 shadow-md ring-1 ring-amber-400/20'
                 }`}
               >
                 <div
-                  className={`text-center py-1.5 sm:py-2 px-2.5 rounded-2xl border-2 flex items-center justify-center gap-2 shadow-xs ${
+                  className={`text-center py-1.5 sm:py-2 px-3 sm:px-4 rounded-2xl border-2 flex items-center justify-center gap-2.5 shadow-xs ${
                     isDarkMode
                       ? 'bg-gradient-to-r from-amber-500/10 via-amber-500/20 to-amber-500/10 border-amber-500/30'
                       : 'bg-gradient-to-r from-amber-50 via-amber-100/70 to-amber-50 border-amber-300'
                   }`}
                 >
-                  <span className={`text-base sm:text-lg ${isDarkMode ? 'text-amber-400' : 'text-amber-600'}`}>🛏️</span>
-                  <div>
+                  <span className={`shrink-0 text-base sm:text-lg ${isDarkMode ? 'text-amber-400' : 'text-amber-600'}`}>🛏️</span>
+                  <div className="min-w-0">
                     <h3
-                      className={`text-xs sm:text-sm md:text-base font-serif tracking-[0.15em] sm:tracking-[0.2em] font-black uppercase truncate ${
+                      className={`text-[11px] sm:text-xs md:text-sm font-serif tracking-[0.08em] sm:tracking-[0.14em] font-black uppercase truncate ${
                         isDarkMode ? 'text-[#f59e0b]' : 'text-amber-900'
                       }`}
                     >
@@ -703,16 +710,16 @@ function RoomAllocationGrid({
             }`}
           >
             <div
-              className={`text-center py-1.5 px-2 rounded-2xl border-2 flex items-center justify-center gap-2 shadow-xs ${
+              className={`text-center py-1.5 sm:py-2 px-3 sm:px-4 rounded-2xl border-2 flex items-center justify-center gap-2.5 shadow-xs ${
                 isDarkMode
                   ? 'bg-gradient-to-r from-pink-500/10 via-pink-500/20 to-pink-500/10 border-pink-500/30'
                   : 'bg-gradient-to-r from-pink-50 via-pink-100/70 to-pink-50 border-pink-300'
               }`}
             >
-              <span className={`text-base sm:text-lg ${isDarkMode ? 'text-pink-400' : 'text-pink-600'}`}>🛏️</span>
-              <div>
+              <span className={`shrink-0 text-base sm:text-lg ${isDarkMode ? 'text-pink-400' : 'text-pink-600'}`}>🛏️</span>
+              <div className="min-w-0">
                 <h3
-                  className={`text-xs sm:text-base font-serif tracking-[0.15em] sm:tracking-[0.2em] font-black uppercase ${
+                  className={`text-xs sm:text-base font-serif tracking-[0.1em] sm:tracking-[0.16em] font-black uppercase truncate ${
                     isDarkMode ? 'text-pink-400' : 'text-pink-900'
                   }`}
                 >
