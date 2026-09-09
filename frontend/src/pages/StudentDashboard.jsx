@@ -617,6 +617,7 @@ function StudentDashboard() {
     const isMockAddress = addrStr && (addrStr.includes('Saksohara') || addrStr.includes('Agwanpur') || addrStr.includes('Village, P.O'));
     const cleanMobile = (mobileStr && !isMockMobile) ? mobileStr : "";
     const cleanAddress = (addrStr && !isMockAddress) ? addrStr : "";
+    const cleanEmail = userGender === 'FEMALE' ? "sanasharma.gpb.ai@gmail.com" : "amitkumar.gpb.ai@gmail.com";
     const userPincode = u?.pincode || (userGender === 'FEMALE' ? '803214' : '804401');
     const userDistrict = u?.home_district || (userGender === 'FEMALE' ? 'Patna (Barh Sub-division)' : 'Arwal');
     const userState = u?.home_state || 'Bihar';
