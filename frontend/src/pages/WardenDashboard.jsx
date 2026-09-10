@@ -494,29 +494,35 @@ function WardenDashboard() {
       {/* ========================================================================= */}
       <div className="flex-1 lg:ml-72 h-full overflow-hidden flex flex-col relative">
         {/* TOP HEADER */}
-        <header className="bg-[#720e0e] text-white px-6 py-4 border-b border-[#5c0000] flex justify-between items-center shrink-0 shadow-md z-30">
-          <div className="flex items-center gap-4">
+        <header className="bg-[#720e0e] text-white px-4 sm:px-6 py-3.5 sm:py-4 border-b border-[#5c0000] flex justify-between items-center shrink-0 shadow-md z-30">
+          <div className="flex items-center gap-3 sm:gap-4">
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors text-white lg:hidden cursor-pointer"
             >
               ☰
             </button>
-            <div className="flex items-center gap-3">
-              <div className="bg-white p-1 h-10 w-10 rounded-full shadow flex items-center justify-center overflow-hidden">
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="bg-white p-1 h-9 w-9 sm:h-10 sm:w-10 rounded-full shadow flex items-center justify-center overflow-hidden shrink-0">
                 <img src={logo} alt="GP Barh Logo" className="h-full w-full object-contain" />
               </div>
               <div>
-                <h1 className="text-base md:text-xl font-black tracking-tight leading-tight">राजकीय पॉलिटेक्निक, बाढ़</h1>
-                <p className="text-[10px] text-yellow-300 font-bold uppercase tracking-widest">Warden Administration &amp; Bed Allocation Control</p>
+                <h1 className="text-sm sm:text-base md:text-xl font-black tracking-tight leading-tight">राजकीय पॉलिटेक्निक, बाढ़</h1>
+                <p className="text-[9px] sm:text-[10px] text-yellow-300 font-bold uppercase tracking-wider sm:tracking-widest truncate">Warden Administration &amp; Bed Allocation Control</p>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-white text-xs font-bold tracking-wide shadow-xs backdrop-blur-sm">
+              <span className="text-xs">📅</span>
+              <span className="hidden sm:inline">{new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })}</span>
+              <span className="sm:hidden text-[11px] font-mono">{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</span>
+            </div>
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
-              className="w-9 h-9 rounded-full bg-white/10 border border-white/20 flex items-center justify-center hover:bg-white/20 transition-colors cursor-pointer"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/10 border border-white/20 flex items-center justify-center hover:bg-white/20 transition-colors cursor-pointer text-xs sm:text-sm"
+              title="Toggle Theme"
             >
               {isDarkMode ? '☀️' : '🌙'}
             </button>
@@ -633,128 +639,244 @@ function WardenDashboard() {
                       </p>
                     </div>
                   ) : (
-                    <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs">
-                      <table className="w-full text-left text-xs border-collapse min-w-[840px]">
-                        <thead>
-                          <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] tracking-wider">
-                            <th className="py-3.5 px-4">Student Details</th>
-                            <th className="py-3.5 px-4">Origin &amp; Distance</th>
-                            <th className="py-3.5 px-4">Allocated Room</th>
-                            <th className="py-3.5 px-4">Verification Window</th>
-                            <th className="py-3.5 px-4 text-center">Dossier</th>
-                            <th className="py-3.5 px-4 text-center">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-                          {pendingRequests.map(req => (
-                            <tr key={req.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
-                              <td className="py-4 px-4">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-10 h-10 rounded-xl bg-slate-900 dark:bg-slate-800 text-white font-bold text-sm flex items-center justify-center shrink-0 border border-slate-700/40">
-                                    {req.student_photo ? (
-                                      <img src={req.student_photo} alt="" className="w-full h-full object-cover rounded-xl" />
-                                    ) : (
-                                      (req.student_name || 'S')[0]
-                                    )}
-                                  </div>
-                                  <div>
-                                    <p className="font-bold text-sm text-slate-900 dark:text-white leading-tight">
-                                      {req.student_name || 'Student Candidate'}
-                                    </p>
-                                    <p className="text-[11px] font-mono text-slate-500 dark:text-slate-400 mt-0.5">
-                                      Reg: <span className="text-slate-800 dark:text-slate-200 font-semibold">{req.student_reg || 'N/A'}</span> • Roll: <span className="font-semibold text-slate-800 dark:text-slate-200">{req.student_roll || 'N/A'}</span>
-                                    </p>
-                                    <span className="inline-block mt-0.5 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-[10px]">
-                                      {req.student_branch || 'Engineering & Technology'}
-                                    </span>
-                                  </div>
+                    <>
+                      {/* 📱 MOBILE / APP VIEW: SLEEK DEDICATED CARDS (md:hidden) */}
+                      <div className="md:hidden space-y-3.5">
+                        {pendingRequests.map(req => (
+                          <div
+                            key={req.id}
+                            className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-3.5 transition-all"
+                          >
+                            {/* TOP BAR: AVATAR + NAME + EXPIRY PILL */}
+                            <div className="flex items-start justify-between gap-2.5">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-11 h-11 rounded-xl bg-slate-900 dark:bg-slate-800 text-white font-black text-sm flex items-center justify-center shrink-0 border border-slate-700/40">
+                                  {req.student_photo ? (
+                                    <img src={req.student_photo} alt="" className="w-full h-full object-cover rounded-xl" />
+                                  ) : (
+                                    (req.student_name || 'S')[0]
+                                  )}
                                 </div>
-                              </td>
+                                <div className="min-w-0">
+                                  <h4 className="font-extrabold text-sm text-slate-900 dark:text-white leading-tight truncate">
+                                    {req.student_name || 'Student Candidate'}
+                                  </h4>
+                                  <p className="text-[11px] font-mono text-slate-500 dark:text-slate-400 mt-0.5">
+                                    Reg: <span className="font-bold text-slate-800 dark:text-slate-200">{req.student_reg || 'N/A'}</span>
+                                    {req.student_roll && (
+                                      <> • Roll: <span className="font-bold text-slate-800 dark:text-slate-200">{req.student_roll}</span></>
+                                    )}
+                                  </p>
+                                </div>
+                              </div>
 
-                              <td className="py-4 px-4">
-                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 text-amber-900 dark:text-amber-300 font-bold text-xs">
-                                  <svg className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              {/* 24H EXPIRY PILL */}
+                              <span className="shrink-0 px-2.5 py-1 rounded-full bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 text-[10px] font-bold border border-rose-200 dark:border-rose-800 flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                                <span>{req.hours_left !== undefined ? `${req.hours_left}h left` : '24h left'}</span>
+                              </span>
+                            </div>
+
+                            {/* BRANCH & PRIORITY BADGES */}
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-[10px]">
+                                {req.student_branch || 'Engineering & Technology'}
+                              </span>
+                              {req.distance_priority && (
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                  {req.distance_priority}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* DETAILS 2-COLUMN GRID */}
+                            <div className="grid grid-cols-2 gap-2 p-2.5 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800 text-xs">
+                              <div>
+                                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Allocated Room</span>
+                                <p className="font-bold text-slate-900 dark:text-white mt-0.5">
+                                  Room {req.room_number || '101'} <span className="text-slate-500 text-[11px] font-normal">(Bed {req.bed_code || 'A'})</span>
+                                </p>
+                                <span className="text-[10px] text-slate-500 block truncate mt-0.5">{req.hostel_name || 'Hostel Block'}</span>
+                              </div>
+
+                              <div>
+                                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Origin &amp; Distance</span>
+                                <p className="font-bold text-amber-900 dark:text-amber-300 mt-0.5 flex items-center gap-1">
+                                  <svg className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                   </svg>
                                   <span>{req.student_distance_km !== undefined && req.student_distance_km !== null ? `${req.student_distance_km} KM` : (req.distance_km ? `${req.distance_km} KM` : '145 KM')}</span>
-                                </div>
-                                <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium mt-1">
+                                </p>
+                                <span className="text-[10px] text-slate-500 block truncate mt-0.5">
                                   {req.student_district || req.home_district || 'District Information'}
-                                </p>
-                                {req.distance_priority && (
-                                  <span className="inline-block mt-0.5 px-2 py-0.5 rounded text-[9.5px] font-bold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                                    {req.distance_priority}
-                                  </span>
-                                )}
-                              </td>
+                                </span>
+                              </div>
+                            </div>
 
-                              <td className="py-4 px-4">
-                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-xs">
-                                  <span>Room {req.room_number || '101'}</span>
-                                  <span className="text-slate-400">•</span>
-                                  <span className="font-bold text-slate-900 dark:text-white">Bed {req.bed_code || 'A'}</span>
-                                </div>
-                                <p className="text-[10.5px] text-slate-500 dark:text-slate-400 mt-1">
-                                  {req.hostel_name || 'Boys Hostel Block'}
-                                </p>
-                              </td>
+                            {/* MOBILE ACTION BUTTONS */}
+                            <div className="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-slate-800/80">
+                              <button
+                                type="button"
+                                onClick={() => setAuditStudentModal(req)}
+                                className="flex-1 py-2 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-all"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <span>Dossier</span>
+                              </button>
 
-                              <td className="py-4 px-4">
-                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 text-[11px] font-bold border border-rose-200 dark:border-rose-800">
-                                  <svg className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                  </svg>
-                                  <span>{req.hours_left !== undefined ? `${req.hours_left}h remaining` : '24h window'}</span>
-                                </div>
-                                <p className="text-[9.5px] text-slate-400 dark:text-slate-500 mt-0.5">Expires automatically</p>
-                              </td>
+                              <button
+                                disabled={processingId === req.id}
+                                onClick={() => handleAllotmentAction(req.id, 'approve')}
+                                className="flex-1 py-2 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50 shadow-xs transition-all"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                                </svg>
+                                <span>Approve</span>
+                              </button>
 
-                              <td className="py-4 px-4 text-center">
-                                <button
-                                  type="button"
-                                  onClick={() => setAuditStudentModal(req)}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
-                                  title="View complete official Student Dossier"
-                                >
-                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                  </svg>
-                                  <span>View Dossier</span>
-                                </button>
-                              </td>
+                              <button
+                                disabled={processingId === req.id}
+                                onClick={() => handleAllotmentAction(req.id, 'reject')}
+                                className="py-2 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/50 text-rose-600 dark:text-rose-300 font-bold text-xs border border-rose-200 dark:border-rose-800 flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50 transition-all"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                <span>Reject</span>
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
 
-                              <td className="py-4 px-4">
-                                <div className="flex items-center justify-center gap-2">
-                                  <button
-                                    disabled={processingId === req.id}
-                                    onClick={() => handleAllotmentAction(req.id, 'approve')}
-                                    className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                                    title="Approve allocation and grant admission window"
-                                  >
-                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
-                                    </svg>
-                                    <span>Approve</span>
-                                  </button>
-                                  <button
-                                    disabled={processingId === req.id}
-                                    onClick={() => handleAllotmentAction(req.id, 'reject')}
-                                    className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/50 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-300 font-bold text-xs border border-rose-200 dark:border-rose-800 transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                                    title="Reject request and release bed"
-                                  >
-                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                    <span>Reject</span>
-                                  </button>
-                                </div>
-                              </td>
+                      {/* 💻 DESKTOP / TABLET VIEW: FULL DATA TABLE (hidden md:block) */}
+                      <div className="hidden md:block overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs">
+                        <table className="w-full text-left text-xs border-collapse min-w-[840px]">
+                          <thead>
+                            <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] tracking-wider">
+                              <th className="py-3.5 px-4">Student Details</th>
+                              <th className="py-3.5 px-4">Origin &amp; Distance</th>
+                              <th className="py-3.5 px-4">Allocated Room</th>
+                              <th className="py-3.5 px-4">Verification Window</th>
+                              <th className="py-3.5 px-4 text-center">Dossier</th>
+                              <th className="py-3.5 px-4 text-center">Actions</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                            {pendingRequests.map(req => (
+                              <tr key={req.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                                <td className="py-4 px-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-slate-900 dark:bg-slate-800 text-white font-bold text-sm flex items-center justify-center shrink-0 border border-slate-700/40">
+                                      {req.student_photo ? (
+                                        <img src={req.student_photo} alt="" className="w-full h-full object-cover rounded-xl" />
+                                      ) : (
+                                        (req.student_name || 'S')[0]
+                                      )}
+                                    </div>
+                                    <div>
+                                      <p className="font-bold text-sm text-slate-900 dark:text-white leading-tight">
+                                        {req.student_name || 'Student Candidate'}
+                                      </p>
+                                      <p className="text-[11px] font-mono text-slate-500 dark:text-slate-400 mt-0.5">
+                                        Reg: <span className="text-slate-800 dark:text-slate-200 font-semibold">{req.student_reg || 'N/A'}</span> • Roll: <span className="font-semibold text-slate-800 dark:text-slate-200">{req.student_roll || 'N/A'}</span>
+                                      </p>
+                                      <span className="inline-block mt-0.5 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-[10px]">
+                                        {req.student_branch || 'Engineering & Technology'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </td>
+
+                                <td className="py-4 px-4">
+                                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 text-amber-900 dark:text-amber-300 font-bold text-xs">
+                                    <svg className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    <span>{req.student_distance_km !== undefined && req.student_distance_km !== null ? `${req.student_distance_km} KM` : (req.distance_km ? `${req.distance_km} KM` : '145 KM')}</span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium mt-1">
+                                    {req.student_district || req.home_district || 'District Information'}
+                                  </p>
+                                  {req.distance_priority && (
+                                    <span className="inline-block mt-0.5 px-2 py-0.5 rounded text-[9.5px] font-bold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                      {req.distance_priority}
+                                    </span>
+                                  )}
+                                </td>
+
+                                <td className="py-4 px-4">
+                                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-xs">
+                                    <span>Room {req.room_number || '101'}</span>
+                                    <span className="text-slate-400">•</span>
+                                    <span className="font-bold text-slate-900 dark:text-white">Bed {req.bed_code || 'A'}</span>
+                                  </div>
+                                  <p className="text-[10.5px] text-slate-500 dark:text-slate-400 mt-1">
+                                    {req.hostel_name || 'Boys Hostel Block'}
+                                  </p>
+                                </td>
+
+                                <td className="py-4 px-4">
+                                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 text-[11px] font-bold border border-rose-200 dark:border-rose-800">
+                                    <svg className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span>{req.hours_left !== undefined ? `${req.hours_left}h remaining` : '24h window'}</span>
+                                  </div>
+                                  <p className="text-[9.5px] text-slate-400 dark:text-slate-500 mt-0.5">Expires automatically</p>
+                                </td>
+
+                                <td className="py-4 px-4 text-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => setAuditStudentModal(req)}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                                    title="View complete official Student Dossier"
+                                  >
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <span>View Dossier</span>
+                                  </button>
+                                </td>
+
+                                <td className="py-4 px-4">
+                                  <div className="flex items-center justify-center gap-2">
+                                    <button
+                                      disabled={processingId === req.id}
+                                      onClick={() => handleAllotmentAction(req.id, 'approve')}
+                                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                      title="Approve allocation and grant admission window"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                                      </svg>
+                                      <span>Approve</span>
+                                    </button>
+                                    <button
+                                      disabled={processingId === req.id}
+                                      onClick={() => handleAllotmentAction(req.id, 'reject')}
+                                      className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/50 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-300 font-bold text-xs border border-rose-200 dark:border-rose-800 transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                      title="Reject request and release bed"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+                                      </svg>
+                                      <span>Reject</span>
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
                   )}
 
                   {/* ACTIVE ALLOTTED RESIDENTS SECTION */}
