@@ -64,6 +64,8 @@ function WardenDashboard() {
   const [actionRemarks, setActionRemarks] = useState({});
   const [processingId, setProcessingId] = useState(null);
   const [auditStudentModal, setAuditStudentModal] = useState(null);
+  const [cancelModalData, setCancelModalData] = useState(null);
+  const [allottedSearchQuery, setAllottedSearchQuery] = useState('');
 
   // Student Directory State
   const [studentDirectory, setStudentDirectory] = useState([]);
@@ -272,16 +274,20 @@ function WardenDashboard() {
     }
   };
 
-  const handleRevokeAllotment = async (studentId, studentName, roomNumber) => {
-    if (!window.confirm(`Are you sure you want to cancel / revoke the room allotment for ${studentName || 'this student'}? The bed in Room ${roomNumber || ''} will be freed immediately.`)) {
-      return;
-    }
+  const handleRevokeAllotment = (studentId, studentName, roomNumber) => {
+    setCancelModalData({ studentId, studentName, roomNumber });
+  };
+
+  const confirmRevokeAllotment = async () => {
+    if (!cancelModalData) return;
+    const { studentId, studentName } = cancelModalData;
     setProcessingId(studentId);
+    setCancelModalData(null);
     try {
       await axios.post(`http://127.0.0.1:8000/api/warden/allotments/revoke-by-student/${studentId}`, {
         remarks: 'Allotment cancelled/revoked by Chief Warden'
       });
-      toast.success(`Allotment for ${studentName || 'Student'} revoked! Bed freed immediately. 🔄`, {
+      toast.success(`Allotment for ${studentName || 'Student'} revoked! Bed freed immediately.`, {
         duration: 4500,
         style: { borderRadius: '12px', background: '#991b1b', color: '#fff', fontWeight: 700 }
       });
@@ -580,139 +586,166 @@ function WardenDashboard() {
 
               {/* VIEW 1: PENDING REQUESTS ACTION PANEL */}
               {allocationSubTab === 'pending' && (
-                <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl p-4 sm:p-7 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4 sm:space-y-5">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl p-5 sm:p-7 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-6">
+                  {/* HEADER & CONTROLS */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
                     <div>
-                      <div className="flex items-center gap-2">
-                        <span className="p-1.5 sm:p-2 rounded-xl bg-amber-500/10 text-amber-500 text-base sm:text-lg">⏳</span>
-                        <h3 className="text-base sm:text-xl font-black text-slate-900 dark:text-white tracking-tight">
-                          Pending Bed Allotment Queue
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-sm shrink-0">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                          Bed Allotment Approvals
                         </h3>
-                        <span className="px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-black bg-amber-500 text-white shadow-sm">
-                          {pendingRequests.length}
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200 border border-amber-200/60 dark:border-amber-700/60">
+                          {pendingRequests.length} Pending
                         </span>
                       </div>
-                      <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                        Institutional 24-Hour Policy: Verify student home distance, branch merit, and review full PDF Dossier before granting hostel admission.
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
+                        Verify student applicant distance, branch credentials, and review official dossier before approving hostel allotment.
                       </p>
                     </div>
+
                     <button
                       onClick={fetchWardenData}
-                      className="px-3.5 py-1.5 sm:px-4 sm:py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer self-stretch sm:self-auto"
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold transition-all cursor-pointer shadow-xs self-start sm:self-auto"
                     >
-                      <span>🔄</span>
-                      <span>Refresh Queue</span>
+                      <svg className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      <span>Refresh</span>
                     </button>
                   </div>
 
+                  {/* PENDING LIST OR EMPTY STATE */}
                   {pendingRequests.length === 0 ? (
-                    <div className="text-center py-16 sm:py-20 space-y-3 bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
-                      <span className="text-4xl sm:text-5xl block">🎉</span>
-                      <h4 className="text-base font-black text-slate-800 dark:text-slate-200">All Queue Items Processed!</h4>
-                      <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                        There are currently no student bed allotment requests awaiting Chief Warden verification.
+                    <div className="text-center py-14 px-4 space-y-3 bg-slate-50/50 dark:bg-slate-800/20 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                      <div className="w-12 h-12 mx-auto rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                      <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">No Pending Applications</h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                        All student bed allotment requests have been reviewed. New applications will appear here automatically.
                       </p>
                     </div>
                   ) : (
-                    <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
-                      <table className="w-full text-left text-xs border-collapse min-w-[880px]">
+                    <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs">
+                      <table className="w-full text-left text-xs border-collapse min-w-[840px]">
                         <thead>
-                          <tr className="bg-slate-50/80 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-400 font-black uppercase text-[10px] tracking-wider">
-                            <th className="py-3.5 px-4">Student Particulars</th>
+                          <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] tracking-wider">
+                            <th className="py-3.5 px-4">Student Details</th>
                             <th className="py-3.5 px-4">Origin &amp; Distance</th>
-                            <th className="py-3.5 px-4">Requested Bed &amp; Room</th>
-                            <th className="py-3.5 px-4">24h Expiry Window</th>
-                            <th className="py-3.5 px-4 text-center">Student Dossier</th>
-                            <th className="py-3.5 px-4 text-center">Chief Warden Action</th>
+                            <th className="py-3.5 px-4">Allocated Room</th>
+                            <th className="py-3.5 px-4">Verification Window</th>
+                            <th className="py-3.5 px-4 text-center">Dossier</th>
+                            <th className="py-3.5 px-4 text-center">Actions</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-semibold">
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
                           {pendingRequests.map(req => (
-                            <tr key={req.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                            <tr key={req.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
                               <td className="py-4 px-4">
                                 <div className="flex items-center gap-3">
-                                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-600 text-white overflow-hidden flex items-center justify-center font-black text-base shadow-sm shrink-0 border border-white/20">
+                                  <div className="w-10 h-10 rounded-xl bg-slate-900 dark:bg-slate-800 text-white font-bold text-sm flex items-center justify-center shrink-0 border border-slate-700/40">
                                     {req.student_photo ? (
-                                      <img src={req.student_photo} alt="" className="w-full h-full object-cover" />
+                                      <img src={req.student_photo} alt="" className="w-full h-full object-cover rounded-xl" />
                                     ) : (
                                       (req.student_name || 'S')[0]
                                     )}
                                   </div>
                                   <div>
-                                    <p className="font-black text-sm text-slate-900 dark:text-white leading-tight">
+                                    <p className="font-bold text-sm text-slate-900 dark:text-white leading-tight">
                                       {req.student_name || 'Student Candidate'}
                                     </p>
                                     <p className="text-[11px] font-mono text-slate-500 dark:text-slate-400 mt-0.5">
-                                      Reg: <span className="text-slate-800 dark:text-slate-200 font-bold">{req.student_reg || 'N/A'}</span> • Roll: <span className="font-bold">{req.student_roll || '49'}</span>
+                                      Reg: <span className="text-slate-800 dark:text-slate-200 font-semibold">{req.student_reg || 'N/A'}</span> • Roll: <span className="font-semibold text-slate-800 dark:text-slate-200">{req.student_roll || 'N/A'}</span>
                                     </p>
-                                    <span className="inline-block mt-0.5 px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-bold text-[10px]">
+                                    <span className="inline-block mt-0.5 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-[10px]">
                                       {req.student_branch || 'Engineering & Technology'}
                                     </span>
                                   </div>
                                 </div>
                               </td>
+
                               <td className="py-4 px-4">
-                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800 text-amber-800 dark:text-amber-300 font-bold">
-                                  <span>📍</span>
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 text-amber-900 dark:text-amber-300 font-bold text-xs">
+                                  <svg className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  </svg>
                                   <span>{req.student_distance_km !== undefined && req.student_distance_km !== null ? `${req.student_distance_km} KM` : (req.distance_km ? `${req.distance_km} KM` : '145 KM')}</span>
                                 </div>
-                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold mt-1">
-                                  {req.student_district || req.home_district || 'Patna / Arwal District'}
+                                <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium mt-1">
+                                  {req.student_district || req.home_district || 'District Information'}
                                 </p>
                                 {req.distance_priority && (
-                                  <span className={`inline-block mt-0.5 px-2 py-0.5 rounded text-[9.5px] font-black uppercase ${
-                                    req.student_distance_km >= 80 ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300' : (req.student_distance_km >= 40 ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400')
-                                  }`}>
+                                  <span className="inline-block mt-0.5 px-2 py-0.5 rounded text-[9.5px] font-bold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                                     {req.distance_priority}
                                   </span>
                                 )}
                               </td>
+
                               <td className="py-4 px-4">
-                                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/80 dark:border-indigo-800 text-indigo-800 dark:text-indigo-300 font-bold">
-                                  <span>🚪 Room {req.room_number || '101'}</span>
-                                  <span className="text-indigo-300 dark:text-indigo-700">•</span>
-                                  <span className="font-black">Bed {req.bed_code || '1'}</span>
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-xs">
+                                  <span>Room {req.room_number || '101'}</span>
+                                  <span className="text-slate-400">•</span>
+                                  <span className="font-bold text-slate-900 dark:text-white">Bed {req.bed_code || 'A'}</span>
                                 </div>
-                                <p className="text-[10.5px] text-slate-400 mt-1 font-medium">
-                                  {req.hostel_name || 'Boys Hostel (Birsa Munda Block)'}
+                                <p className="text-[10.5px] text-slate-500 dark:text-slate-400 mt-1">
+                                  {req.hostel_name || 'Boys Hostel Block'}
                                 </p>
                               </td>
+
                               <td className="py-4 px-4">
-                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 text-[11px] font-black border border-rose-200/80 dark:border-rose-800">
-                                  <span className="animate-pulse">⏳</span>
-                                  <span>{req.hours_left !== undefined ? `${req.hours_left}h left` : '24h left'}</span>
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 text-[11px] font-bold border border-rose-200 dark:border-rose-800">
+                                  <svg className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <span>{req.hours_left !== undefined ? `${req.hours_left}h remaining` : '24h window'}</span>
                                 </div>
-                                <p className="text-[9.5px] text-slate-400 mt-0.5">*Auto-releases after 24 hrs</p>
+                                <p className="text-[9.5px] text-slate-400 dark:text-slate-500 mt-0.5">Expires automatically</p>
                               </td>
+
                               <td className="py-4 px-4 text-center">
                                 <button
                                   type="button"
                                   onClick={() => setAuditStudentModal(req)}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-black shadow-sm transition-all cursor-pointer"
-                                  title="View complete official Student Dossier & PDF print preview"
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                                  title="View complete official Student Dossier"
                                 >
-                                  <span>📄</span>
-                                  <span>View Dossier / PDF</span>
+                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                  </svg>
+                                  <span>View Dossier</span>
                                 </button>
                               </td>
+
                               <td className="py-4 px-4">
                                 <div className="flex items-center justify-center gap-2">
                                   <button
                                     disabled={processingId === req.id}
                                     onClick={() => handleAllotmentAction(req.id, 'approve')}
-                                    className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-xs uppercase tracking-wider shadow-sm transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                                    title="Approve request and open 24-hour admission payment window"
+                                    className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                    title="Approve allocation and grant admission window"
                                   >
-                                    <span>✓</span>
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                                    </svg>
                                     <span>Approve</span>
                                   </button>
                                   <button
                                     disabled={processingId === req.id}
                                     onClick={() => handleAllotmentAction(req.id, 'reject')}
-                                    className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-black text-xs uppercase tracking-wider shadow-sm transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                                    title="Decline request and release bed"
+                                    className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/50 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-300 font-bold text-xs border border-rose-200 dark:border-rose-800 transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                    title="Reject request and release bed"
                                   >
-                                    <span>✕</span>
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
                                     <span>Reject</span>
                                   </button>
                                 </div>
@@ -724,47 +757,66 @@ function WardenDashboard() {
                     </div>
                   )}
 
-                  {/* ACTIVE ALLOTTED RESIDENTS QUICK CONTROL */}
+                  {/* ACTIVE ALLOTTED RESIDENTS SECTION */}
                   {Array.isArray(studentDirectory) && studentDirectory.some(s => s.room_number && s.room_number !== 'Unassigned') && (
-                    <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                    <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div>
-                          <h4 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
-                            <span>🛡️</span> Active Allotted Residents &amp; Cancellation Control
+                          <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <span>Active Allotted Residents</span>
+                            <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold">
+                              {studentDirectory.filter(s => s.room_number && s.room_number !== 'Unassigned').length} Students
+                            </span>
                           </h4>
-                          <p className="text-[11px] text-slate-500 mt-0.5">
-                            If an allotment was approved by mistake, click "Cancel / Revoke" to immediately release the bed back to available pool.
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            Manage allotted rooms. Click "Revoke" to release an allotment back into the available pool.
                           </p>
                         </div>
-                        <span className="px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-xs font-black self-start sm:self-auto">
-                          {studentDirectory.filter(s => s.room_number && s.room_number !== 'Unassigned').length} Allotted
-                        </span>
+
+                        {/* SEARCH ALLOTTED */}
+                        <div className="w-full sm:w-64">
+                          <input
+                            type="text"
+                            placeholder="Filter resident or room..."
+                            value={allottedSearchQuery}
+                            onChange={e => setAllottedSearchQuery(e.target.value)}
+                            className="w-full px-3 py-1.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-slate-400"
+                          />
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {studentDirectory.filter(s => s.room_number && s.room_number !== 'Unassigned').map(st => (
-                          <div key={st.id} className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 flex items-center justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="font-black text-xs text-slate-900 dark:text-white truncate">{st.full_name}</p>
-                              <p className="text-[11px] font-mono text-slate-500 font-semibold mt-0.5">
-                                Room <span className="text-slate-800 dark:text-slate-200 font-bold">{st.room_number}</span> (Bed {st.bed_code})
-                              </p>
-                              <span className="inline-block text-[9.5px] text-blue-600 dark:text-blue-400 font-bold">
-                                Reg: {st.reg_no}
-                              </span>
+                        {studentDirectory
+                          .filter(s => s.room_number && s.room_number !== 'Unassigned')
+                          .filter(s => {
+                            if (!allottedSearchQuery) return true;
+                            const q = allottedSearchQuery.toLowerCase();
+                            return (s.full_name || '').toLowerCase().includes(q) ||
+                              (s.reg_no || '').includes(q) ||
+                              (s.room_number || '').includes(q);
+                          })
+                          .map(st => (
+                            <div key={st.id} className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="font-bold text-xs text-slate-900 dark:text-white truncate">{st.full_name}</p>
+                                <p className="text-[11px] font-mono text-slate-600 dark:text-slate-400 mt-0.5">
+                                  Room <span className="font-semibold text-slate-900 dark:text-white">{st.room_number}</span> (Bed {st.bed_code})
+                                </p>
+                                <span className="inline-block text-[10px] text-slate-500 font-medium">
+                                  Reg: {st.reg_no}
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                disabled={processingId === st.id}
+                                onClick={() => handleRevokeAllotment(st.id, st.full_name, st.room_number)}
+                                className="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/50 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 font-semibold text-[11px] border border-rose-200 dark:border-rose-800 transition-colors cursor-pointer flex items-center gap-1 shrink-0 disabled:opacity-50"
+                                title="Revoke and free this bed"
+                              >
+                                <span>Revoke</span>
+                              </button>
                             </div>
-                            <button
-                              type="button"
-                              disabled={processingId === st.id}
-                              onClick={() => handleRevokeAllotment(st.id, st.full_name, st.room_number)}
-                              className="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/50 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 font-black text-[10px] uppercase tracking-wider border border-rose-200 dark:border-rose-800 shadow-2xs transition-all cursor-pointer flex items-center gap-1 shrink-0 disabled:opacity-50"
-                              title="Cancel and revoke this allotment"
-                            >
-                              <span>✕</span>
-                              <span>Cancel</span>
-                            </button>
-                          </div>
-                        ))}
+                          ))}
                       </div>
                     </div>
                   )}
@@ -2242,12 +2294,67 @@ function WardenDashboard() {
                   >
                     Close
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ⚠️ CANCEL / REVOKE ALLOTMENT MODAL */}
+          {cancelModalData && (
+            <div
+              className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-150"
+              onClick={() => setCancelModalData(null)}
+            >
+              <div
+                className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-5 animate-in zoom-in-95 duration-150"
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 border border-rose-200 dark:border-rose-900">
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+                      Revoke Bed Allotment
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                      Are you sure you want to cancel the room allotment for <span className="font-bold text-slate-800 dark:text-slate-200">{cancelModalData.studentName}</span>?
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 text-xs space-y-2">
+                  <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
+                    <span>Allocated Room:</span>
+                    <span className="font-bold text-slate-900 dark:text-white">Room {cancelModalData.roomNumber}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-slate-600 dark:text-slate-400">
+                    <span>Bed Position:</span>
+                    <span className="font-bold text-slate-900 dark:text-white">Bed {cancelModalData.bedCode || 'A'}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-slate-600 dark:text-slate-400 pt-1 border-t border-slate-200 dark:border-slate-700">
+                    <span>Result:</span>
+                    <span className="font-bold text-rose-600 dark:text-rose-400">Seat released back to available pool</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-2">
                   <button
                     type="button"
-                    onClick={() => window.print()}
-                    className="flex-1 py-3 bg-[#800000] hover:bg-[#600000] text-white rounded-xl font-black text-xs uppercase shadow-lg flex items-center justify-center gap-2"
+                    onClick={() => setCancelModalData(null)}
+                    className="flex-1 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer text-center"
                   >
-                    <span>🖨️</span> Print Poster
+                    Keep Allotment
+                  </button>
+                  <button
+                    type="button"
+                    disabled={processingId === cancelModalData.studentId}
+                    onClick={confirmRevokeAllotment}
+                    className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-sm transition-colors cursor-pointer disabled:opacity-50 text-center flex items-center justify-center gap-1.5"
+                  >
+                    <span>Confirm &amp; Free Bed</span>
                   </button>
                 </div>
               </div>
