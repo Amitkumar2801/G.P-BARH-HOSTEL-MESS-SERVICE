@@ -235,7 +235,7 @@ function RoomAllocationGrid({
   const availableBeds = Math.max(0, totalBeds - occupiedBeds);
 
   /* ------------------------------------------------------------------ */
-  /*  Dual-Theme High-Contrast Room Card Design (Dark & Light Mode)     */
+  /*  Dual-Theme High-Contrast Room Card Design                         */
   /* ------------------------------------------------------------------ */
   const renderTile = (room) => {
     const isSelectedRoom = selectedBed && selectedBed.room.id === room.id;
@@ -243,147 +243,61 @@ function RoomAllocationGrid({
     const isPartiallyBooked = room.occupied_count > 0 && !isFull;
     const freeBeds = room.capacity - room.occupied_count;
 
-    // 🟢 Green = All Available
-    let style = isDarkMode
-      ? 'bg-[#064e3b]/90 border-2 border-emerald-500/80 text-white shadow-sm hover:bg-[#065f46] hover:border-emerald-300'
-      : 'bg-[#e6f9f0] border-2 border-[#86efac] text-emerald-950 shadow-xs hover:bg-[#dcfce7] hover:border-[#4ade80]';
-
-    // 🔴 Red = Fully Occupied
+    let statusClass = '';
     if (isFull) {
-      style = isDarkMode
-        ? 'bg-[#3a0c0c]/85 border-2 border-red-800/70 text-red-200/60 cursor-not-allowed opacity-75'
-        : 'bg-[#fff1f2] border-2 border-rose-200 text-rose-800/50 cursor-not-allowed opacity-75';
-    } 
-    // 🟡 Amber = Partially Booked
-    else if (isPartiallyBooked) {
-      style = isDarkMode
-        ? 'bg-[#78350f]/90 border-2 border-amber-500/80 text-amber-50 shadow-sm hover:bg-[#92400e] hover:border-amber-300'
-        : 'bg-[#fef9ee] border-2 border-amber-300 text-amber-950 shadow-xs hover:bg-[#fef3c7] hover:border-amber-400';
+      statusClass = 'full';
+    } else if (isPartiallyBooked) {
+      statusClass = 'partial';
     }
 
-    // 🌟 Gold = Selected by Student
     if (isSelectedRoom) {
-      style = isDarkMode
-        ? 'bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-400 text-black font-black border-2 border-white shadow-[0_0_20px_rgba(251,191,36,0.95)] scale-[1.04] ring-0 z-20'
-        : 'bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-300 text-slate-950 font-black border-2 border-amber-600 shadow-[0_0_16px_rgba(245,158,11,0.7)] scale-[1.04] ring-0 z-20';
+      statusClass += ' selected';
     }
 
     return (
-      <button
+      <div
         key={room.id}
-        type="button"
+        data-room={room.room_number}
         disabled={isFull && !wardenMode}
         onClick={() => handleRoomClick(room)}
         aria-label={`Room ${room.room_number}, ${isFull ? 'fully occupied' : `${freeBeds} of ${room.capacity} beds free`}`}
         title={`Room ${room.room_number} • ${freeBeds} of ${room.capacity} beds available`}
-        className={`w-full h-12 sm:h-13 md:h-14 rounded-2xl transition-all duration-150 flex flex-col items-center justify-center select-none active:scale-95 cursor-pointer ${style}`}
+        className={`room ${statusClass.trim()}`}
       >
-        <span
-          className={`text-[8px] sm:text-[8.5px] font-mono font-bold uppercase tracking-widest leading-none ${
-            isSelectedRoom
-              ? 'text-black/80'
-              : isDarkMode
-              ? 'opacity-75'
-              : isFull
-              ? 'text-rose-700/60'
-              : isPartiallyBooked
-              ? 'text-amber-800'
-              : 'text-emerald-800'
-          }`}
-        >
-          ROOM
-        </span>
-        <span
-          className={`text-xs sm:text-sm md:text-base font-mono font-black tracking-tight leading-none mt-1 ${
-            isSelectedRoom
-              ? 'text-black'
-              : isDarkMode
-              ? 'text-white'
-              : isFull
-              ? 'text-rose-900/60'
-              : isPartiallyBooked
-              ? 'text-amber-950'
-              : 'text-emerald-950'
-          }`}
-        >
-          {room.room_number}
-        </span>
-      </button>
+        <div className="room-label">Room</div>
+        <div className="room-number">{room.room_number}</div>
+      </div>
     );
   };
 
   const renderPlaceholder = (num) => (
-    <div
-      key={num}
-      className="w-full h-12 sm:h-13 md:h-14 rounded-2xl invisible pointer-events-none"
-    />
+    <div key={num} className="room invisible pointer-events-none" style={{ visibility: 'hidden' }}>
+      <div className="room-label">Room</div>
+      <div className="room-number">{num}</div>
+    </div>
   );
 
   const findRoom = (blockPrefix, floorNum, num) =>
     rooms.find(
       (r) =>
-        r.room_number === num &&
+        r.room_number === String(num) &&
         r.floor_number === floorNum &&
         (r.block_name?.includes(blockPrefix) || r.wing?.includes(blockPrefix.toUpperCase()))
     );
 
   const renderBoysFloor = (blockPrefix, floor) => {
     const { floorTitle, floorNum, topRooms, midRooms, botRooms } = floor;
+    const allFloorRooms = [...topRooms, ...midRooms, ...botRooms];
 
     return (
-      <div
-        key={floorTitle}
-        className={`flex flex-col gap-3 p-3.5 sm:p-5 rounded-2xl border-2 transition-all duration-150 w-full min-w-0 ${
-          isDarkMode
-            ? 'bg-[#12141d]/90 border-zinc-800/90 shadow-inner'
-            : 'bg-white border-2 border-amber-200/90 shadow-xs'
-        }`}
-      >
-        <div className="flex items-center justify-center gap-3 py-0.5 mb-0.5">
-          <div
-            className={`h-[1.5px] flex-1 bg-gradient-to-r ${
-              isDarkMode
-                ? 'from-transparent via-amber-500/40 to-transparent'
-                : 'from-transparent via-amber-400 to-transparent'
-            }`}
-          />
-          <span
-            className={`text-[9.5px] sm:text-xs font-serif font-black uppercase tracking-[0.2em] whitespace-nowrap px-4 py-1 rounded-full border shadow-2xs ${
-              isDarkMode
-                ? 'bg-amber-950/50 border-amber-500/40 text-[#e0b968]'
-                : 'bg-amber-100/90 border-amber-300 text-amber-900 font-extrabold'
-            }`}
-          >
-            ✦ {floorTitle} ✦
-          </span>
-          <div
-            className={`h-[1.5px] flex-1 bg-gradient-to-r ${
-              isDarkMode
-                ? 'from-transparent via-amber-500/40 to-transparent'
-                : 'from-transparent via-amber-400 to-transparent'
-            }`}
-          />
+      <div key={floorTitle} className="floor-block">
+        <div className="floor-label">
+          <div className="line"></div>
+          <div className="pill">✦ {floorTitle} ✦</div>
+          <div className="line"></div>
         </div>
-
-        {/* TOP ROW */}
-        <div className="grid grid-cols-6 gap-2 sm:gap-2.5 md:gap-3 w-full min-w-0">
-          {topRooms.map((num) => {
-            const r = findRoom(blockPrefix, floorNum, num);
-            return r ? renderTile(r) : renderPlaceholder(num);
-          })}
-        </div>
-
-        {/* MID ROW */}
-        <div className="grid grid-cols-6 gap-2 sm:gap-2.5 md:gap-3 w-full min-w-0">
-          {midRooms.map((num) => {
-            const r = findRoom(blockPrefix, floorNum, num);
-            return r ? renderTile(r) : renderPlaceholder(num);
-          })}
-        </div>
-
-        {/* BOT ROW */}
-        <div className="grid grid-cols-6 gap-2 sm:gap-2.5 md:gap-3 w-full min-w-0">
-          {botRooms.map((num) => {
+        <div className="room-grid">
+          {allFloorRooms.map((num) => {
             const r = findRoom(blockPrefix, floorNum, num);
             return r ? renderTile(r) : renderPlaceholder(num);
           })}
@@ -395,69 +309,38 @@ function RoomAllocationGrid({
   const renderGirlsFloor = (floorNum, floorTitle) => {
     const leftRooms = Array.from({ length: 10 }, (_, i) => `${floorNum}${String(i + 1).padStart(2, '0')}`);
     const rightRooms = Array.from({ length: 10 }, (_, i) => `${floorNum}${String(i + 11).padStart(2, '0')}`);
-    const findGirlRoom = (num) => rooms.find((r) => r.room_number === num && r.floor_number === floorNum);
+    const findGirlRoom = (num) => rooms.find((r) => r.room_number === String(num) && r.floor_number === floorNum);
 
     return (
-      <div
-        key={floorTitle}
-        className={`flex flex-col gap-3 p-3.5 sm:p-5 rounded-2xl border-2 transition-all duration-150 w-full min-w-0 ${
-          isDarkMode
-            ? 'bg-[#170f1c]/80 border-pink-900/50 shadow-inner'
-            : 'bg-white border-2 border-pink-200 shadow-xs'
-        }`}
-      >
-        <div className="flex items-center justify-center gap-3 py-0.5 mb-0.5">
-          <div
-            className={`h-[1.5px] flex-1 bg-gradient-to-r ${
-              isDarkMode
-                ? 'from-transparent via-pink-500/40 to-transparent'
-                : 'from-transparent via-pink-400 to-transparent'
-            }`}
-          />
-          <span
-            className={`text-[9.5px] sm:text-xs font-serif font-black uppercase tracking-[0.2em] whitespace-nowrap px-4 py-1 rounded-full border shadow-2xs ${
-              isDarkMode
-                ? 'bg-pink-950/50 border-pink-500/40 text-pink-300'
-                : 'bg-pink-100/90 border-pink-300 text-pink-900 font-extrabold'
-            }`}
-          >
-            ✦ {floorTitle} ✦
-          </span>
-          <div
-            className={`h-[1.5px] flex-1 bg-gradient-to-r ${
-              isDarkMode
-                ? 'from-transparent via-pink-500/40 to-transparent'
-                : 'from-transparent via-pink-400 to-transparent'
-            }`}
-          />
+      <div key={floorTitle} className="floor-block">
+        <div className="floor-label">
+          <div className="line"></div>
+          <div className="pill">✦ {floorTitle} ✦</div>
+          <div className="line"></div>
         </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6 relative w-full min-w-0">
-          <div
-            className={`hidden sm:block absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px pointer-events-none ${
-              isDarkMode
-                ? 'bg-gradient-to-b from-pink-500/10 via-pink-500/60 to-pink-500/10 shadow-[0_0_8px_rgba(236,72,153,0.5)]'
-                : 'bg-gradient-to-b from-pink-300/20 via-pink-400/60 to-pink-300/20'
-            }`}
-          />
-
-          {[leftRooms, rightRooms].map((wingRooms, i) => (
-            <div className="flex flex-col gap-1 min-w-0" key={i}>
-              <div
-                className={`text-center text-[9px] sm:text-[10px] font-mono font-black tracking-widest uppercase ${
-                  isDarkMode ? 'text-pink-300/80' : 'text-pink-700'
-                }`}
-              >
-                {i === 0 ? 'LEFT WING' : 'RIGHT WING'}
-              </div>
-              <div className="grid grid-cols-5 gap-1.5 sm:gap-2 min-w-0">
-                {wingRooms.map((num) => {
-                  const r = findGirlRoom(num);
-                  return r ? renderTile(r) : renderPlaceholder(num);
-                })}
-              </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+          <div>
+            <div style={{ textAlign: 'center', fontSize: '11px', fontWeight: 800, letterSpacing: '1px', color: 'var(--gold-dark)', textTransform: 'uppercase', marginBottom: '8px' }}>
+              LEFT WING
             </div>
-          ))}
+            <div className="room-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+              {leftRooms.map((num) => {
+                const r = findGirlRoom(num);
+                return r ? renderTile(r) : renderPlaceholder(num);
+              })}
+            </div>
+          </div>
+          <div>
+            <div style={{ textAlign: 'center', fontSize: '11px', fontWeight: 800, letterSpacing: '1px', color: 'var(--gold-dark)', textTransform: 'uppercase', marginBottom: '8px' }}>
+              RIGHT WING
+            </div>
+            <div className="room-grid" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
+              {rightRooms.map((num) => {
+                const r = findGirlRoom(num);
+                return r ? renderTile(r) : renderPlaceholder(num);
+              })}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -510,244 +393,329 @@ function RoomAllocationGrid({
   /*  MAIN RENDER                                                       */
   /* ------------------------------------------------------------------ */
   return (
-    <div
-      className={`w-full max-w-[1650px] mx-auto min-w-0 px-1 sm:px-3 md:px-4 py-2 sm:py-3 flex flex-col gap-4 sm:gap-5 select-none box-border font-sans transition-colors duration-200 ${
-        isDarkMode ? 'bg-[#0a0b0e] text-zinc-100' : 'bg-transparent text-slate-900'
-      }`}
-    >
-      {/* 🌟 1. FULL-WIDTH TOP HEADER */}
-      <div
-        className={`relative rounded-2xl p-2.5 sm:p-3.5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0 border-2 transition-colors ${
-          isDarkMode
-            ? 'bg-[#12131c] border-amber-500/30'
-            : 'bg-white border-amber-300 shadow-sm'
-        }`}
-      >
-        <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
-          <div
-            className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0 shadow-inner border ${
-              isDarkMode
-                ? 'bg-amber-500/10 border-amber-500/40'
-                : 'bg-amber-50 border-amber-300'
-            }`}
-          >
-            <svg
-              className={`w-5 h-5 sm:w-6 sm:h-6 ${isDarkMode ? 'text-amber-400' : 'text-amber-600'}`}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M2 4v16" />
-              <path d="M22 10v10" />
-              <path d="M2 17h20" />
-              <path d="M2 10h18a2 2 0 0 1 2 2v5" />
-              <circle cx="7" cy="7" r="2" fill="currentColor" />
-            </svg>
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-              <span
-                className={`text-[9.5px] sm:text-[10.5px] font-mono font-black tracking-widest uppercase ${
-                  isDarkMode ? 'text-amber-400' : 'text-amber-700'
-                }`}
-              >
-                GOVT. POLYTECHNIC BARH
-              </span>
-              <span className={isDarkMode ? 'text-zinc-600 hidden sm:inline' : 'text-slate-300 hidden sm:inline'}>•</span>
-              <span
-                className={`text-[9.5px] sm:text-[10.5px] font-mono font-bold uppercase hidden sm:inline ${
-                  isDarkMode ? 'text-zinc-400' : 'text-slate-500'
-                }`}
-              >
-                HOSTEL SEAT ALLOCATION
-              </span>
+    <div className="hostel-page-wrapper">
+      <style>{`
+        .hostel-page-wrapper {
+          --bg: ${isDarkMode ? '#0f1117' : '#eef1f6'};
+          --cream: ${isDarkMode ? '#161922' : '#fffdf7'};
+          --gold: ${isDarkMode ? '#d4a843' : '#e7c565'};
+          --gold-dark: ${isDarkMode ? '#e5b84c' : '#b8860b'};
+          --gold-text: ${isDarkMode ? '#d8a738' : '#a9700f'};
+          --brown-text: ${isDarkMode ? '#ecd39a' : '#6b4b1f'};
+          --ink: ${isDarkMode ? '#e8edf5' : '#22262e'};
+          --available-bg: ${isDarkMode ? '#0b3823' : '#e7f9ef'};
+          --available-border: ${isDarkMode ? '#1f8a4c' : '#7bd8a0'};
+          --available-text: ${isDarkMode ? '#4ade80' : '#1f8a4c'};
+          --partial: #f0a93b;
+          --full: #ef5f7a;
+          --selected: #e2a52a;
+          --muted: ${isDarkMode ? '#9ca3af' : '#8a93a3'};
+          --radius-lg: 22px;
+          --radius-md: 14px;
+          --radius-sm: 10px;
+          
+          width: 100%;
+          max-width: 1300px;
+          margin: 0 auto;
+          font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+          color: var(--ink);
+          box-sizing: border-box;
+        }
+
+        .hostel-page-wrapper * { box-sizing: border-box; }
+
+        /* ---------- Header ---------- */
+        .hostel-page-wrapper .header-card {
+          background: var(--cream);
+          border: 1px solid var(--gold);
+          border-radius: var(--radius-lg);
+          padding: 18px 24px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 16px;
+          box-shadow: 0 2px 10px rgba(184,134,11,0.06);
+          margin-bottom: 20px;
+        }
+
+        .hostel-page-wrapper .header-left {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+        }
+
+        .hostel-page-wrapper .header-icon {
+          width: 48px;
+          height: 48px;
+          border-radius: 14px;
+          background: ${isDarkMode ? '#24211a' : '#fdf3d9'};
+          border: 1px solid var(--gold);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 22px;
+          color: var(--gold-dark);
+        }
+
+        .hostel-page-wrapper .header-eyebrow {
+          font-size: 11px;
+          letter-spacing: 1px;
+          color: var(--gold-text);
+          font-weight: 700;
+          text-transform: uppercase;
+        }
+
+        .hostel-page-wrapper .header-title {
+          font-size: 20px;
+          font-weight: 800;
+          color: var(--ink);
+          margin-top: 2px;
+        }
+        .hostel-page-wrapper .header-title b { color: var(--gold-dark); }
+
+        .hostel-page-wrapper .legend {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          font-size: 13px;
+          font-weight: 600;
+          color: ${isDarkMode ? '#cbd5e1' : '#444'};
+          flex-wrap: wrap;
+        }
+        .hostel-page-wrapper .legend span { display: flex; align-items: center; gap: 6px; }
+        .hostel-page-wrapper .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .hostel-page-wrapper .dot.available { background: var(--available-text); }
+        .hostel-page-wrapper .dot.partial { background: var(--partial); }
+        .hostel-page-wrapper .dot.full { background: var(--full); }
+        .hostel-page-wrapper .dot.selected { background: var(--selected); }
+        .hostel-page-wrapper .legend-sep { color: #cfd4dc; }
+
+        /* ---------- Hostel columns ---------- */
+        .hostel-page-wrapper .hostels {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+        }
+
+        .hostel-page-wrapper .hostel-card {
+          background: var(--cream);
+          border: 1px solid var(--gold);
+          border-radius: var(--radius-lg);
+          padding: 18px;
+        }
+
+        .hostel-page-wrapper .hostel-banner {
+          background: ${isDarkMode ? '#22231b' : '#fdf6dd'};
+          border: 1px solid var(--gold);
+          border-radius: var(--radius-md);
+          padding: 12px 16px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 16px;
+        }
+        .hostel-page-wrapper .hostel-banner .bed-icon { font-size: 18px; }
+        .hostel-page-wrapper .hostel-name {
+          font-size: 14px;
+          font-weight: 800;
+          letter-spacing: .3px;
+          color: var(--gold-dark);
+          text-transform: uppercase;
+        }
+        .hostel-page-wrapper .hostel-sub {
+          font-size: 12px;
+          color: ${isDarkMode ? '#d1b888' : '#9a8355'};
+          margin-top: 2px;
+        }
+        .hostel-page-wrapper .hostel-sub b { color: var(--available-text); }
+
+        .hostel-page-wrapper .floor-block {
+          border: 1px solid var(--gold);
+          border-radius: var(--radius-md);
+          padding: 14px;
+          margin-bottom: 14px;
+        }
+
+        .hostel-page-wrapper .floor-label {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          justify-content: center;
+          margin-bottom: 14px;
+        }
+        .hostel-page-wrapper .floor-label .line { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+        .hostel-page-wrapper .floor-label .pill {
+          background: ${isDarkMode ? '#3b2f15' : '#fbe8ae'};
+          border: 1px solid var(--gold);
+          color: var(--brown-text);
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: 1px;
+          padding: 4px 12px;
+          border-radius: 999px;
+          white-space: nowrap;
+        }
+
+        .hostel-page-wrapper .room-grid {
+          display: grid;
+          grid-template-columns: repeat(6, 1fr);
+          gap: 8px;
+        }
+
+        .hostel-page-wrapper .room {
+          background: var(--available-bg);
+          border: 1px solid var(--available-border);
+          border-radius: var(--radius-sm);
+          padding: 7px 4px;
+          text-align: center;
+          cursor: pointer;
+          transition: transform .12s ease, box-shadow .12s ease;
+          user-select: none;
+        }
+        .hostel-page-wrapper .room:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,.06); }
+        .hostel-page-wrapper .room .room-label {
+          font-size: 9px;
+          letter-spacing: .5px;
+          font-weight: 700;
+          color: var(--available-text);
+          text-transform: uppercase;
+        }
+        .hostel-page-wrapper .room .room-number {
+          font-size: 14px;
+          font-weight: 800;
+          color: var(--ink);
+        }
+
+        .hostel-page-wrapper .room.partial {
+          background: ${isDarkMode ? '#3d2508' : '#fff3de'};
+          border-color: ${isDarkMode ? '#a16207' : '#f0c47f'};
+        }
+        .hostel-page-wrapper .room.partial .room-label { color: ${isDarkMode ? '#fde047' : '#b5791a'}; }
+
+        .hostel-page-wrapper .room.full {
+          background: ${isDarkMode ? '#3c1118' : '#fdeaee'};
+          border-color: ${isDarkMode ? '#9f1239' : '#f3a9b8'};
+          cursor: not-allowed;
+          opacity: .85;
+        }
+        .hostel-page-wrapper .room.full .room-label { color: ${isDarkMode ? '#fca5a5' : '#c33959'}; }
+
+        .hostel-page-wrapper .room.selected {
+          background: ${isDarkMode ? '#4a370b' : '#fdeecb'};
+          border-color: var(--selected);
+          box-shadow: 0 0 0 2px rgba(226,165,42,.6);
+          transform: translateY(-2px) scale(1.02);
+        }
+        .hostel-page-wrapper .room.selected .room-label { color: var(--gold-dark); }
+
+        /* ---------- Footer status ---------- */
+        .hostel-page-wrapper .footer-bar {
+          margin-top: 18px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 10px;
+          font-size: 12px;
+          color: var(--muted);
+          padding: 6px 4px;
+        }
+        .hostel-page-wrapper .footer-bar b { color: var(--available-text); }
+
+        /* ---------- Responsive ---------- */
+        @media (max-width: 900px) {
+          .hostel-page-wrapper .hostels { grid-template-columns: 1fr; }
+          .hostel-page-wrapper .header-card { flex-direction: column; align-items: flex-start; }
+        }
+
+        @media (max-width: 480px) {
+          .hostel-page-wrapper .room-grid { grid-template-columns: repeat(3, 1fr); }
+          .hostel-page-wrapper .header-title { font-size: 17px; }
+          .hostel-page-wrapper .legend { gap: 10px; font-size: 12px; }
+        }
+      `}</style>
+
+      {/* Header */}
+      <div className="header-card">
+        <div className="header-left">
+          <div className="header-icon">🛏️</div>
+          <div>
+            <div className="header-eyebrow">GOVT. POLYTECHNIC BARH &nbsp;•&nbsp; HOSTEL SEAT ALLOCATION</div>
+            <div className="header-title">
+              {isFemale ? (
+                <>Savitribai Phule <b>Girls Hostel</b></>
+              ) : (
+                <>Hostel Seat &amp; Room <b>Allocation</b></>
+              )}
             </div>
-            <h2 className="text-sm sm:text-base md:text-lg font-black tracking-tight leading-tight mt-0.5 truncate">
-              <span
-                className={
-                  isDarkMode
-                    ? 'bg-gradient-to-r from-white via-zinc-100 to-amber-300 bg-clip-text text-transparent'
-                    : 'bg-gradient-to-r from-slate-900 via-slate-800 to-amber-800 bg-clip-text text-transparent'
-                }
-              >
-                {isFemale ? 'Savitribai Phule Girls Hostel' : 'Hostel Seat & Room Allocation'}
-              </span>
-            </h2>
           </div>
         </div>
-
-        {/* 🌟 Sleek Architectural Status Legend Strip */}
-        <div
-          className={`inline-flex flex-wrap items-center gap-2 sm:gap-3 px-3 sm:px-3.5 py-1.5 rounded-full border transition-all ${
-            isDarkMode
-              ? 'bg-zinc-900/90 border-zinc-750 text-zinc-300 shadow-md backdrop-blur-md'
-              : 'bg-white/95 border-slate-300 text-slate-700 shadow-xs backdrop-blur-md'
-          }`}
-        >
-          <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-mono font-semibold">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-            <span className={isDarkMode ? 'text-zinc-200' : 'text-slate-800'}>Available</span>
-          </div>
-
-          <span className={`text-[10px] ${isDarkMode ? 'text-zinc-700' : 'text-slate-300'}`}>•</span>
-
-          <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-mono font-semibold">
-            <span className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
-            <span className={isDarkMode ? 'text-zinc-200' : 'text-slate-800'}>Partial</span>
-          </div>
-
-          <span className={`text-[10px] ${isDarkMode ? 'text-zinc-700' : 'text-slate-300'}`}>•</span>
-
-          <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-mono font-semibold">
-            <span className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
-            <span className={isDarkMode ? 'text-zinc-200' : 'text-slate-800'}>Full</span>
-          </div>
-
-          <span className={`text-[10px] ${isDarkMode ? 'text-zinc-700' : 'text-slate-300'}`}>•</span>
-
-          <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-mono font-bold">
-            <span className="w-2 h-2 rounded-full bg-amber-400 ring-2 ring-amber-300 shadow-[0_0_10px_rgba(251,191,36,0.9)]" />
-            <span className={isDarkMode ? 'text-amber-300' : 'text-amber-800'}>Selected</span>
-          </div>
+        <div className="legend">
+          <span><i className="dot available"></i>Available</span>
+          <span className="legend-sep">•</span>
+          <span><i className="dot partial"></i>Partial</span>
+          <span className="legend-sep">•</span>
+          <span><i className="dot full"></i>Full</span>
+          <span className="legend-sep">•</span>
+          <span><i className="dot selected"></i>Selected</span>
         </div>
       </div>
 
-      {/* 🌟 2. EXPANSIVE MIDDLE BLUEPRINT MATRIX (PHONE: STACKED / WEB: SIDE-BY-SIDE) */}
-      <div className="w-full flex-1 flex flex-col justify-start py-1">
-        {!isFemale ? (
-          <div className="w-full min-w-0">
-            {/* On Phone (< md): grid-cols-1 (Stacked Upper/Lower) | On Desktop (>= md): grid-cols-2 (Side-by-Side) */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 w-full min-w-0 relative px-1 sm:px-2">
-              {/* Desktop Center Highlighted Divider */}
-              <div
-                className={`hidden lg:block absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[2px] pointer-events-none z-10 ${
-                  isDarkMode
-                    ? 'bg-gradient-to-b from-amber-500/20 via-amber-500/70 to-amber-500/20 shadow-[0_0_10px_rgba(245,158,11,0.4)]'
-                    : 'bg-gradient-to-b from-amber-300/30 via-amber-500 to-amber-300/30 shadow-[0_0_8px_rgba(245,158,11,0.25)]'
-                }`}
-              />
-
-              {/* ⬅️ BIRSA MUNDA BOYS HOSTEL */}
-              <div
-                className={`w-full min-w-0 space-y-3 sm:space-y-4 p-3.5 sm:p-5 md:p-6 rounded-3xl border-2 shadow-md transition-all ${
-                  isDarkMode
-                    ? 'bg-[#0f1118]/90 border-zinc-800'
-                    : 'bg-white border-2 border-amber-300/90 shadow-md ring-1 ring-amber-400/20'
-                }`}
-              >
-                <div
-                  className={`text-center py-1.5 sm:py-2 px-3 sm:px-4 rounded-2xl border-2 flex items-center justify-center gap-2.5 shadow-xs ${
-                    isDarkMode
-                      ? 'bg-gradient-to-r from-amber-500/10 via-amber-500/20 to-amber-500/10 border-amber-500/30'
-                      : 'bg-gradient-to-r from-amber-50 via-amber-100/70 to-amber-50 border-amber-300'
-                  }`}
-                >
-                  <span className={`shrink-0 text-base sm:text-lg ${isDarkMode ? 'text-amber-400' : 'text-amber-600'}`}>🛏️</span>
-                  <div className="min-w-0">
-                    <h3
-                      className={`text-[11px] sm:text-xs md:text-sm font-serif tracking-[0.1em] sm:tracking-[0.16em] font-black uppercase truncate ${
-                        isDarkMode ? 'text-[#f59e0b]' : 'text-amber-900'
-                      }`}
-                    >
-                      Birsa Munda Boys Hostel
-                    </h3>
-                    <p className={`text-[9.5px] sm:text-[10.5px] font-mono font-medium ${isDarkMode ? 'text-zinc-400' : 'text-slate-600'}`}>
-                      <span className={`font-bold ${isDarkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>{birsaVacant}</span> beds available • <span className="opacity-75">{birsaTotalBeds} Total Beds</span>
-                    </p>
-                  </div>
+      {/* Hostels */}
+      {!isFemale ? (
+        <div className="hostels">
+          {/* Birsa Munda Boys Hostel */}
+          <div className="hostel-card">
+            <div className="hostel-banner">
+              <span className="bed-icon">🛏️</span>
+              <div>
+                <div className="hostel-name">Birsa Munda Boys Hostel</div>
+                <div className="hostel-sub">
+                  <b>{birsaVacant}</b> beds available • {birsaTotalBeds} Total Beds
                 </div>
-                {BOYS_FLOORS.Birsa.map((floor) => renderBoysFloor('Birsa', floor))}
               </div>
+            </div>
+            {BOYS_FLOORS.Birsa.map((floor) => renderBoysFloor('Birsa', floor))}
+          </div>
 
-              {/* ➡️ DR. RAJENDRA PRASAD BOYS HOSTEL */}
-              <div
-                className={`w-full min-w-0 space-y-3 sm:space-y-4 p-3.5 sm:p-5 md:p-6 rounded-3xl border-2 shadow-md transition-all ${
-                  isDarkMode
-                    ? 'bg-[#0f1118]/90 border-zinc-800'
-                    : 'bg-white border-2 border-amber-300/90 shadow-md ring-1 ring-amber-400/20'
-                }`}
-              >
-                <div
-                  className={`text-center py-1.5 sm:py-2 px-3 sm:px-4 rounded-2xl border-2 flex items-center justify-center gap-2.5 shadow-xs ${
-                    isDarkMode
-                      ? 'bg-gradient-to-r from-amber-500/10 via-amber-500/20 to-amber-500/10 border-amber-500/30'
-                      : 'bg-gradient-to-r from-amber-50 via-amber-100/70 to-amber-50 border-amber-300'
-                  }`}
-                >
-                  <span className={`shrink-0 text-base sm:text-lg ${isDarkMode ? 'text-amber-400' : 'text-amber-600'}`}>🛏️</span>
-                  <div className="min-w-0">
-                    <h3
-                      className={`text-[11px] sm:text-xs md:text-sm font-serif tracking-[0.08em] sm:tracking-[0.14em] font-black uppercase truncate ${
-                        isDarkMode ? 'text-[#f59e0b]' : 'text-amber-900'
-                      }`}
-                    >
-                      Dr. Rajendra Prasad Boys Hostel
-                    </h3>
-                    <p className={`text-[9.5px] sm:text-[10.5px] font-mono font-medium ${isDarkMode ? 'text-zinc-400' : 'text-slate-600'}`}>
-                      <span className={`font-bold ${isDarkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>{rajendraVacant}</span> beds available • <span className="opacity-75">{rajendraTotalBeds} Total Beds</span>
-                    </p>
-                  </div>
+          {/* Dr. Rajendra Prasad Boys Hostel */}
+          <div className="hostel-card">
+            <div className="hostel-banner">
+              <span className="bed-icon">🛏️</span>
+              <div>
+                <div className="hostel-name">Dr. Rajendra Prasad Boys Hostel</div>
+                <div className="hostel-sub">
+                  <b>{rajendraVacant}</b> beds available • {rajendraTotalBeds} Total Beds
                 </div>
-                {BOYS_FLOORS.Rajendra.map((floor) => renderBoysFloor('Rajendra', floor))}
+              </div>
+            </div>
+            {BOYS_FLOORS.Rajendra.map((floor) => renderBoysFloor('Rajendra', floor))}
+          </div>
+        </div>
+      ) : (
+        /* Girls Hostel */
+        <div className="hostel-card" style={{ maxWidth: '900px', margin: '0 auto' }}>
+          <div className="hostel-banner">
+            <span className="bed-icon">🛏️</span>
+            <div>
+              <div className="hostel-name">Savitribai Phule Girls Hostel</div>
+              <div className="hostel-sub">
+                <b>{availableBeds}</b> beds available • {totalBeds} Total Beds
               </div>
             </div>
           </div>
-        ) : (
-          /* SAVITRIBAI PHULE GIRLS HOSTEL */
-          <div
-            className={`w-full max-w-5xl mx-auto space-y-3 sm:space-y-4 p-3.5 sm:p-5 md:p-6 rounded-3xl border-2 shadow-md min-w-0 transition-all ${
-              isDarkMode ? 'bg-[#140e18]/90 border-pink-900/40' : 'bg-white border-2 border-pink-300 shadow-md ring-1 ring-pink-400/20'
-            }`}
-          >
-            <div
-              className={`text-center py-1.5 sm:py-2 px-3 sm:px-4 rounded-2xl border-2 flex items-center justify-center gap-2.5 shadow-xs ${
-                isDarkMode
-                  ? 'bg-gradient-to-r from-pink-500/10 via-pink-500/20 to-pink-500/10 border-pink-500/30'
-                  : 'bg-gradient-to-r from-pink-50 via-pink-100/70 to-pink-50 border-pink-300'
-              }`}
-            >
-              <span className={`shrink-0 text-base sm:text-lg ${isDarkMode ? 'text-pink-400' : 'text-pink-600'}`}>🛏️</span>
-              <div className="min-w-0">
-                <h3
-                  className={`text-xs sm:text-base font-serif tracking-[0.1em] sm:tracking-[0.16em] font-black uppercase truncate ${
-                    isDarkMode ? 'text-pink-400' : 'text-pink-900'
-                  }`}
-                >
-                  Savitribai Phule Girls Hostel — 2 Floors
-                </h3>
-                <p className={`text-[9.5px] sm:text-[10.5px] font-mono font-medium ${isDarkMode ? 'text-zinc-400' : 'text-slate-600'}`}>
-                  <span className={`font-bold ${isDarkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>{availableBeds}</span> beds available • <span className="opacity-75">{totalBeds} Total Beds</span>
-                </p>
-              </div>
-            </div>
-            {renderGirlsFloor(2, '2ND FLOOR')}
-            {renderGirlsFloor(1, '1ST FLOOR')}
-          </div>
-        )}
-      </div>
+          {renderGirlsFloor(2, '2ND FLOOR')}
+          {renderGirlsFloor(1, '1ST FLOOR')}
+        </div>
+      )}
 
-      {/* 🌟 3. REAL-TIME FOOTER STATS */}
-      <div
-        className={`flex flex-wrap items-center justify-between gap-2 pt-2 border-t text-[10px] sm:text-xs font-mono shrink-0 ${
-          isDarkMode ? 'border-zinc-800/90 text-zinc-400' : 'border-slate-200 text-slate-600'
-        }`}
-      >
-        <div className="flex items-center gap-2">
-          <span className={isDarkMode ? 'text-zinc-500' : 'text-slate-400'}>Live Status:</span>
-          <span className={`font-black ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>
-            {availableBeds} Vacant Beds
-          </span>
-          <span className={isDarkMode ? 'text-zinc-600' : 'text-slate-300'}>/</span>
-          <span className={`font-bold ${isDarkMode ? 'text-zinc-300' : 'text-slate-700'}`}>
-            {totalBeds} Total Capacity
-          </span>
+      {/* Footer */}
+      <div className="footer-bar">
+        <div>
+          Live Status: <b>{availableBeds}</b> Vacant Beds / <span>{totalBeds}</span> Total Capacity
         </div>
-        <div className={`text-[10px] sm:text-xs font-sans ${isDarkMode ? 'text-zinc-500' : 'text-slate-400'}`}>
-          Govt. Polytechnic Barh • Hostel Management System
-        </div>
+        <div>Govt. Polytechnic Barh • Hostel Management System</div>
       </div>
 
       {/* 🌟 4. ROOM INTERIOR VIEW MODAL (COMPACT SINGLE-SCREEN VIEW) */}
