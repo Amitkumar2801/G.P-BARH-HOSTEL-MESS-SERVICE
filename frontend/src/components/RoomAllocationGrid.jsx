@@ -967,7 +967,7 @@ function RoomAllocationGrid({
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-1 py-0.5">
-                  <div className="text-emerald-400 font-bold text-xs sm:text-sm flex items-center gap-1.5">
+                  <div className={`font-bold text-xs sm:text-sm flex items-center gap-1.5 ${isDarkMode ? 'text-emerald-300' : 'text-emerald-800'}`}>
                     <span>✅</span>
                     <span>{requestSentInfo}</span>
                   </div>

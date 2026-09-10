@@ -1884,7 +1884,7 @@ function StudentDashboard() {
                   {/* 🌟 1. PENDING NOTIFICATION BANNER */}
                   {allotmentInfo?.status === 'PENDING' && (
                     <div style={{
-                      background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.2) 0%, rgba(202, 138, 4, 0.1) 100%)',
+                      background: isDarkMode ? 'linear-gradient(135deg, rgba(234, 179, 8, 0.18) 0%, rgba(161, 98, 7, 0.28) 100%)' : '#fffbeb',
                       border: '2px solid #eab308',
                       borderRadius: '16px',
                       padding: '16px 22px',
@@ -1894,31 +1894,31 @@ function StudentDashboard() {
                       justifyContent: 'space-between',
                       gap: '16px',
                       flexWrap: 'wrap',
-                      boxShadow: '0 8px 30px rgba(234, 179, 8, 0.25)'
+                      boxShadow: '0 6px 24px rgba(234, 179, 8, 0.18)'
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                         <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#eab308', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', fontWeight: 900, flexShrink: 0 }}>
                           ⏳
                         </div>
                         <div>
-                          <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: '#fef08a' }}>
+                          <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: isDarkMode ? '#fef08a' : '#78350f' }}>
                             Room Allotment Request Pending Warden Approval
                           </h4>
-                          <p style={{ margin: '3px 0 0', fontSize: '12.5px', color: '#fde047', fontWeight: 500 }}>
-                            Requested: <strong>Room {allotmentInfo.room_number || ''} • Bed {allotmentInfo.bed_code || ''}</strong> ({allotmentInfo.hostel_name || 'Hostel Block'}) • Awaiting Warden Review ({allotmentInfo.hours_left !== undefined ? `${allotmentInfo.hours_left}h left in 24h window` : '24h review window'}).
+                          <p style={{ margin: '4px 0 0', fontSize: '13px', color: isDarkMode ? '#fef3c7' : '#92400e', fontWeight: 600 }}>
+                            Requested: <strong style={{ color: isDarkMode ? '#ffffff' : '#713f12' }}>Room {allotmentInfo.room_number || ''} • Bed {allotmentInfo.bed_code || ''}</strong> ({allotmentInfo.hostel_name || 'Hostel Block'}) • Awaiting Warden Review ({allotmentInfo.hours_left !== undefined ? `${allotmentInfo.hours_left}h left in 24h window` : '24h review window'}).
                           </p>
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ padding: '6px 14px', borderRadius: '20px', background: 'rgba(234, 179, 8, 0.3)', border: '1px solid #eab308', color: '#fef08a', fontSize: '11px', fontWeight: 900, letterSpacing: '0.5px' }}>
+                        <span style={{ padding: '6px 14px', borderRadius: '20px', background: isDarkMode ? 'rgba(234, 179, 8, 0.25)' : '#fef3c7', border: '1px solid #eab308', color: isDarkMode ? '#fde047' : '#854d0e', fontSize: '11px', fontWeight: 900, letterSpacing: '0.5px' }}>
                           STATUS: PENDING
                         </span>
                         <button
                           type="button"
                           onClick={fetchStudentAllotment}
-                          style={{ padding: '6px 14px', borderRadius: '10px', background: '#eab308', color: '#000', border: 'none', fontSize: '12px', fontWeight: 800, cursor: 'pointer' }}
+                          style={{ padding: '8px 16px', borderRadius: '10px', background: '#eab308', color: '#000', border: 'none', fontSize: '12px', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                         >
-                          Check Status 🔄
+                          <span>Check Status</span> 🔄
                         </button>
                       </div>
                     </div>
@@ -1927,32 +1927,32 @@ function StudentDashboard() {
                   {/* 🌟 2. APPROVED NOTIFICATION BANNER */}
                   {allotmentInfo?.status === 'APPROVED' && (
                     <div style={{
-                      background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.1) 100%)',
+                      background: isDarkMode ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.18) 0%, rgba(5, 150, 105, 0.28) 100%)' : '#f0fdf4',
                       border: '2px solid #10b981',
                       borderRadius: '16px',
                       padding: '16px 22px',
-                      margin: '0 0 16px 0',
+                      margin: '16px 20px 20px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       gap: '16px',
                       flexWrap: 'wrap',
-                      boxShadow: '0 8px 30px rgba(16, 185, 129, 0.25)'
+                      boxShadow: '0 6px 24px rgba(16, 185, 129, 0.18)'
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                         <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#10b981', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', fontWeight: 900, flexShrink: 0 }}>
                           ✓
                         </div>
                         <div>
-                          <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: '#a7f3d0' }}>
+                          <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: isDarkMode ? '#6ee7b7' : '#065f46' }}>
                             Hostel Seat Allotment Approved &amp; Verified 🎉
                           </h4>
-                          <p style={{ margin: '3px 0 0', fontSize: '12.5px', color: '#6ee7b7', fontWeight: 500 }}>
-                            Allotted: <strong>Room {allotmentInfo.room_number} • Bed {allotmentInfo.bed_code}</strong> ({allotmentInfo.hostel_name || 'Hostel Block'}) • All Payments, Mess &amp; Passbook services unlocked!
+                          <p style={{ margin: '4px 0 0', fontSize: '13px', color: isDarkMode ? '#a7f3d0' : '#047857', fontWeight: 600 }}>
+                            Allotted: <strong style={{ color: isDarkMode ? '#ffffff' : '#064e3b' }}>Room {allotmentInfo.room_number} • Bed {allotmentInfo.bed_code}</strong> ({allotmentInfo.hostel_name || 'Hostel Block'}) • All Payments, Mess &amp; Passbook services unlocked!
                           </p>
                         </div>
                       </div>
-                      <span style={{ padding: '6px 14px', borderRadius: '20px', background: 'rgba(16, 185, 129, 0.3)', border: '1px solid #10b981', color: '#a7f3d0', fontSize: '11px', fontWeight: 900, letterSpacing: '0.5px' }}>
+                      <span style={{ padding: '6px 14px', borderRadius: '20px', background: isDarkMode ? 'rgba(16, 185, 129, 0.25)' : '#dcfce7', border: '1px solid #10b981', color: isDarkMode ? '#6ee7b7' : '#065f46', fontSize: '11px', fontWeight: 900, letterSpacing: '0.5px' }}>
                         VERIFIED ALLOTTEE
                       </span>
                     </div>
@@ -1961,32 +1961,32 @@ function StudentDashboard() {
                   {/* 🌟 3. REJECTED NOTIFICATION BANNER */}
                   {allotmentInfo?.status === 'REJECTED' && (
                     <div style={{
-                      background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(185, 28, 28, 0.1) 100%)',
+                      background: isDarkMode ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.18) 0%, rgba(185, 28, 28, 0.28) 100%)' : '#fef2f2',
                       border: '2px solid #ef4444',
                       borderRadius: '16px',
                       padding: '16px 22px',
-                      margin: '0 0 16px 0',
+                      margin: '16px 20px 20px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       gap: '16px',
                       flexWrap: 'wrap',
-                      boxShadow: '0 8px 30px rgba(239, 68, 68, 0.25)'
+                      boxShadow: '0 6px 24px rgba(239, 68, 68, 0.18)'
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                         <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#ef4444', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', fontWeight: 900, flexShrink: 0 }}>
                           ✕
                         </div>
                         <div>
-                          <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: '#fca5a5' }}>
+                          <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: isDarkMode ? '#fca5a5' : '#991b1b' }}>
                             Room Allotment Request Declined by Chief Warden
                           </h4>
-                          <p style={{ margin: '3px 0 0', fontSize: '12.5px', color: '#f87171', fontWeight: 500 }}>
+                          <p style={{ margin: '4px 0 0', fontSize: '13px', color: isDarkMode ? '#fecaca' : '#b91c1c', fontWeight: 600 }}>
                             {allotmentInfo.remarks || 'Request declined by Warden'}. The previous bed has been released. You can choose any available room &amp; bed from the blueprint grid below!
                           </p>
                         </div>
                       </div>
-                      <span style={{ padding: '6px 14px', borderRadius: '20px', background: 'rgba(239, 68, 68, 0.3)', border: '1px solid #ef4444', color: '#fca5a5', fontSize: '11px', fontWeight: 900, letterSpacing: '0.5px' }}>
+                      <span style={{ padding: '6px 14px', borderRadius: '20px', background: isDarkMode ? 'rgba(239, 68, 68, 0.25)' : '#fee2e2', border: '1px solid #ef4444', color: isDarkMode ? '#fca5a5' : '#991b1b', fontSize: '11px', fontWeight: 900, letterSpacing: '0.5px' }}>
                         RE-SELECTION UNLOCKED
                       </span>
                     </div>
@@ -1995,32 +1995,32 @@ function StudentDashboard() {
                   {/* 🌟 4. EXPIRED (24H WINDOW) NOTIFICATION BANNER */}
                   {allotmentInfo?.status === 'EXPIRED' && (
                     <div style={{
-                      background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.2) 0%, rgba(194, 65, 12, 0.1) 100%)',
+                      background: isDarkMode ? 'linear-gradient(135deg, rgba(249, 115, 22, 0.18) 0%, rgba(194, 65, 12, 0.28) 100%)' : '#fff7ed',
                       border: '2px solid #f97316',
                       borderRadius: '16px',
                       padding: '16px 22px',
-                      margin: '0 0 16px 0',
+                      margin: '16px 20px 20px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       gap: '16px',
                       flexWrap: 'wrap',
-                      boxShadow: '0 8px 30px rgba(249, 115, 22, 0.25)'
+                      boxShadow: '0 6px 24px rgba(249, 115, 22, 0.18)'
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                         <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#f97316', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', fontWeight: 900, flexShrink: 0 }}>
                           ⏱️
                         </div>
                         <div>
-                          <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: '#fed7aa' }}>
+                          <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: isDarkMode ? '#fdba74' : '#9a3412' }}>
                             24-Hour Review Window Expired
                           </h4>
-                          <p style={{ margin: '3px 0 0', fontSize: '12.5px', color: '#fdba74', fontWeight: 500 }}>
+                          <p style={{ margin: '4px 0 0', fontSize: '13px', color: isDarkMode ? '#fed7aa' : '#c2410c', fontWeight: 600 }}>
                             Your previous bed reservation expired after 24 hours without Warden action. The bed is freed. Please select an available bed from the grid below to submit a new request!
                           </p>
                         </div>
                       </div>
-                      <span style={{ padding: '6px 14px', borderRadius: '20px', background: 'rgba(249, 115, 22, 0.3)', border: '1px solid #f97316', color: '#fed7aa', fontSize: '11px', fontWeight: 900, letterSpacing: '0.5px' }}>
+                      <span style={{ padding: '6px 14px', borderRadius: '20px', background: isDarkMode ? 'rgba(249, 115, 22, 0.25)' : '#ffedd5', border: '1px solid #f97316', color: isDarkMode ? '#fdba74' : '#9a3412', fontSize: '11px', fontWeight: 900, letterSpacing: '0.5px' }}>
                         RE-SELECTION UNLOCKED
                       </span>
                     </div>
