@@ -4,7 +4,6 @@ import axios from 'axios';
 import logo from '../assets/logo.png.png';
 
 function StudentRecordDossier({ profileData = {}, currentUser = {}, profilePic = null, isDarkMode = false, allotmentInfo = null }) {
-  const [activeViewMode, setActiveViewMode] = useState('dossier'); // 'dossier' or 'analytics'
   const [analyticsData, setAnalyticsData] = useState(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [analyticsTimeframe, setAnalyticsTimeframe] = useState('1M'); // '1M', '6M', '1Y'
@@ -221,77 +220,34 @@ function StudentRecordDossier({ profileData = {}, currentUser = {}, profilePic =
           </div>
         </div>
 
-        {/* VIEW MODE TOGGLE & PRINT ACTION */}
+        {/* ACTION BUTTON: PRINT PDF */}
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <div style={{ display: 'flex', background: 'var(--input-bg)', padding: '4px', borderRadius: '12px', border: '1px solid var(--border)' }}>
-            <button
-              type="button"
-              onClick={() => setActiveViewMode('dossier')}
-              style={{
-                background: activeViewMode === 'dossier' ? '#2563eb' : 'transparent',
-                color: activeViewMode === 'dossier' ? '#ffffff' : 'var(--text-muted)',
-                border: 'none',
-                padding: '8px 14px',
-                borderRadius: '8px',
-                fontSize: '12px',
-                fontWeight: 800,
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-            >
-              <span>📑</span> Official Dossier
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveViewMode('analytics')}
-              style={{
-                background: activeViewMode === 'analytics' ? '#2563eb' : 'transparent',
-                color: activeViewMode === 'analytics' ? '#ffffff' : 'var(--text-muted)',
-                border: 'none',
-                padding: '8px 14px',
-                borderRadius: '8px',
-                fontSize: '12px',
-                fontWeight: 800,
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-            >
-              <span>📊</span> Visual Analytics
-            </button>
-          </div>
-
           <button
             onClick={handlePrint}
             style={{
               background: '#800000',
               color: '#ffffff',
               border: 'none',
-              padding: '10px 18px',
-              borderRadius: '12px',
+              padding: '10px 20px',
+              borderRadius: '14px',
               fontSize: '12px',
               fontWeight: 800,
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '6px',
-              boxShadow: '0 4px 12px rgba(128, 0, 0, 0.25)',
+              gap: '8px',
+              boxShadow: '0 4px 14px rgba(128, 0, 0, 0.25)',
               transition: 'all 0.2s'
             }}
           >
-            <span>🖨️</span> PRINT PDF
+            <span>🖨️</span>
+            <span>PRINT PDF</span>
           </button>
         </div>
       </div>
 
-      {/* 🌟 2. VISUAL ANALYTICS & CHARTS VIEW (WHEN ACTIVE) 🌟 */}
-      {activeViewMode === 'analytics' && (
-        <div className="no-print space-y-6 animate-in fade-in duration-300">
+      {/* 🌟 2. VISUAL ANALYTICS & CHARTS VIEW (PERMANENT SCREEN VIEW) 🌟 */}
+      <div className="no-print space-y-6 animate-in fade-in duration-300">
           
           {/* TOP SUMMARY CARDS */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -710,15 +666,13 @@ function StudentRecordDossier({ profileData = {}, currentUser = {}, profilePic =
             </div>
           )}
 
-        </div>
-      )}
+      </div>
 
-      {/* 🌟 3. OFFICIAL PRINTABLE STUDENT RECORD SHEET (WHEN DOSSIER ACTIVE OR PRINTING) 🌟 */}
-      {(activeViewMode === 'dossier' || typeof window !== 'undefined') && (
-        <div
-          id="student-record-document"
-          className={`student-record-printable-card ${activeViewMode !== 'dossier' ? 'hidden print:block' : ''}`}
-          style={{
+      {/* 🌟 3. OFFICIAL PRINTABLE STUDENT RECORD SHEET (PRINT-ONLY) 🌟 */}
+      <div
+        id="student-record-document"
+        className="student-record-printable-card hidden print:block"
+        style={{
             background: '#ffffff',
             color: '#0f172a',
             borderRadius: '20px',
@@ -848,7 +802,6 @@ function StudentRecordDossier({ profileData = {}, currentUser = {}, profilePic =
           </div>
 
         </div>
-      )}
 
     </div>
   );
