@@ -1477,7 +1477,33 @@ function StudentDashboard() {
 
         {/* ================= SIDEBAR ================= */}
         <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
-          <div className="sidebar-profile">
+          <div className="sidebar-profile" style={{ position: 'relative' }}>
+            <button
+              type="button"
+              onClick={() => setIsSidebarOpen(false)}
+              className="lg:hidden"
+              style={{
+                position: 'absolute',
+                top: '14px',
+                right: '14px',
+                background: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: '8px',
+                color: '#94a3b8',
+                fontSize: '14px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s'
+              }}
+              title="Close Menu"
+            >
+              ✕
+            </button>
             <div className="avatar-wrap">
               <div className="avatar-circle">
                 <img src={profilePic} alt="Profile" style={{ opacity: profilePic === defaultAvatar ? 0.5 : 1 }} />
