@@ -1945,7 +1945,7 @@ function StudentDashboard() {
                         </div>
                         <div>
                           <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: isDarkMode ? '#6ee7b7' : '#065f46' }}>
-                            Hostel Seat Allotment Approved &amp; Verified 🎉
+                            Hostel Seat Allotment Approved &amp; Verified
                           </h4>
                           <p style={{ margin: '4px 0 0', fontSize: '13px', color: isDarkMode ? '#a7f3d0' : '#047857', fontWeight: 600 }}>
                             Allotted: <strong style={{ color: isDarkMode ? '#ffffff' : '#064e3b' }}>Room {allotmentInfo.room_number} • Bed {allotmentInfo.bed_code}</strong> ({allotmentInfo.hostel_name || 'Hostel Block'}) • All Payments, Mess &amp; Passbook services unlocked!
