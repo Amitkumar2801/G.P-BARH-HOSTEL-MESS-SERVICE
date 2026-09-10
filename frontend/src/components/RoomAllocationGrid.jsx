@@ -245,19 +245,19 @@ function RoomAllocationGrid({
 
     // 🟢 Green = All Available
     let style = isDarkMode
-      ? 'bg-[#064e3b]/90 border border-emerald-500/80 text-white shadow-sm hover:bg-[#065f46] hover:border-emerald-300'
+      ? 'bg-[#064e3b]/90 border-2 border-emerald-500/80 text-white shadow-sm hover:bg-[#065f46] hover:border-emerald-300'
       : 'bg-[#e6f9f0] border-2 border-[#86efac] text-emerald-950 shadow-xs hover:bg-[#dcfce7] hover:border-[#4ade80]';
 
     // 🔴 Red = Fully Occupied
     if (isFull) {
       style = isDarkMode
-        ? 'bg-[#3a0c0c]/85 border border-red-800/70 text-red-200/60 cursor-not-allowed opacity-75'
+        ? 'bg-[#3a0c0c]/85 border-2 border-red-800/70 text-red-200/60 cursor-not-allowed opacity-75'
         : 'bg-[#fff1f2] border-2 border-rose-200 text-rose-800/50 cursor-not-allowed opacity-75';
     } 
     // 🟡 Amber = Partially Booked
     else if (isPartiallyBooked) {
       style = isDarkMode
-        ? 'bg-[#78350f]/90 border border-amber-500/80 text-amber-50 shadow-sm hover:bg-[#92400e] hover:border-amber-300'
+        ? 'bg-[#78350f]/90 border-2 border-amber-500/80 text-amber-50 shadow-sm hover:bg-[#92400e] hover:border-amber-300'
         : 'bg-[#fef9ee] border-2 border-amber-300 text-amber-950 shadow-xs hover:bg-[#fef3c7] hover:border-amber-400';
     }
 
@@ -276,10 +276,10 @@ function RoomAllocationGrid({
         onClick={() => handleRoomClick(room)}
         aria-label={`Room ${room.room_number}, ${isFull ? 'fully occupied' : `${freeBeds} of ${room.capacity} beds free`}`}
         title={`Room ${room.room_number} • ${freeBeds} of ${room.capacity} beds available`}
-        className={`w-full h-11 sm:h-12 md:h-13 rounded-xl transition-all duration-150 flex flex-col items-center justify-center select-none active:scale-95 ${style}`}
+        className={`w-full h-12 sm:h-13 md:h-14 rounded-2xl transition-all duration-150 flex flex-col items-center justify-center select-none active:scale-95 cursor-pointer ${style}`}
       >
         <span
-          className={`text-[7.5px] sm:text-[8px] md:text-[8.5px] font-mono font-bold uppercase tracking-widest leading-none ${
+          className={`text-[8px] sm:text-[8.5px] font-mono font-bold uppercase tracking-widest leading-none ${
             isSelectedRoom
               ? 'text-black/80'
               : isDarkMode
@@ -315,15 +315,8 @@ function RoomAllocationGrid({
   const renderPlaceholder = (num) => (
     <div
       key={num}
-      className={`w-full h-11 sm:h-12 md:h-13 rounded-xl border flex flex-col items-center justify-center font-mono leading-none ${
-        isDarkMode
-          ? 'border-zinc-800/80 bg-zinc-900/30 text-zinc-600'
-          : 'border-slate-200 bg-slate-100/50 text-slate-400'
-      }`}
-    >
-      <span className="text-[7.5px] sm:text-[8px] font-bold tracking-widest opacity-60">ROOM</span>
-      <span className="text-xs sm:text-sm font-bold tracking-tight mt-1">{num}</span>
-    </div>
+      className="w-full h-12 sm:h-13 md:h-14 rounded-2xl invisible pointer-events-none"
+    />
   );
 
   const findRoom = (blockPrefix, floorNum, num) =>
@@ -340,13 +333,13 @@ function RoomAllocationGrid({
     return (
       <div
         key={floorTitle}
-        className={`flex flex-col gap-2 sm:gap-2.5 p-3 sm:p-4 rounded-2xl border transition-all duration-150 w-full min-w-0 ${
+        className={`flex flex-col gap-3 p-3.5 sm:p-5 rounded-2xl border-2 transition-all duration-150 w-full min-w-0 ${
           isDarkMode
             ? 'bg-[#12141d]/90 border-zinc-800/90 shadow-inner'
             : 'bg-white border-2 border-amber-200/90 shadow-xs'
         }`}
       >
-        <div className="flex items-center justify-center gap-2 py-0.5 mb-0.5">
+        <div className="flex items-center justify-center gap-3 py-0.5 mb-0.5">
           <div
             className={`h-[1.5px] flex-1 bg-gradient-to-r ${
               isDarkMode
@@ -355,7 +348,7 @@ function RoomAllocationGrid({
             }`}
           />
           <span
-            className={`text-[9.5px] sm:text-xs font-serif font-black uppercase tracking-[0.2em] whitespace-nowrap px-3 py-0.5 rounded-full border shadow-2xs ${
+            className={`text-[9.5px] sm:text-xs font-serif font-black uppercase tracking-[0.2em] whitespace-nowrap px-4 py-1 rounded-full border shadow-2xs ${
               isDarkMode
                 ? 'bg-amber-950/50 border-amber-500/40 text-[#e0b968]'
                 : 'bg-amber-100/90 border-amber-300 text-amber-900 font-extrabold'
@@ -373,7 +366,7 @@ function RoomAllocationGrid({
         </div>
 
         {/* TOP ROW */}
-        <div className="grid grid-cols-6 gap-1.5 sm:gap-2 w-full min-w-0">
+        <div className="grid grid-cols-6 gap-2 sm:gap-2.5 md:gap-3 w-full min-w-0">
           {topRooms.map((num) => {
             const r = findRoom(blockPrefix, floorNum, num);
             return r ? renderTile(r) : renderPlaceholder(num);
@@ -381,7 +374,7 @@ function RoomAllocationGrid({
         </div>
 
         {/* MID ROW */}
-        <div className="grid grid-cols-6 gap-1.5 sm:gap-2 w-full min-w-0">
+        <div className="grid grid-cols-6 gap-2 sm:gap-2.5 md:gap-3 w-full min-w-0">
           {midRooms.map((num) => {
             const r = findRoom(blockPrefix, floorNum, num);
             return r ? renderTile(r) : renderPlaceholder(num);
@@ -389,7 +382,7 @@ function RoomAllocationGrid({
         </div>
 
         {/* BOT ROW */}
-        <div className="grid grid-cols-6 gap-1.5 sm:gap-2 w-full min-w-0">
+        <div className="grid grid-cols-6 gap-2 sm:gap-2.5 md:gap-3 w-full min-w-0">
           {botRooms.map((num) => {
             const r = findRoom(blockPrefix, floorNum, num);
             return r ? renderTile(r) : renderPlaceholder(num);
@@ -407,13 +400,13 @@ function RoomAllocationGrid({
     return (
       <div
         key={floorTitle}
-        className={`flex flex-col gap-2 sm:gap-2.5 p-2.5 sm:p-3.5 rounded-2xl border transition-all duration-150 w-full min-w-0 ${
+        className={`flex flex-col gap-3 p-3.5 sm:p-5 rounded-2xl border-2 transition-all duration-150 w-full min-w-0 ${
           isDarkMode
             ? 'bg-[#170f1c]/80 border-pink-900/50 shadow-inner'
             : 'bg-white border-2 border-pink-200 shadow-xs'
         }`}
       >
-        <div className="flex items-center justify-center gap-2 py-0.5 mb-0.5">
+        <div className="flex items-center justify-center gap-3 py-0.5 mb-0.5">
           <div
             className={`h-[1.5px] flex-1 bg-gradient-to-r ${
               isDarkMode
@@ -422,7 +415,7 @@ function RoomAllocationGrid({
             }`}
           />
           <span
-            className={`text-[9.5px] sm:text-xs font-serif font-black uppercase tracking-[0.2em] whitespace-nowrap px-3 py-0.5 rounded-full border shadow-2xs ${
+            className={`text-[9.5px] sm:text-xs font-serif font-black uppercase tracking-[0.2em] whitespace-nowrap px-4 py-1 rounded-full border shadow-2xs ${
               isDarkMode
                 ? 'bg-pink-950/50 border-pink-500/40 text-pink-300'
                 : 'bg-pink-100/90 border-pink-300 text-pink-900 font-extrabold'
