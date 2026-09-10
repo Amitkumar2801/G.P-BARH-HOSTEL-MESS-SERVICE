@@ -725,7 +725,7 @@ function WardenDashboard() {
                   )}
 
                   {/* ACTIVE ALLOTTED RESIDENTS QUICK CONTROL */}
-                  {students.some(s => s.room_number && s.room_number !== 'Unassigned') && (
+                  {Array.isArray(studentDirectory) && studentDirectory.some(s => s.room_number && s.room_number !== 'Unassigned') && (
                     <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
                         <div>
@@ -737,12 +737,12 @@ function WardenDashboard() {
                           </p>
                         </div>
                         <span className="px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-xs font-black self-start sm:self-auto">
-                          {students.filter(s => s.room_number && s.room_number !== 'Unassigned').length} Allotted
+                          {studentDirectory.filter(s => s.room_number && s.room_number !== 'Unassigned').length} Allotted
                         </span>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {students.filter(s => s.room_number && s.room_number !== 'Unassigned').map(st => (
+                        {studentDirectory.filter(s => s.room_number && s.room_number !== 'Unassigned').map(st => (
                           <div key={st.id} className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 flex items-center justify-between gap-3">
                             <div className="min-w-0">
                               <p className="font-black text-xs text-slate-900 dark:text-white truncate">{st.full_name}</p>
