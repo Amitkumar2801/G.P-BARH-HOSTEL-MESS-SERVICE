@@ -1952,9 +1952,20 @@ function StudentDashboard() {
                           </p>
                         </div>
                       </div>
-                      <span style={{ padding: '6px 14px', borderRadius: '20px', background: isDarkMode ? 'rgba(16, 185, 129, 0.25)' : '#dcfce7', border: '1px solid #10b981', color: isDarkMode ? '#6ee7b7' : '#065f46', fontSize: '11px', fontWeight: 900, letterSpacing: '0.5px' }}>
-                        VERIFIED ALLOTTEE
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                        {!isAdmissionFeePaid && (
+                          <button
+                            type="button"
+                            onClick={() => setActiveTab('registration-fee')}
+                            style={{ padding: '8px 16px', borderRadius: '10px', background: '#10b981', color: '#fff', border: 'none', fontSize: '12px', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)' }}
+                          >
+                            <span>Pay Registration Fee (₹2,000)</span> ➔
+                          </button>
+                        )}
+                        <span style={{ padding: '6px 14px', borderRadius: '20px', background: isDarkMode ? 'rgba(16, 185, 129, 0.25)' : '#dcfce7', border: '1px solid #10b981', color: isDarkMode ? '#6ee7b7' : '#065f46', fontSize: '11px', fontWeight: 900, letterSpacing: '0.5px' }}>
+                          VERIFIED ALLOTTEE
+                        </span>
+                      </div>
                     </div>
                   )}
 
