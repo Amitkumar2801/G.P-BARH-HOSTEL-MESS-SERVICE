@@ -222,6 +222,34 @@ const customCSS = `
   /* RESPONSIVE */
   .hamburger { display: none; background: none; border: none; cursor: pointer; color: white; padding: 8px; }
   .hamburger svg { width: 28px; height: 28px; }
+  .mobile-sidebar-close {
+    display: none !important;
+  }
+  @media (max-width: 1024px) {
+    .mobile-sidebar-close {
+      display: flex !important;
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 8px;
+      color: #94a3b8;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      width: 32px;
+      height: 32px;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      z-index: 10;
+    }
+    .mobile-sidebar-close:hover {
+      background: rgba(255,255,255,0.16);
+      color: #ffffff;
+    }
+  }
 
   /* 🖨️ ULTRA-ROBUST PRINT CSS */
   @page { margin: 8mm; size: A4 portrait; }
@@ -1481,26 +1509,9 @@ function StudentDashboard() {
             <button
               type="button"
               onClick={() => setIsSidebarOpen(false)}
-              className="lg:hidden"
-              style={{
-                position: 'absolute',
-                top: '14px',
-                right: '14px',
-                background: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                borderRadius: '8px',
-                color: '#94a3b8',
-                fontSize: '14px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                width: '32px',
-                height: '32px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s'
-              }}
+              className="mobile-sidebar-close"
               title="Close Menu"
+              aria-label="Close Menu"
             >
               ✕
             </button>
