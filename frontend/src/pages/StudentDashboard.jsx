@@ -1537,7 +1537,7 @@ function StudentDashboard() {
         </aside>
 
         {/* ================= MAIN CONTENT ================= */}
-        <main className={`main-content-area ${activeTab === 'seat-allocation' ? '!bg-[#0d0e12]' : ''}`}>
+        <main className="main-content-area">
           <header className="header">
             <div className="header-left">
               <button className="hamburger" onClick={() => setIsSidebarOpen(true)}>
@@ -1558,8 +1558,8 @@ function StudentDashboard() {
             </div>
           </header>
 
-          <section className={`scroll-content ${activeTab === 'seat-allocation' ? '!p-2 sm:!p-4 md:!p-6 !overflow-x-hidden' : ''}`}>
-            <div className={`content-wrapper ${activeTab === 'seat-allocation' ? '!max-w-7xl !m-0 !p-0 !gap-4 !overflow-x-hidden' : ''}`}>
+          <section className={`scroll-content ${activeTab === 'seat-allocation' ? '!p-2 sm:!p-4 md:!p-6' : ''}`}>
+            <div className={`content-wrapper ${activeTab === 'seat-allocation' ? '!max-w-[1650px] !w-full' : ''}`}>
 
               {/* 1. MANAGE PROFILE (1ST POSITION) */}
               {activeTab === 'profile' && (

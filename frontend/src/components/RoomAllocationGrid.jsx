@@ -518,16 +518,16 @@ function RoomAllocationGrid({
   /* ------------------------------------------------------------------ */
   return (
     <div
-      className={`w-full max-w-[1650px] mx-auto min-w-0 px-3 sm:px-5 md:px-7 py-3 sm:py-4 flex flex-col gap-4 sm:gap-5 select-none box-border overflow-y-auto overflow-x-hidden font-sans transition-colors duration-200 ${
-        isDarkMode ? 'bg-[#0a0b0e] text-zinc-100' : 'bg-[#f8fafc] text-slate-900'
+      className={`w-full max-w-[1650px] mx-auto min-w-0 px-1 sm:px-3 md:px-4 py-2 sm:py-3 flex flex-col gap-4 sm:gap-5 select-none box-border font-sans transition-colors duration-200 ${
+        isDarkMode ? 'bg-[#0a0b0e] text-zinc-100' : 'bg-transparent text-slate-900'
       }`}
     >
       {/* 🌟 1. FULL-WIDTH TOP HEADER */}
       <div
-        className={`relative rounded-2xl p-2.5 sm:p-3.5 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0 border transition-colors ${
+        className={`relative rounded-2xl p-2.5 sm:p-3.5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0 border-2 transition-colors ${
           isDarkMode
             ? 'bg-[#12131c] border-amber-500/30'
-            : 'bg-white/95 border-amber-400/40 shadow-sm'
+            : 'bg-white border-amber-300 shadow-sm'
         }`}
       >
         <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
@@ -705,8 +705,8 @@ function RoomAllocationGrid({
         ) : (
           /* SAVITRIBAI PHULE GIRLS HOSTEL */
           <div
-            className={`w-full max-w-5xl mx-auto space-y-3 p-3 sm:p-5 rounded-3xl border-2 shadow-xl min-w-0 ${
-              isDarkMode ? 'bg-[#140e18]/90 border-pink-900/40' : 'bg-white/95 border-pink-200 shadow-md ring-1 ring-slate-900/5'
+            className={`w-full max-w-5xl mx-auto space-y-3 sm:space-y-4 p-3.5 sm:p-5 md:p-6 rounded-3xl border-2 shadow-md min-w-0 transition-all ${
+              isDarkMode ? 'bg-[#140e18]/90 border-pink-900/40' : 'bg-white border-2 border-pink-300 shadow-md ring-1 ring-pink-400/20'
             }`}
           >
             <div
