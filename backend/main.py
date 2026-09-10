@@ -1042,8 +1042,8 @@ def action_allotment_request(request_id: int, action_data: schemas.AllotmentActi
         raise HTTPException(status_code=404, detail="Allotment request not found")
 
     action = action_data.action.lower()
-    if action not in ["approve", "reject"]:
-        raise HTTPException(status_code=400, detail="Invalid action. Must be 'approve' or 'reject'")
+    if action not in ["approve", "reject", "cancel", "revoke"]:
+        raise HTTPException(status_code=400, detail="Invalid action. Must be 'approve', 'reject', or 'cancel'")
 
     if action == "approve":
         req.status = "APPROVED"
@@ -1051,34 +1051,72 @@ def action_allotment_request(request_id: int, action_data: schemas.AllotmentActi
         
         # Mark Bed as occupied
         bed = req.bed
-        bed.is_occupied = True
-        bed.current_student_id = req.student_id
+        if bed:
+            bed.is_occupied = True
+            bed.current_student_id = req.student_id
         
         # Update Room occupied count
         room = req.room
-        active_occupied = db.query(models.Bed).filter(models.Bed.room_id == room.id, models.Bed.is_occupied == True).count()
-        room.occupied_count = min(room.capacity, active_occupied)
+        if room:
+            active_occupied = db.query(models.Bed).filter(models.Bed.room_id == room.id, models.Bed.is_occupied == True).count()
+            room.occupied_count = min(room.capacity, active_occupied)
 
         db.commit()
         return {
-            "message": f"Approved! Bed {bed.bed_code} in Room {room.room_number} allocated to {req.student.full_name}. Student features unlocked.",
+            "message": f"Approved! Bed {bed.bed_code if bed else ''} in Room {room.room_number if room else ''} allocated to {req.student.full_name if req.student else 'Student'}. Student features unlocked.",
             "status": "APPROVED"
         }
     else:
-        req.status = "REJECTED"
-        req.remarks = action_data.remarks or "Request rejected by Warden. You may re-apply for another available bed."
+        req.status = "CANCELLED" if action in ["cancel", "revoke"] else "REJECTED"
+        req.remarks = action_data.remarks or ("Allotment cancelled/revoked by Chief Warden." if action in ["cancel", "revoke"] else "Request rejected by Warden. You may re-apply for another available bed.")
         
-        # Ensure bed is freed if it was occupied
+        # Free all beds occupied by this student
+        occupied_beds = db.query(models.Bed).filter(models.Bed.current_student_id == req.student_id).all()
+        for b in occupied_beds:
+            b.is_occupied = False
+            b.current_student_id = None
+            if b.room:
+                active_occupied = db.query(models.Bed).filter(models.Bed.room_id == b.room_id, models.Bed.is_occupied == True).count()
+                b.room.occupied_count = min(b.room.capacity, active_occupied)
+
         bed = req.bed
-        if bed and bed.current_student_id == req.student_id:
+        if bed:
             bed.is_occupied = False
             bed.current_student_id = None
+            if bed.room:
+                active_occ = db.query(models.Bed).filter(models.Bed.room_id == bed.room_id, models.Bed.is_occupied == True).count()
+                bed.room.occupied_count = min(bed.room.capacity, active_occ)
         
         db.commit()
         return {
-            "message": f"Allotment request for {req.student.full_name} has been rejected.",
-            "status": "REJECTED"
+            "message": f"Allotment request for {req.student.full_name if req.student else 'Student'} has been {req.status.lower()} and bed is freed.",
+            "status": req.status
         }
+
+@app.post("/api/warden/allotments/revoke-by-student/{student_id}", tags=["Warden Workflow"])
+@app.put("/api/warden/allotments/revoke-by-student/{student_id}", tags=["Warden Workflow"])
+def revoke_student_allotment(student_id: int, remarks: Optional[str] = "Allotment revoked by Chief Warden", db: Session = Depends(get_db)):
+    reqs = db.query(models.AllotmentRequest).filter(models.AllotmentRequest.student_id == student_id).all()
+    for r in reqs:
+        r.status = "CANCELLED"
+        r.remarks = remarks or "Allotment revoked by Chief Warden."
+
+    # Free all beds occupied by this student
+    occupied_beds = db.query(models.Bed).filter(models.Bed.current_student_id == student_id).all()
+    freed_info = []
+    for b in occupied_beds:
+        b.is_occupied = False
+        b.current_student_id = None
+        freed_info.append(f"Room {b.room.room_number if b.room else ''} Bed {b.bed_code}")
+        if b.room:
+            active_occ = db.query(models.Bed).filter(models.Bed.room_id == b.room_id, models.Bed.is_occupied == True).count()
+            b.room.occupied_count = min(b.room.capacity, active_occ)
+
+    db.commit()
+    return {
+        "message": f"Allotment successfully cancelled/revoked. Freed: {', '.join(freed_info) if freed_info else 'Bed reservation'}.",
+        "status": "CANCELLED"
+    }
 
 @app.get("/student/allotment-status/{student_id}", tags=["Hostel Allocation"])
 @app.get("/api/student/allotment-status/{student_id}", tags=["Hostel Allocation"])
@@ -1136,7 +1174,7 @@ def get_student_allotment_status(student_id: str, db: Session = Depends(get_db))
         "applied_at": req.applied_at,
         "remarks": req.remarks,
         "fee_unlocked": (req.status == "APPROVED"),
-        "can_reapply": (req.status in ["REJECTED", "EXPIRED", "NONE"]),
+        "can_reapply": (req.status in ["REJECTED", "EXPIRED", "CANCELLED", "NONE"]),
         "hours_left": hours_left if req.status == "PENDING" else 0.0
     }
 

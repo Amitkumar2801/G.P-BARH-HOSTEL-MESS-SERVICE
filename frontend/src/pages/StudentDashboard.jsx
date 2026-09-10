@@ -1969,8 +1969,8 @@ function StudentDashboard() {
                     </div>
                   )}
 
-                  {/* 🌟 3. REJECTED NOTIFICATION BANNER */}
-                  {allotmentInfo?.status === 'REJECTED' && (
+                  {/* 🌟 3. REJECTED / CANCELLED NOTIFICATION BANNER */}
+                  {(allotmentInfo?.status === 'REJECTED' || allotmentInfo?.status === 'CANCELLED') && (
                     <div style={{
                       background: isDarkMode ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.18) 0%, rgba(185, 28, 28, 0.28) 100%)' : '#fef2f2',
                       border: '2px solid #ef4444',
@@ -1990,10 +1990,10 @@ function StudentDashboard() {
                         </div>
                         <div>
                           <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: isDarkMode ? '#fca5a5' : '#991b1b' }}>
-                            Room Allotment Request Declined by Chief Warden
+                            {allotmentInfo.status === 'CANCELLED' ? 'Allotment Cancelled / Revoked by Chief Warden' : 'Room Allotment Request Declined by Chief Warden'}
                           </h4>
                           <p style={{ margin: '4px 0 0', fontSize: '13px', color: isDarkMode ? '#fecaca' : '#b91c1c', fontWeight: 600 }}>
-                            {allotmentInfo.remarks || 'Request declined by Warden'}. The previous bed has been released. You can choose any available room &amp; bed from the blueprint grid below!
+                            {allotmentInfo.remarks || 'Previous allotment has been cancelled by Warden'}. The previous bed has been released. You can choose any available room &amp; bed from the blueprint grid below!
                           </p>
                         </div>
                       </div>

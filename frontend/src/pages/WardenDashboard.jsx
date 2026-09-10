@@ -272,6 +272,28 @@ function WardenDashboard() {
     }
   };
 
+  const handleRevokeAllotment = async (studentId, studentName, roomNumber) => {
+    if (!window.confirm(`Are you sure you want to cancel / revoke the room allotment for ${studentName || 'this student'}? The bed in Room ${roomNumber || ''} will be freed immediately.`)) {
+      return;
+    }
+    setProcessingId(studentId);
+    try {
+      await axios.post(`http://127.0.0.1:8000/api/warden/allotments/revoke-by-student/${studentId}`, {
+        remarks: 'Allotment cancelled/revoked by Chief Warden'
+      });
+      toast.success(`Allotment for ${studentName || 'Student'} revoked! Bed freed immediately. 🔄`, {
+        duration: 4500,
+        style: { borderRadius: '12px', background: '#991b1b', color: '#fff', fontWeight: 700 }
+      });
+      fetchWardenData();
+    } catch (err) {
+      toast.error('Failed to revoke allotment on server.');
+      fetchWardenData();
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   const handleLeaveAction = (leaveId, newStatus) => {
     setLeaveList(prev => prev.map(l => l.id === leaveId ? { ...l, status: newStatus } : l));
     toast.success(`Leave request marked as ${newStatus}.`, {
@@ -699,6 +721,51 @@ function WardenDashboard() {
                           ))}
                         </tbody>
                       </table>
+                    </div>
+                  )}
+
+                  {/* ACTIVE ALLOTTED RESIDENTS QUICK CONTROL */}
+                  {students.some(s => s.room_number && s.room_number !== 'Unassigned') && (
+                    <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                        <div>
+                          <h4 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+                            <span>🛡️</span> Active Allotted Residents &amp; Cancellation Control
+                          </h4>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            If an allotment was approved by mistake, click "Cancel / Revoke" to immediately release the bed back to available pool.
+                          </p>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-xs font-black self-start sm:self-auto">
+                          {students.filter(s => s.room_number && s.room_number !== 'Unassigned').length} Allotted
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {students.filter(s => s.room_number && s.room_number !== 'Unassigned').map(st => (
+                          <div key={st.id} className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="font-black text-xs text-slate-900 dark:text-white truncate">{st.full_name}</p>
+                              <p className="text-[11px] font-mono text-slate-500 font-semibold mt-0.5">
+                                Room <span className="text-slate-800 dark:text-slate-200 font-bold">{st.room_number}</span> (Bed {st.bed_code})
+                              </p>
+                              <span className="inline-block text-[9.5px] text-blue-600 dark:text-blue-400 font-bold">
+                                Reg: {st.reg_no}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              disabled={processingId === st.id}
+                              onClick={() => handleRevokeAllotment(st.id, st.full_name, st.room_number)}
+                              className="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/50 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 font-black text-[10px] uppercase tracking-wider border border-rose-200 dark:border-rose-800 shadow-2xs transition-all cursor-pointer flex items-center gap-1 shrink-0 disabled:opacity-50"
+                              title="Cancel and revoke this allotment"
+                            >
+                              <span>✕</span>
+                              <span>Cancel</span>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1184,6 +1251,7 @@ function WardenDashboard() {
                       <th className="py-3 px-4">Mobile</th>
                       <th className="py-3 px-4">Allocated Room</th>
                       <th className="py-3 px-4 text-center">Status</th>
+                      <th className="py-3 px-4 text-center">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-semibold">
@@ -1204,6 +1272,22 @@ function WardenDashboard() {
                           }`}>
                             {student.status}
                           </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-center">
+                          {student.room_number !== 'Unassigned' && student.room_number ? (
+                            <button
+                              type="button"
+                              disabled={processingId === student.id}
+                              onClick={() => handleRevokeAllotment(student.id, student.full_name, student.room_number)}
+                              className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/50 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 font-extrabold text-[10px] uppercase tracking-wider border border-rose-200 dark:border-rose-800 transition-all cursor-pointer flex items-center gap-1 mx-auto disabled:opacity-50"
+                              title="Cancel / Revoke student's room allotment and free the bed"
+                            >
+                              <span>✕</span>
+                              <span>Cancel Allotment</span>
+                            </button>
+                          ) : (
+                            <span className="text-slate-400 text-[10px]">—</span>
+                          )}
                         </td>
                       </tr>
                     ))}
