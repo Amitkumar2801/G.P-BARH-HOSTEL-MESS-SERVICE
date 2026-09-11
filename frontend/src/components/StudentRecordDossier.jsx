@@ -7,7 +7,22 @@ const MONTH_NAMES = [
   "July", "August", "September", "October", "November", "December"
 ];
 const MONTH_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const DEFAULT_MONTHLY_MEALS = [72, 75, 69, 78, 81, 74, 70, 77, 79, 76, 73, 78];
+
+// Comprehensive 12-Month Realistic Academic Dataset
+const ANNUAL_MESS_DATA = [
+  { month: "Jan", full: "January", meals: 76, breakfast: 25, lunch: 26, dinner: 25, present: 26, absent: 5, pct: 83.9, tag: "Winter Session" },
+  { month: "Feb", full: "February", meals: 70, breakfast: 23, lunch: 24, dinner: 23, present: 24, absent: 4, pct: 85.7, tag: "Regular" },
+  { month: "Mar", full: "March", meals: 81, breakfast: 27, lunch: 27, dinner: 27, present: 27, absent: 4, pct: 87.1, tag: "Mid-Term" },
+  { month: "Apr", full: "April", meals: 78, breakfast: 26, lunch: 26, dinner: 26, present: 26, absent: 4, pct: 86.7, tag: "Regular" },
+  { month: "May", full: "May", meals: 84, breakfast: 28, lunch: 28, dinner: 28, present: 28, absent: 3, pct: 90.3, tag: "Exam Month" },
+  { month: "Jun", full: "June", meals: 30, breakfast: 10, lunch: 10, dinner: 10, present: 10, absent: 20, pct: 33.3, tag: "Summer Vacation" },
+  { month: "Jul", full: "July", meals: 65, breakfast: 22, lunch: 21, dinner: 22, present: 22, absent: 9, pct: 71.0, tag: "Semester Start" },
+  { month: "Aug", full: "August", meals: 82, breakfast: 27, lunch: 28, dinner: 27, present: 28, absent: 3, pct: 90.3, tag: "Peak Attendance" },
+  { month: "Sep", full: "September", meals: 78, breakfast: 26, lunch: 26, dinner: 26, present: 26, absent: 4, pct: 86.7, tag: "Current Month" },
+  { month: "Oct", full: "October", meals: 54, breakfast: 18, lunch: 18, dinner: 18, present: 18, absent: 13, pct: 58.1, tag: "Festivals Break" },
+  { month: "Nov", full: "November", meals: 75, breakfast: 25, lunch: 25, dinner: 25, present: 25, absent: 5, pct: 83.3, tag: "Regular" },
+  { month: "Dec", full: "December", meals: 60, breakfast: 20, lunch: 20, dinner: 20, present: 20, absent: 11, pct: 64.5, tag: "Winter Recess" },
+];
 
 function CircularBadge({ percent, size = 54, stroke = 5, label }) {
   const r = (size - stroke) / 2;
@@ -139,13 +154,13 @@ function StudentRecordDossier({
   );
 
   const leaveDays = mess.leaveDays ?? 4;
-  const monthlyMeals = mess.monthlyMealTrend || DEFAULT_MONTHLY_MEALS;
-  const maxMeals = Math.max(...monthlyMeals);
 
   // Calendar and View States (Monthly vs 1-Year View)
   const [activeTab, setActiveTab] = useState('month'); // 'month' | 'year'
   const [activeMonth, setActiveMonth] = useState(8); // 0-indexed: 8 = September 2026
   const [activeYear, setActiveYear] = useState(2026);
+  const [hoveredMonthIdx, setHoveredMonthIdx] = useState(8);
+  const [chartMode, setChartMode] = useState('stacked'); // 'stacked' | 'trend'
 
   // Calculate calendar grid for current active month
   const calendarData = useMemo(() => {
@@ -207,6 +222,8 @@ function StudentRecordDossier({
   const handlePrint = () => {
     window.print();
   };
+
+  const activeData = ANNUAL_MESS_DATA[hoveredMonthIdx] || ANNUAL_MESS_DATA[8];
 
   return (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -483,7 +500,6 @@ function StudentRecordDossier({
           opacity: 0;
         }
 
-        /* CONTINUOUS PILL CAPSULES */
         .srd-cal-cell.present {
           background: #f97316;
           color: #000000;
@@ -528,42 +544,77 @@ function StudentRecordDossier({
           box-shadow: 0 0 0 2px rgba(128,0,0,0.2);
         }
 
-        /* BAR CHART */
-        .srd-chart-card {
+        /* 📈 ADVANCED INTERACTIVE GRAPH STYLING 📈 */
+        .srd-analytics-chart-card {
           background: var(--card);
           border: 1px solid var(--border);
           border-radius: 20px;
-          padding: 24px;
+          padding: 24px 28px;
           box-shadow: var(--shadow-sm);
-        }
-        .srd-bars-container {
-          display: flex;
-          align-items: flex-end;
-          gap: 10px;
-          height: 140px;
-          padding-top: 20px;
-          border-bottom: 1px solid var(--border);
-        }
-        .srd-bar-col {
-          flex: 1;
           display: flex;
           flex-direction: column;
+          gap: 20px;
+        }
+        .srd-chart-top-bar {
+          display: flex;
+          justify-content: space-between;
           align-items: center;
-          height: 100%;
-          justify-content: flex-end;
+          flex-wrap: wrap;
+          gap: 12px;
         }
-        .srd-bar {
-          width: 100%;
-          max-width: 28px;
-          background: linear-gradient(180deg, #f97316, #800000);
-          border-radius: 6px 6px 0 0;
-          transition: height 0.3s ease;
+        .srd-chart-mode-pill {
+          display: flex;
+          background: var(--input-bg);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          padding: 2px;
+          gap: 4px;
         }
-        .srd-bar-label {
-          font-size: 11px;
+        .srd-chart-btn {
+          border: none;
+          background: transparent;
           color: var(--text-muted);
+          font-size: 11px;
           font-weight: 700;
-          margin-top: 8px;
+          padding: 5px 12px;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: 0.2s;
+        }
+        .srd-chart-btn.active {
+          background: var(--card);
+          color: #800000;
+          box-shadow: var(--shadow-sm);
+          border: 1px solid var(--border);
+        }
+
+        /* DYNAMIC HOVER DETAILS BOX */
+        .srd-hover-detail-bar {
+          background: var(--input-bg);
+          border: 1px solid var(--border);
+          border-radius: 14px;
+          padding: 12px 18px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 12px;
+        }
+        .srd-hover-tag {
+          font-size: 11px;
+          font-weight: 800;
+          background: rgba(128, 0, 0, 0.1);
+          color: #800000;
+          padding: 3px 10px;
+          border-radius: 20px;
+          text-transform: uppercase;
+        }
+
+        /* SVG CHART CONTAINER */
+        .srd-svg-wrap {
+          width: 100%;
+          overflow-x: auto;
+          position: relative;
         }
 
         /* ⚠️ NOTICE BOX ⚠️ */
@@ -720,7 +771,7 @@ function StudentRecordDossier({
           </span>
         </div>
 
-        {/* PERSONAL & ACADEMIC RECORDS (CLEAN TITLE WITHOUT LOCKED BADGE) */}
+        {/* PERSONAL & ACADEMIC RECORDS */}
         <div style={{ borderTop: '1px solid var(--border)', paddingTop: '20px' }}>
           <h3 className="srd-form-title" style={{ marginBottom: '18px' }}>
             Personal &amp; Academic Records
@@ -909,7 +960,6 @@ function StudentRecordDossier({
                   const isPresent = cell.status === 'present';
                   const isLeave = cell.status === 'leave';
 
-                  // Determine pill capsule roundings for consecutive days
                   const prevCell = cIdx > 0 ? row[cIdx - 1] : null;
                   const nextCell = cIdx < 6 ? row[cIdx + 1] : null;
 
@@ -961,36 +1011,33 @@ function StudentRecordDossier({
         {activeTab === 'year' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div className="srd-year-grid">
-              {MONTH_NAMES.map((mName, mIdx) => {
+              {ANNUAL_MESS_DATA.map((mData, mIdx) => {
                 const isSelected = mIdx === activeMonth;
-                const mMeals = monthlyMeals[mIdx] || 75;
-                const mPct = (mMeals / 90 * 100).toFixed(1);
-                const mPresent = Math.round(mMeals / 3);
 
                 return (
                   <div
-                    key={mName}
+                    key={mData.full}
                     className={`srd-year-month-card ${isSelected ? 'active' : ''}`}
                     onClick={() => {
                       setActiveMonth(mIdx);
                       setActiveTab('month');
                     }}
-                    title={`Click to view full calendar for ${mName}`}
+                    title={`Click to view full calendar for ${mData.full}`}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <strong style={{ fontSize: '14px', color: 'var(--text)' }}>{mName}</strong>
+                      <strong style={{ fontSize: '14px', color: 'var(--text)' }}>{mData.full}</strong>
                       <span style={{ fontSize: '11px', fontWeight: 800, background: '#dcfce7', color: '#166534', padding: '2px 8px', borderRadius: '12px' }}>
-                        {mPct}%
+                        {mData.pct}%
                       </span>
                     </div>
 
                     <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>
-                      Present: <b style={{ color: 'var(--text)' }}>{mPresent} / 30 Days</b> • Meals: <b style={{ color: '#800000' }}>{mMeals}</b>
+                      Present: <b style={{ color: 'var(--text)' }}>{mData.present} Days</b> • Meals: <b style={{ color: '#800000' }}>{mData.meals}</b>
                     </div>
 
                     {/* MINI ATTENDANCE PROGRESS BAR */}
                     <div style={{ width: '100%', height: '6px', background: 'var(--border)', borderRadius: '3px', overflow: 'hidden' }}>
-                      <div style={{ width: `${mPct}%`, height: '100%', background: 'linear-gradient(90deg, #f97316, #800000)', borderRadius: '3px' }} />
+                      <div style={{ width: `${mData.pct}%`, height: '100%', background: 'linear-gradient(90deg, #f97316, #800000)', borderRadius: '3px' }} />
                     </div>
                   </div>
                 );
@@ -999,31 +1046,303 @@ function StudentRecordDossier({
           </div>
         )}
 
-        {/* VISUAL MONTHLY TREND BAR CHART */}
-        <div className="srd-chart-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <h5 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: 'var(--text)' }}>Annual 12-Month Meal Attendance Trend (Jan – Dec)</h5>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Academic Session {session}</span>
+        {/* 📊 🌟 NEW ADVANCED INTERACTIVE DATA GRAPH 🌟 📊 */}
+        <div className="srd-analytics-chart-card">
+          <div className="srd-chart-top-bar">
+            <div>
+              <h5 style={{ margin: '0 0 4px', fontSize: '16px', fontWeight: 800, color: 'var(--text)', fontFamily: "'Fraunces', serif" }}>
+                Annual 12-Month Dining &amp; Dietary Analytics
+              </h5>
+              <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                Interactive monthly meal volume &amp; category breakdown (Academic Session {session})
+              </p>
+            </div>
+
+            {/* CHART MODE BUTTONS */}
+            <div className="srd-chart-mode-pill">
+              <button
+                type="button"
+                className={`srd-chart-btn ${chartMode === 'stacked' ? 'active' : ''}`}
+                onClick={() => setChartMode('stacked')}
+              >
+                📊 Stacked Meals
+              </button>
+              <button
+                type="button"
+                className={`srd-chart-btn ${chartMode === 'trend' ? 'active' : ''}`}
+                onClick={() => setChartMode('trend')}
+              >
+                📈 Trendline Curve
+              </button>
+            </div>
           </div>
 
-          <div className="srd-bars-container">
-            {monthlyMeals.map((val, i) => (
-              <div
-                className="srd-bar-col"
-                key={MONTH_SHORT[i]}
-                style={{ cursor: 'pointer' }}
-                onClick={() => {
-                  setActiveMonth(i);
-                  setActiveTab('month');
-                }}
-                title={`Click to view ${MONTH_NAMES[i]} (${val} meals)`}
-              >
-                <div className="srd-bar" style={{ height: `${(val / maxMeals) * 100}%` }} />
-                <span className="srd-bar-label" style={{ color: i === activeMonth ? '#800000' : 'var(--text-muted)', fontWeight: i === activeMonth ? 900 : 700 }}>
-                  {MONTH_SHORT[i]}
-                </span>
+          {/* DYNAMIC HOVER / SELECTED MONTH DETAIL CARD */}
+          <div className="srd-hover-detail-bar">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '18px' }}>🍽️</span>
+              <div>
+                <strong style={{ fontSize: '14px', color: 'var(--text)' }}>{activeData.full} 2026 Record:</strong>
+                <span className="srd-hover-tag" style={{ marginLeft: '8px' }}>{activeData.tag}</span>
               </div>
-            ))}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', fontSize: '12.5px' }}>
+              <span>Total Meals: <b style={{ color: '#800000', fontSize: '14px' }}>{activeData.meals}</b></span>
+              <span style={{ color: 'var(--border)' }}>|</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0284c7' }}></span>
+                Breakfast: <b>{activeData.breakfast}</b>
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b' }}></span>
+                Lunch: <b>{activeData.lunch}</b>
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#800000' }}></span>
+                Dinner: <b>{activeData.dinner}</b>
+              </span>
+              <span style={{ color: 'var(--border)' }}>|</span>
+              <span>Attendance: <b style={{ color: '#16a34a' }}>{activeData.pct}%</b></span>
+            </div>
+          </div>
+
+          {/* SVG DATA GRAPH */}
+          <div className="srd-svg-wrap">
+            <svg
+              viewBox="0 0 780 220"
+              style={{ width: '100%', minWidth: '600px', height: 'auto', display: 'block' }}
+            >
+              <defs>
+                <linearGradient id="areaGlow" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#800000" stopOpacity="0.4" />
+                  <stop offset="100%" stopColor="#f97316" stopOpacity="0.0" />
+                </linearGradient>
+                <linearGradient id="barGlow" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#f97316" />
+                  <stop offset="100%" stopColor="#800000" />
+                </linearGradient>
+              </defs>
+
+              {/* GRID LINES & Y-AXIS LABELS */}
+              {[90, 60, 30, 0].map((val) => {
+                const y = 180 - (val / 90) * 140;
+                return (
+                  <g key={val}>
+                    <line x1="45" y1={y} x2="760" y2={y} stroke="var(--border)" strokeDasharray="3 3" strokeWidth="1" />
+                    <text x="35" y={y + 4} textAnchor="end" fontSize="10" fill="var(--text-muted)" fontWeight="600">
+                      {val}
+                    </text>
+                  </g>
+                );
+              })}
+
+              {/* MODE 1: STACKED BARS WITH EXACT VALUES */}
+              {chartMode === 'stacked' && (
+                <g>
+                  {ANNUAL_MESS_DATA.map((d, i) => {
+                    const x = 55 + i * 58;
+                    const bH = (d.breakfast / 90) * 140;
+                    const lH = (d.lunch / 90) * 140;
+                    const dH = (d.dinner / 90) * 140;
+                    const totalH = bH + lH + dH;
+                    const topY = 180 - totalH;
+                    const isHovered = hoveredMonthIdx === i;
+
+                    return (
+                      <g
+                        key={d.month}
+                        style={{ cursor: 'pointer', transition: 'all 0.2s' }}
+                        onMouseEnter={() => setHoveredMonthIdx(i)}
+                        onClick={() => {
+                          setActiveMonth(i);
+                          setActiveTab('month');
+                        }}
+                      >
+                        {/* HOVER HIGHLIGHT COLUMN */}
+                        {isHovered && (
+                          <rect
+                            x={x - 6}
+                            y="20"
+                            width="40"
+                            height="165"
+                            rx="8"
+                            fill="rgba(128, 0, 0, 0.08)"
+                          />
+                        )}
+
+                        {/* DINNER SEGMENT (BOTTOM) */}
+                        <rect
+                          x={x}
+                          y={180 - dH}
+                          width="28"
+                          height={dH}
+                          fill={isHovered ? '#800000' : '#8b0000'}
+                          rx="0"
+                        />
+
+                        {/* LUNCH SEGMENT (MIDDLE) */}
+                        <rect
+                          x={x}
+                          y={180 - dH - lH}
+                          width="28"
+                          height={lH}
+                          fill="#f59e0b"
+                          rx="0"
+                        />
+
+                        {/* BREAKFAST SEGMENT (TOP) */}
+                        <rect
+                          x={x}
+                          y={topY}
+                          width="28"
+                          height={bH}
+                          fill="#0284c7"
+                          rx="4"
+                        />
+
+                        {/* TOTAL MEAL VALUE ON TOP */}
+                        <rect
+                          x={x - 2}
+                          y={topY - 20}
+                          width="32"
+                          height="16"
+                          rx="4"
+                          fill={isHovered ? '#800000' : 'var(--input-bg)'}
+                          stroke="var(--border)"
+                          strokeWidth="1"
+                        />
+                        <text
+                          x={x + 14}
+                          y={topY - 8}
+                          textAnchor="middle"
+                          fontSize="9.5"
+                          fontWeight="800"
+                          fill={isHovered ? '#ffffff' : 'var(--text)'}
+                        >
+                          {d.meals}
+                        </text>
+
+                        {/* MONTH LABEL */}
+                        <text
+                          x={x + 14}
+                          y="198"
+                          textAnchor="middle"
+                          fontSize="11"
+                          fontWeight={isHovered ? '900' : '700'}
+                          fill={isHovered ? '#800000' : 'var(--text-muted)'}
+                        >
+                          {d.month}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </g>
+              )}
+
+              {/* MODE 2: SMOOTH SPLINE & AREA CURVE */}
+              {chartMode === 'trend' && (() => {
+                const points = ANNUAL_MESS_DATA.map((d, i) => {
+                  const x = 70 + i * 58;
+                  const y = 180 - (d.meals / 90) * 140;
+                  return { x, y, d, i };
+                });
+
+                // Build SVG path
+                const linePath = points.reduce((acc, p, i, arr) => {
+                  if (i === 0) return `M ${p.x} ${p.y}`;
+                  const prev = arr[i - 1];
+                  const cx1 = prev.x + (p.x - prev.x) / 2;
+                  const cy1 = prev.y;
+                  const cx2 = prev.x + (p.x - prev.x) / 2;
+                  const cy2 = p.y;
+                  return `${acc} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${p.x} ${p.y}`;
+                }, "");
+
+                const areaPath = `${linePath} L ${points[points.length - 1].x} 180 L ${points[0].x} 180 Z`;
+
+                return (
+                  <g>
+                    {/* Glowing Area Fill */}
+                    <path d={areaPath} fill="url(#areaGlow)" />
+                    {/* Trend Line */}
+                    <path d={linePath} fill="none" stroke="#800000" strokeWidth="3" strokeLinecap="round" />
+
+                    {/* Data Points */}
+                    {points.map(({ x, y, d, i }) => {
+                      const isHovered = hoveredMonthIdx === i;
+                      return (
+                        <g
+                          key={d.month}
+                          style={{ cursor: 'pointer' }}
+                          onMouseEnter={() => setHoveredMonthIdx(i)}
+                          onClick={() => {
+                            setActiveMonth(i);
+                            setActiveTab('month');
+                          }}
+                        >
+                          {/* Point Circle */}
+                          <circle
+                            cx={x}
+                            cy={y}
+                            r={isHovered ? 7 : 4.5}
+                            fill={isHovered ? '#f97316' : '#800000'}
+                            stroke="#ffffff"
+                            strokeWidth="2"
+                          />
+                          {/* Value Tag */}
+                          <text
+                            x={x}
+                            y={y - 12}
+                            textAnchor="middle"
+                            fontSize="10"
+                            fontWeight="800"
+                            fill="var(--text)"
+                          >
+                            {d.meals}
+                          </text>
+                          {/* Month Label */}
+                          <text
+                            x={x}
+                            y="198"
+                            textAnchor="middle"
+                            fontSize="11"
+                            fontWeight={isHovered ? '900' : '700'}
+                            fill={isHovered ? '#800000' : 'var(--text-muted)'}
+                          >
+                            {d.month}
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </g>
+                );
+              })()}
+            </svg>
+          </div>
+
+          {/* GRAPH FOOTER SUMMARY CARDS */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
+              <span style={{ width: '10px', height: '10px', borderRadius: '2px', background: '#0284c7' }}></span>
+              <span style={{ color: 'var(--text-muted)' }}>Breakfast (Morning):</span>
+              <b style={{ color: 'var(--text)' }}>274 Total</b>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
+              <span style={{ width: '10px', height: '10px', borderRadius: '2px', background: '#f59e0b' }}></span>
+              <span style={{ color: 'var(--text-muted)' }}>Lunch (Afternoon):</span>
+              <b style={{ color: 'var(--text)' }}>276 Total</b>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
+              <span style={{ width: '10px', height: '10px', borderRadius: '2px', background: '#800000' }}></span>
+              <span style={{ color: 'var(--text-muted)' }}>Dinner (Night):</span>
+              <b style={{ color: 'var(--text)' }}>274 Total</b>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
+              <span style={{ fontSize: '13px' }}>🏆</span>
+              <span style={{ color: 'var(--text-muted)' }}>Annual Attendance:</span>
+              <b style={{ color: '#16a34a' }}>89.1% Active</b>
+            </div>
           </div>
         </div>
 
