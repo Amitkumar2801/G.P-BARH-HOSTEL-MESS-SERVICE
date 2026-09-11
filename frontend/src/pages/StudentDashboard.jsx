@@ -2324,9 +2324,74 @@ function StudentDashboard() {
               {/* 3. STUDENT RECORD SECTION (3RD POSITION - DIRECT PRINTABLE DOSSIER) */}
               {activeTab === 'student-record' && (
                 <div>
-                  <div style={{ marginBottom: '24px' }}>
-                    <h2 className="page-title">Student Record</h2>
-                    <p className="page-sub">Verified institutional student records, credentials, and printable official dossier.</p>
+                  <div style={{
+                    marginBottom: '24px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    flexWrap: 'wrap',
+                    gap: '16px',
+                    padding: '6px 4px'
+                  }}>
+                    <div>
+                      <div style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: 'rgba(128, 0, 0, 0.08)',
+                        color: '#800000',
+                        border: '1px solid rgba(128, 0, 0, 0.15)',
+                        padding: '4px 12px',
+                        borderRadius: '20px',
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        letterSpacing: '0.8px',
+                        textTransform: 'uppercase',
+                        marginBottom: '8px'
+                      }}>
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#800000' }}></span>
+                        Official Academic &amp; Mess Portfolio
+                      </div>
+                      <h2 style={{
+                        fontFamily: "'Fraunces', Georgia, serif",
+                        fontSize: '30px',
+                        fontWeight: 900,
+                        color: 'var(--text)',
+                        margin: '0 0 6px',
+                        letterSpacing: '-0.5px',
+                        lineHeight: 1.2
+                      }}>
+                        Student Record
+                      </h2>
+                      <p style={{
+                        margin: 0,
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        color: 'var(--text-muted)',
+                        letterSpacing: '0.1px',
+                        lineHeight: 1.5,
+                        maxWidth: '650px'
+                      }}>
+                        Verified institutional student records, credentials, mess attendance analytics, and printable official dossier.
+                      </p>
+                    </div>
+
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      background: 'var(--card)',
+                      border: '1px solid var(--border)',
+                      padding: '8px 14px',
+                      borderRadius: '12px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      color: 'var(--text)',
+                      boxShadow: 'var(--shadow-sm)'
+                    }}>
+                      <span style={{ fontSize: '14px' }}>🏛️</span>
+                      <span>Govt. Polytechnic, Barh</span>
+                    </div>
                   </div>
                   <StudentRecordDossier
                     profileData={profileData}
