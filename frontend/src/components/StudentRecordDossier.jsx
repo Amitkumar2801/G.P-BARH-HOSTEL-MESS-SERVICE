@@ -153,6 +153,33 @@ function StudentRecordDossier({
   return (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <style>{`
+        /* 🏷️ CHIPS STYLING 🏷️ */
+        .srd-chip-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          width: 100%;
+          margin-top: 14px;
+          padding-top: 14px;
+          border-top: 1px solid var(--border);
+        }
+        .srd-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: var(--input-bg);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          padding: 6px 12px;
+          font-size: 12.5px;
+          color: var(--text);
+          font-weight: 600;
+          transition: 0.2s;
+        }
+        .srd-chip:hover {
+          border-color: #800000;
+        }
+
         /* 🎨 PERSONAL & ACADEMIC FORM GRID 🎨 */
         .srd-form-card {
           background: var(--card);
@@ -422,71 +449,103 @@ function StudentRecordDossier({
         }
       `}</style>
 
-      {/* 🌟 1. TOP STUDENT RECORD CARD (EXACT ORIGINAL MATCH - ON-SCREEN) 🌟 */}
+      {/* 🌟 1. TOP STUDENT RECORD CARD (IMAGE MATCH + CHIPS) 🌟 */}
       <div
         className="no-print custom-card prof-header-simple"
         style={{
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: '20px',
+          flexDirection: 'column',
+          gap: '12px',
           padding: '20px 24px',
           borderRadius: '20px',
           background: 'var(--card)',
           border: '1px solid var(--border)',
-          boxShadow: 'var(--shadow-sm)',
-          flexWrap: 'wrap'
+          boxShadow: 'var(--shadow-sm)'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          {/* AVATAR WITH BADGE */}
-          <div style={{ position: 'relative', width: '64px', height: '64px', flexShrink: 0 }}>
-            <div style={{ width: '100%', height: '100%', borderRadius: '50%', border: '2px solid var(--border)', overflow: 'hidden', background: 'var(--input-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <img src={avatarSrc} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            {/* AVATAR WITH BADGE */}
+            <div style={{ position: 'relative', width: '64px', height: '64px', flexShrink: 0 }}>
+              <div style={{ width: '100%', height: '100%', borderRadius: '50%', border: '2px solid var(--border)', overflow: 'hidden', background: 'var(--input-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <img src={avatarSrc} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              </div>
+              <div style={{ position: 'absolute', bottom: '0', right: '0', width: '20px', height: '20px', borderRadius: '50%', background: '#2563eb', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', boxShadow: '0 2px 6px rgba(0,0,0,0.2)' }}>
+                🎓
+              </div>
             </div>
-            <div style={{ position: 'absolute', bottom: '0', right: '0', width: '20px', height: '20px', borderRadius: '50%', background: '#2563eb', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', boxShadow: '0 2px 6px rgba(0,0,0,0.2)' }}>
-              🎓
+
+            {/* NAME & ID */}
+            <div className="prof-name-area">
+              <h2 style={{ fontSize: '18px', fontWeight: 900, color: 'var(--text)', margin: '0 0 2px', letterSpacing: '0.3px', fontFamily: "'Fraunces', serif" }}>
+                {fullName}
+              </h2>
+              <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                <span>ID: {regNo}</span> • <span>Roll: {rollNo}</span>
+              </p>
             </div>
           </div>
 
-          {/* NAME & ID */}
-          <div className="prof-name-area">
-            <h2 style={{ fontSize: '18px', fontWeight: 900, color: 'var(--text)', margin: '0 0 2px', letterSpacing: '0.3px', fontFamily: "'Fraunces', serif" }}>
-              {fullName}
-            </h2>
-            <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
-              <span>ID: {regNo}</span> • <span>Roll: {rollNo}</span>
-            </p>
+          {/* PRINT PDF BUTTON */}
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <button
+              onClick={handlePrint}
+              style={{
+                background: '#800000',
+                color: '#ffffff',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '14px',
+                fontSize: '12px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 14px rgba(128, 0, 0, 0.25)',
+                transition: 'all 0.2s'
+              }}
+            >
+              <span>🖨️</span>
+              <span>PRINT PDF</span>
+            </button>
           </div>
         </div>
 
-        {/* PRINT PDF BUTTON */}
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <button
-            onClick={handlePrint}
-            style={{
-              background: '#800000',
-              color: '#ffffff',
-              border: 'none',
-              padding: '10px 20px',
-              borderRadius: '14px',
-              fontSize: '12px',
-              fontWeight: 800,
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              boxShadow: '0 4px 14px rgba(128, 0, 0, 0.25)',
-              transition: 'all 0.2s'
-            }}
-          >
-            <span>🖨️</span>
-            <span>PRINT PDF</span>
-          </button>
+        {/* QUICK DETAILS CHIP ROW */}
+        <div className="srd-chip-row">
+          <span className="srd-chip">
+            <span style={{ color: '#800000' }}>📄</span>
+            <span style={{ color: 'var(--text-muted)' }}>Branch:</span>
+            <span style={{ color: 'var(--text)', fontWeight: 700 }}>{branch}</span>
+          </span>
+          <span className="srd-chip">
+            <span style={{ color: '#800000' }}>🏠</span>
+            <span style={{ color: 'var(--text-muted)' }}>Hostel:</span>
+            <span style={{ color: 'var(--text)', fontWeight: 700 }}>{hostelBlock}</span>
+          </span>
+          <span className="srd-chip">
+            <span style={{ color: '#800000' }}>🛏️</span>
+            <span style={{ color: 'var(--text)', fontWeight: 700 }}>{roomBed}</span>
+          </span>
+          <span className="srd-chip">
+            <span style={{ color: '#800000' }}>📅</span>
+            <span style={{ color: 'var(--text-muted)' }}>Session:</span>
+            <span style={{ color: 'var(--text)', fontWeight: 700 }}>{session}</span>
+          </span>
+          <span className="srd-chip">
+            <span style={{ color: '#800000' }}>🩸</span>
+            <span style={{ color: 'var(--text-muted)' }}>Blood:</span>
+            <span style={{ color: 'var(--text)', fontWeight: 700 }}>{bloodGroup}</span>
+          </span>
+          <span className="srd-chip">
+            <span style={{ color: '#800000' }}>📞</span>
+            <span style={{ color: 'var(--text)', fontWeight: 700 }}>{contact}</span>
+          </span>
         </div>
       </div>
 
-      {/* 🌟 2. PERSONAL & ACADEMIC RECORDS (IMAGE 1 EXACT FIELDS & STYLISH GRID) 🌟 */}
+      {/* 🌟 2. PERSONAL & ACADEMIC RECORDS (FULL FORM GRID WITH ALL HOSTEL/ROOM DETAILS) 🌟 */}
       <div className="no-print srd-form-card">
         <div className="srd-form-head">
           <h3 className="srd-form-title">Personal &amp; Academic Records</h3>
@@ -518,6 +577,18 @@ function StudentRecordDossier({
           <div className="srd-field-group">
             <label className="srd-field-label">Academic Session</label>
             <div className="srd-field-box">{session}</div>
+          </div>
+
+          {/* ALLOTTED HOSTEL BLOCK */}
+          <div className="srd-field-group">
+            <label className="srd-field-label">Allotted Hostel Block</label>
+            <div className="srd-field-box" style={{ color: '#166534', fontWeight: 700 }}>🏢 {hostelBlock}</div>
+          </div>
+
+          {/* ROOM & BED NUMBER */}
+          <div className="srd-field-group">
+            <label className="srd-field-label">Room &amp; Bed Number</label>
+            <div className="srd-field-box" style={{ color: '#1e40af', fontWeight: 700 }}>🛏️ {roomBed}</div>
           </div>
 
           {/* CONTACT NUMBER */}
@@ -647,7 +718,7 @@ function StudentRecordDossier({
           </div>
         </div>
 
-        {/* 🌟 4. INSTITUTIONAL MESS POLICY & NOTICE BOX (EXACT MATCH TO IMAGE 2 WITH HIGH TYPOGRAPHY) 🌟 */}
+        {/* 🌟 4. INSTITUTIONAL MESS POLICY & NOTICE BOX 🌟 */}
         <div className="srd-notice">
           <div className="srd-notice-header">
             <span style={{ fontSize: '20px' }}>⚠️</span>
