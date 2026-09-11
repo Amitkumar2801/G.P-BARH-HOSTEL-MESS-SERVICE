@@ -106,12 +106,13 @@ function StudentRecordDossier({
 
   const getCleanAddress = () => {
     const a1 = String(profileData?.address || '').trim();
-    if (a1 && !a1.includes('Saksohara') && !a1.includes('Agwanpur')) return a1;
+    if (a1 && !a1.includes('Saksohara') && !a1.includes('Agwanpur') && !a1.includes('PIN -')) return a1;
     const a2 = String(currentUser?.address || '').trim();
-    if (a2 && !a2.includes('Saksohara') && !a2.includes('Agwanpur')) return a2;
+    if (a2 && !a2.includes('Saksohara') && !a2.includes('Agwanpur') && !a2.includes('PIN -')) return a2;
     return 'Vill - Agwanpur, P.O - Agwanpur, Dist - Patna, Bihar - 803213';
   };
   const address = getCleanAddress();
+  const pincode = profileData?.pincode || currentUser?.pincode || '804401';
 
   const bloodGroup = profileData?.bloodGroup || currentUser?.blood_group || 'O+';
   const hostelBlock = allotmentInfo?.hostel_name || allotmentInfo?.hostelBlock || profileData?.hostelBlock || currentUser?.hostel_block || (isFemale ? 'Savitribai Phule Girls Hostel' : 'Birsa Munda Boys Hostel');
@@ -152,59 +153,98 @@ function StudentRecordDossier({
   return (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <style>{`
-        /* MESS & PROFILE OVERVIEW STYLES */
-        .srd-overview-card {
+        /* 🎨 PERSONAL & ACADEMIC FORM GRID 🎨 */
+        .srd-form-card {
           background: var(--card);
           border: 1px solid var(--border);
           border-radius: 20px;
-          padding: 24px 28px;
+          padding: 28px 32px;
           box-shadow: var(--shadow-sm);
         }
-        .srd-chip-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-          gap: 12px;
-          margin-top: 16px;
-        }
-        .srd-chip {
+        .srd-form-head {
           display: flex;
           align-items: center;
-          gap: 10px;
+          justify-content: space-between;
+          margin-bottom: 24px;
+          flex-wrap: wrap;
+          gap: 12px;
+        }
+        .srd-form-title {
+          font-family: 'Fraunces', serif;
+          font-size: 19px;
+          font-weight: 800;
+          color: var(--text);
+          margin: 0;
+          letter-spacing: -0.2px;
+        }
+        .srd-lock-badge {
+          background: #fff1f2;
+          color: #e11d48;
+          border: 1px solid #fecdd3;
+          padding: 6px 14px;
+          border-radius: 20px;
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: 0.5px;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          text-transform: uppercase;
+        }
+        .srd-form-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 20px 24px;
+        }
+        @media (max-width: 768px) {
+          .srd-form-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+        .srd-field-group {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .srd-field-label {
+          font-size: 11.5px;
+          font-weight: 800;
+          color: var(--text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.6px;
+        }
+        .srd-field-box {
           background: var(--input-bg);
           border: 1px solid var(--border);
           border-radius: 12px;
-          padding: 10px 14px;
-          font-size: 13px;
-          color: var(--text);
+          padding: 13px 16px;
+          font-size: 14.5px;
           font-weight: 600;
-        }
-        .srd-chip-icon {
-          font-size: 16px;
-          color: #800000;
+          color: var(--text);
+          outline: none;
+          width: 100%;
+          box-sizing: border-box;
+          transition: 0.2s ease;
           display: flex;
           align-items: center;
-          justify-content: center;
         }
-        .srd-chip-label {
-          color: var(--text-muted);
-          font-size: 11px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          font-weight: 700;
-          display: block;
+        .srd-field-box.textarea {
+          min-height: 80px;
+          align-items: flex-start;
+          line-height: 1.5;
         }
 
-        /* SECTION HEADER */
+        /* 📊 MESS ATTENDANCE & ANALYTICS 📊 */
         .srd-sec-head {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          margin-top: 8px;
+          margin-top: 4px;
           flex-wrap: wrap;
           gap: 10px;
         }
         .srd-sec-title {
-          font-size: 17px;
+          font-size: 18px;
           font-weight: 800;
           color: var(--text);
           display: flex;
@@ -221,7 +261,6 @@ function StudentRecordDossier({
           display: inline-block;
         }
 
-        /* METRIC CARDS */
         .srd-metric-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -313,14 +352,73 @@ function StudentRecordDossier({
           border: 1px solid #fde68a;
         }
 
-        /* NOTICE BOX */
+        /* ⚠️ NOTICE BOX (HIGH AESTHETICS & TYPOGRAPHY) ⚠️ */
         .srd-notice {
           border: 1px solid var(--border);
-          border-left: 4px solid #800000;
+          border-left: 5px solid #800000;
           background: var(--card);
-          border-radius: 16px;
-          padding: 20px 24px;
-          box-shadow: var(--shadow-sm);
+          border-radius: 18px;
+          padding: 24px 28px;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+          position: relative;
+        }
+        .srd-notice-header {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 12px;
+        }
+        .srd-notice-title {
+          font-size: 15px;
+          font-weight: 900;
+          color: #800000;
+          text-transform: uppercase;
+          letter-spacing: 0.8px;
+          margin: 0;
+          font-family: 'DM Sans', -apple-system, sans-serif;
+        }
+        .srd-notice-body {
+          font-size: 13.5px;
+          line-height: 1.7;
+          color: var(--text);
+          font-weight: 500;
+          margin: 0 0 18px;
+        }
+        .srd-notice-body strong {
+          color: #800000;
+          font-weight: 800;
+        }
+        .srd-notice-tags {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+        .srd-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 14px;
+          border-radius: 24px;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.2px;
+          border: 1px solid transparent;
+        }
+        .srd-pill-blue {
+          background: #eff6ff;
+          color: #1d4ed8;
+          border-color: #bfdbfe;
+        }
+        .srd-pill-red {
+          background: #fef2f2;
+          color: #b91c1c;
+          border-color: #fecaca;
+        }
+        .srd-pill-green {
+          background: #f0fdf4;
+          color: #15803d;
+          border-color: #bbf7d0;
         }
       `}</style>
 
@@ -388,68 +486,68 @@ function StudentRecordDossier({
         </div>
       </div>
 
-      {/* 🌟 2. STYLISH STUDENT PROFILE OVERVIEW DETAILS (ON-SCREEN) 🌟 */}
-      <div className="no-print srd-overview-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', borderBottom: '1px solid var(--border)', paddingBottom: '14px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '18px' }}>👤</span>
-            <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text)', fontFamily: "'Fraunces', serif" }}>
-              Resident Student Particulars
-            </span>
-          </div>
-          <div style={{ background: '#dcfce7', color: '#166534', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#16a34a' }}></span>
-            Active Verified Resident
-          </div>
+      {/* 🌟 2. PERSONAL & ACADEMIC RECORDS (IMAGE 1 EXACT FIELDS & STYLISH GRID) 🌟 */}
+      <div className="no-print srd-form-card">
+        <div className="srd-form-head">
+          <h3 className="srd-form-title">Personal &amp; Academic Records</h3>
+          <span className="srd-lock-badge">
+            <span>🔒</span> LOCKED (READ-ONLY)
+          </span>
         </div>
 
-        <div className="srd-chip-grid">
-          <div className="srd-chip">
-            <span className="srd-chip-icon">📚</span>
-            <div>
-              <span className="srd-chip-label">Branch &amp; Stream</span>
-              <span>{branch}</span>
-            </div>
+        <div className="srd-form-grid">
+          {/* FULL NAME */}
+          <div className="srd-field-group">
+            <label className="srd-field-label">Full Name</label>
+            <div className="srd-field-box">{fullName}</div>
           </div>
 
-          <div className="srd-chip">
-            <span className="srd-chip-icon">🏢</span>
-            <div>
-              <span className="srd-chip-label">Hostel &amp; Allotment</span>
-              <span>{hostelBlock}</span>
-            </div>
+          {/* REGISTRATION NUMBER */}
+          <div className="srd-field-group">
+            <label className="srd-field-label">Registration Number</label>
+            <div className="srd-field-box" style={{ fontFamily: 'monospace', fontWeight: 700 }}>{regNo}</div>
           </div>
 
-          <div className="srd-chip">
-            <span className="srd-chip-icon">🛏️</span>
-            <div>
-              <span className="srd-chip-label">Room &amp; Bed Number</span>
-              <span>{roomBed}</span>
-            </div>
+          {/* BRANCH / DEPARTMENT */}
+          <div className="srd-field-group">
+            <label className="srd-field-label">Branch / Department</label>
+            <div className="srd-field-box">{branch}</div>
           </div>
 
-          <div className="srd-chip">
-            <span className="srd-chip-icon">🗓️</span>
-            <div>
-              <span className="srd-chip-label">Academic Session</span>
-              <span>{session}</span>
-            </div>
+          {/* ACADEMIC SESSION */}
+          <div className="srd-field-group">
+            <label className="srd-field-label">Academic Session</label>
+            <div className="srd-field-box">{session}</div>
           </div>
 
-          <div className="srd-chip">
-            <span className="srd-chip-icon">🩸</span>
-            <div>
-              <span className="srd-chip-label">Blood Group</span>
-              <span>{bloodGroup}</span>
-            </div>
+          {/* CONTACT NUMBER */}
+          <div className="srd-field-group">
+            <label className="srd-field-label">Contact Number</label>
+            <div className="srd-field-box">{contact}</div>
           </div>
 
-          <div className="srd-chip">
-            <span className="srd-chip-icon">📞</span>
-            <div>
-              <span className="srd-chip-label">Registered Contact</span>
-              <span>{contact}</span>
-            </div>
+          {/* EMAIL ADDRESS */}
+          <div className="srd-field-group">
+            <label className="srd-field-label">Email Address</label>
+            <div className="srd-field-box">{email}</div>
+          </div>
+
+          {/* BLOOD GROUP */}
+          <div className="srd-field-group">
+            <label className="srd-field-label">Blood Group</label>
+            <div className="srd-field-box">{bloodGroup}</div>
+          </div>
+
+          {/* HOME AREA PINCODE */}
+          <div className="srd-field-group">
+            <label className="srd-field-label">Home Area Pincode</label>
+            <div className="srd-field-box">{pincode}</div>
+          </div>
+
+          {/* FULL PERMANENT ADDRESS */}
+          <div className="srd-field-group" style={{ gridColumn: '1 / -1' }}>
+            <label className="srd-field-label">Full Permanent Address</label>
+            <div className="srd-field-box textarea">{address}</div>
           </div>
         </div>
       </div>
@@ -549,27 +647,32 @@ function StudentRecordDossier({
           </div>
         </div>
 
-        {/* 🌟 4. INSTITUTIONAL MESS POLICY & NOTICE BOX (ON-SCREEN) 🌟 */}
+        {/* 🌟 4. INSTITUTIONAL MESS POLICY & NOTICE BOX (EXACT MATCH TO IMAGE 2 WITH HIGH TYPOGRAPHY) 🌟 */}
         <div className="srd-notice">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-            <span style={{ fontSize: '18px' }}>⚠️</span>
-            <h5 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#800000', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          <div className="srd-notice-header">
+            <span style={{ fontSize: '20px' }}>⚠️</span>
+            <h4 className="srd-notice-title">
               Institutional Mess Policy &amp; Usage Notice
-            </h5>
+            </h4>
           </div>
-          <p style={{ margin: '0 0 14px', fontSize: '13px', lineHeight: 1.6, color: 'var(--text)' }}>
+
+          <p className="srd-notice-body">
             Please Note: As per Govt. Polytechnic Hostel &amp; Mess Regulations, monthly mess subscriptions and recurring meal charges are strictly <strong>NON-REFUNDABLE</strong> once billed. The attendance metrics displayed above reflect official biometric &amp; RFID mess logging records. Rebates are applicable strictly on pre-approved leave/outpass submissions exceeding the mandatory threshold.
           </p>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '11px', fontWeight: 700, background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-muted)', padding: '4px 10px', borderRadius: '20px' }}>
-              🛡️ Official Biometric Logged
-            </span>
-            <span style={{ fontSize: '11px', fontWeight: 700, background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-muted)', padding: '4px 10px', borderRadius: '20px' }}>
-              🚫 Non-Refundable Subscription
-            </span>
-            <span style={{ fontSize: '11px', fontWeight: 700, background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-muted)', padding: '4px 10px', borderRadius: '20px' }}>
-              📊 Audited Mess Account
-            </span>
+
+          <div className="srd-notice-tags">
+            <div className="srd-pill srd-pill-blue">
+              <span>💧</span>
+              <span>Official Biometric Logged</span>
+            </div>
+            <div className="srd-pill srd-pill-red">
+              <span>🚫</span>
+              <span>Non-Refundable Subscription</span>
+            </div>
+            <div className="srd-pill srd-pill-green">
+              <span>📊</span>
+              <span>Audited Mess Account</span>
+            </div>
           </div>
         </div>
       </div>
