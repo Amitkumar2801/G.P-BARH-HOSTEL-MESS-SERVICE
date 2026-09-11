@@ -1038,281 +1038,288 @@ function StudentRecordDossier({
           </div>
         )}
 
-        {/* 📊 🌟 CLEAN ATTENDANCE DAYS & QR SCAN GRAPH 🌟 📊 */}
-        <div className="srd-analytics-chart-card">
-          <div className="srd-chart-top-bar">
-            <div>
-              <h5 style={{ margin: '0 0 4px', fontSize: '16px', fontWeight: 800, color: 'var(--text)', fontFamily: "'Fraunces', serif" }}>
-                Annual 12-Month Mess Attendance Trend (Jan – Dec)
-              </h5>
-              <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                Monthly QR check-ins (1 Daily Scan activates Breakfast + Lunch + Snacks + Dinner)
-              </p>
+        {/* 📊 🌟 EXACT CONTRIBUTION WAVE GRAPH (MATCHING USER REFERENCE IMAGE) 🌟 📊 */}
+        <div className="srd-analytics-chart-card" style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '20px', padding: '24px 28px', boxShadow: 'var(--shadow-sm)' }}>
+          
+          {/* TOP TAG (EXACT MATCH TO REFERENCE IMAGE) */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#090d16', color: '#ffffff', padding: '5px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 900, letterSpacing: '1px' }}>
+              <span style={{ fontSize: '12px' }}>📊</span>
+              <span>GITHUB.CONTRIBUTIONS &bull; MESS.ACTIVITY</span>
             </div>
 
-            {/* CHART MODE BUTTONS */}
-            <div className="srd-chart-mode-pill">
-              <button
-                type="button"
-                className={`srd-chart-btn ${chartMode === 'bars' ? 'active' : ''}`}
-                onClick={() => setChartMode('bars')}
-              >
-                📊 Attendance Bars
-              </button>
-              <button
-                type="button"
-                className={`srd-chart-btn ${chartMode === 'trend' ? 'active' : ''}`}
-                onClick={() => setChartMode('trend')}
-              >
-                📈 Trendline Curve
-              </button>
-            </div>
-          </div>
-
-          {/* DYNAMIC HOVER / SELECTED MONTH DETAIL CARD */}
-          <div className="srd-hover-detail-bar">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '18px' }}>📅</span>
-              <div>
-                <strong style={{ fontSize: '14px', color: 'var(--text)' }}>{activeData.full} 2026:</strong>
-                <span className="srd-hover-tag" style={{ marginLeft: '8px' }}>{activeData.tag}</span>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', fontSize: '12.5px' }}>
-              <span>Days Present: <b style={{ color: '#800000', fontSize: '15px' }}>{activeData.present} / {activeData.daysTotal} Days</b></span>
-              <span style={{ color: 'var(--border)' }}>|</span>
-              <span style={{ color: '#16a34a', fontWeight: 700 }}>
-                🍱 4-Meal Package Active ({activeData.present} Days Logged)
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '12px' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#2563eb', fontWeight: 700 }}>
+                <span style={{ width: '12px', height: '3px', background: '#2563eb', borderRadius: '2px' }}></span>
+                QR Meal Activity
               </span>
-              <span style={{ color: 'var(--border)' }}>|</span>
-              <span>Attendance Rate: <b style={{ color: '#16a34a', fontSize: '14px' }}>{activeData.pct}%</b></span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#f59e0b', fontWeight: 700 }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b', border: '2px solid #2563eb' }}></span>
+                Daily Check-in
+              </span>
             </div>
           </div>
 
-          {/* SVG DATA GRAPH */}
-          <div className="srd-svg-wrap">
-            <svg
-              viewBox="0 0 780 220"
-              style={{ width: '100%', minWidth: '600px', height: 'auto', display: 'block' }}
-            >
-              <defs>
-                <linearGradient id="areaGlow" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#800000" stopOpacity="0.4" />
-                  <stop offset="100%" stopColor="#f97316" stopOpacity="0.0" />
-                </linearGradient>
-                <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#f97316" />
-                  <stop offset="100%" stopColor="#800000" />
-                </linearGradient>
-                <linearGradient id="barHoverGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#fb923c" />
-                  <stop offset="100%" stopColor="#991b1b" />
-                </linearGradient>
-              </defs>
+          {/* CENTER GRAPH TITLE (EXACT PURPLE TITLE AS REFERENCE IMAGE) */}
+          <h3 style={{
+            textAlign: 'center',
+            color: '#6366f1',
+            fontSize: '18px',
+            fontWeight: 800,
+            margin: '12px 0 16px',
+            letterSpacing: '0.2px',
+            fontFamily: "'DM Sans', sans-serif"
+          }}>
+            {fullName} 's Mess Attendance &amp; Activity Graph
+          </h3>
 
-              {/* GRID LINES & Y-AXIS LABELS */}
-              {[31, 20, 10, 0].map((val) => {
-                const y = 180 - (val / 31) * 140;
-                return (
-                  <g key={val}>
-                    <line x1="45" y1={y} x2="760" y2={y} stroke="var(--border)" strokeDasharray="3 3" strokeWidth="1" />
-                    <text x="35" y={y + 4} textAnchor="end" fontSize="10" fill="var(--text-muted)" fontWeight="600">
-                      {val}d
+          {/* DYNAMIC HOVER / SELECTED POINT DETAIL CHIP */}
+          {(() => {
+            const sampleTimelineData = [
+              { day: 12, label: '12 Aug', val: 0, status: 'Absent / Outpass', meals: '0 Meals' },
+              { day: 13, label: '13 Aug', val: 0, status: 'Absent / Outpass', meals: '0 Meals' },
+              { day: 14, label: '14 Aug', val: 0, status: 'Absent / Outpass', meals: '0 Meals' },
+              { day: 15, label: '15 Aug', val: 0, status: 'Independence Day', meals: 'Special Mess' },
+              { day: 16, label: '16 Aug', val: 0, status: 'Leave Approved', meals: '0 Meals' },
+              { day: 17, label: '17 Aug', val: 0, status: 'Leave Approved', meals: '0 Meals' },
+              { day: 18, label: '18 Aug', val: 0, status: 'Leave Approved', meals: '0 Meals' },
+              { day: 19, label: '19 Aug', val: 0, status: 'Leave Approved', meals: '0 Meals' },
+              { day: 20, label: '20 Aug', val: 0, status: 'Leave Approved', meals: '0 Meals' },
+              { day: 21, label: '21 Aug', val: 1, status: 'QR Check-in Done', meals: '4 Meals Logged' },
+              { day: 22, label: '22 Aug', val: 0, status: 'Sunday Leave', meals: '0 Meals' },
+              { day: 23, label: '23 Aug', val: 1, status: 'QR Check-in Done', meals: '4 Meals Logged' },
+              { day: 24, label: '24 Aug', val: 10, status: 'Peak Check-in Streak', meals: '4 Meals Active (Streak #10)' },
+              { day: 25, label: '25 Aug', val: 0, status: 'Hostel Leave', meals: '0 Meals' },
+              { day: 26, label: '26 Aug', val: 0, status: 'Hostel Leave', meals: '0 Meals' },
+              { day: 27, label: '27 Aug', val: 0, status: 'Hostel Leave', meals: '0 Meals' },
+              { day: 28, label: '28 Aug', val: 0, status: 'Hostel Leave', meals: '0 Meals' },
+              { day: 29, label: '29 Aug', val: 0, status: 'Hostel Leave', meals: '0 Meals' },
+              { day: 30, label: '30 Aug', val: 0, status: 'Hostel Leave', meals: '0 Meals' },
+              { day: 31, label: '31 Aug', val: 0, status: 'Month End Outpass', meals: '0 Meals' },
+              { day: 1, label: '1 Sep', val: 2, status: 'QR Check-in Done', meals: '4 Meals Active' },
+              { day: 2, label: '2 Sep', val: 7, status: 'QR Check-in Done', meals: '4 Meals Active (Streak #7)' },
+              { day: 3, label: '3 Sep', val: 5, status: 'QR Check-in Done', meals: '4 Meals Active' },
+              { day: 4, label: '4 Sep', val: 34, status: 'All-Time Peak Attendance', meals: 'Complete 4-Meal Pass (Full Day Record)' },
+              { day: 5, label: '5 Sep', val: 3, status: 'Teachers Day Feast', meals: '4 Meals Active' },
+              { day: 6, label: '6 Sep', val: 5, status: 'QR Check-in Done', meals: '4 Meals Active' },
+              { day: 7, label: '7 Sep', val: 16, status: 'QR Check-in Done', meals: '4 Meals Active (Streak #16)' },
+              { day: 8, label: '8 Sep', val: 0, status: 'Sunday Break', meals: '0 Meals' },
+              { day: 9, label: '9 Sep', val: 1, status: 'QR Check-in Done', meals: '4 Meals Active' },
+              { day: 10, label: '10 Sep', val: 14, status: 'QR Check-in Done', meals: '4 Meals Active (Streak #14)' },
+              { day: 11, label: '11 Sep', val: 9, status: 'Today (Active)', meals: '4 Meals Active (Morning, Lunch, Snacks, Dinner)' },
+            ];
+
+            const selectedPoint = sampleTimelineData[hoveredMonthIdx] || sampleTimelineData[sampleTimelineData.length - 1];
+
+            return (
+              <>
+                <div className="srd-hover-detail-bar" style={{ marginBottom: '14px', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '18px' }}>🎯</span>
+                    <div>
+                      <strong style={{ fontSize: '13.5px', color: 'var(--text)' }}>Date: {selectedPoint.label}</strong>
+                      <span style={{ marginLeft: '8px', fontSize: '11px', background: '#ede9fe', color: '#6366f1', padding: '2px 8px', borderRadius: '12px', fontWeight: 800 }}>
+                        {selectedPoint.status}
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '12.5px' }}>
+                    <span>Activity Score: <b style={{ color: '#2563eb', fontSize: '14px' }}>{selectedPoint.val} pts</b></span>
+                    <span style={{ color: 'var(--border)' }}>|</span>
+                    <span style={{ color: selectedPoint.val > 0 ? '#16a34a' : '#ef4444', fontWeight: 700 }}>
+                      🍱 {selectedPoint.meals}
+                    </span>
+                  </div>
+                </div>
+
+                {/* SVG EXACT GRAPH */}
+                <div className="srd-svg-wrap" style={{ overflowX: 'auto', paddingBottom: '6px' }}>
+                  <svg
+                    viewBox="0 0 920 280"
+                    style={{ width: '100%', minWidth: '720px', height: 'auto', display: 'block' }}
+                  >
+                    <defs>
+                      <linearGradient id="purpleGlowFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#818cf8" stopOpacity="0.45" />
+                        <stop offset="50%" stopColor="#c084fc" stopOpacity="0.2" />
+                        <stop offset="100%" stopColor="#e0e7ff" stopOpacity="0.02" />
+                      </linearGradient>
+                    </defs>
+
+                    {/* Y-AXIS TITLE (ROTATED VERTICALLY EXACT AS IMAGE) */}
+                    <text
+                      transform="rotate(-90)"
+                      x="-135"
+                      y="18"
+                      textAnchor="middle"
+                      fill="#6366f1"
+                      fontSize="11.5"
+                      fontWeight="700"
+                      letterSpacing="0.4px"
+                    >
+                      Contributions
                     </text>
-                  </g>
-                );
-              })}
 
-              {/* MODE 1: ATTENDANCE DAYS BARS WITH EXACT NUMBERS */}
-              {chartMode === 'bars' && (
-                <g>
-                  {ANNUAL_MESS_DATA.map((d, i) => {
-                    const x = 55 + i * 58;
-                    const bH = (d.present / 31) * 140;
-                    const topY = 180 - bH;
-                    const isHovered = hoveredMonthIdx === i;
-
-                    return (
-                      <g
-                        key={d.month}
-                        style={{ cursor: 'pointer', transition: 'all 0.2s' }}
-                        onMouseEnter={() => setHoveredMonthIdx(i)}
-                        onClick={() => {
-                          setActiveMonth(i);
-                          setActiveTab('month');
-                        }}
-                      >
-                        {/* HOVER HIGHLIGHT COLUMN */}
-                        {isHovered && (
-                          <rect
-                            x={x - 6}
-                            y="20"
-                            width="40"
-                            height="165"
-                            rx="8"
-                            fill="rgba(128, 0, 0, 0.08)"
-                          />
-                        )}
-
-                        {/* BACKGROUND UNATTENDED BAR TRACK */}
-                        <rect
-                          x={x}
-                          y="40"
-                          width="28"
-                          height="140"
-                          fill="var(--input-bg)"
-                          rx="6"
-                          stroke="var(--border)"
-                          strokeWidth="1"
-                        />
-
-                        {/* FILLED ATTENDED BAR */}
-                        <rect
-                          x={x}
-                          y={topY}
-                          width="28"
-                          height={bH}
-                          fill={isHovered ? "url(#barHoverGradient)" : "url(#barGradient)"}
-                          rx="6"
-                        />
-
-                        {/* EXACT DAYS PRESENT BADGE ON TOP */}
-                        <rect
-                          x={x - 2}
-                          y={topY - 20}
-                          width="32"
-                          height="16"
-                          rx="4"
-                          fill={isHovered ? '#800000' : 'var(--card)'}
-                          stroke={isHovered ? '#800000' : 'var(--border)'}
-                          strokeWidth="1"
-                        />
-                        <text
-                          x={x + 14}
-                          y={topY - 8}
-                          textAnchor="middle"
-                          fontSize="9.5"
-                          fontWeight="800"
-                          fill={isHovered ? '#ffffff' : 'var(--text)'}
-                        >
-                          {d.present}d
-                        </text>
-
-                        {/* MONTH LABEL */}
-                        <text
-                          x={x + 14}
-                          y="198"
-                          textAnchor="middle"
-                          fontSize="11"
-                          fontWeight={isHovered ? '900' : '700'}
-                          fill={isHovered ? '#800000' : 'var(--text-muted)'}
-                        >
-                          {d.month}
-                        </text>
-                      </g>
-                    );
-                  })}
-                </g>
-              )}
-
-              {/* MODE 2: SMOOTH SPLINE & AREA CURVE */}
-              {chartMode === 'trend' && (() => {
-                const points = ANNUAL_MESS_DATA.map((d, i) => {
-                  const x = 70 + i * 58;
-                  const y = 180 - (d.present / 31) * 140;
-                  return { x, y, d, i };
-                });
-
-                const linePath = points.reduce((acc, p, i, arr) => {
-                  if (i === 0) return `M ${p.x} ${p.y}`;
-                  const prev = arr[i - 1];
-                  const cx1 = prev.x + (p.x - prev.x) / 2;
-                  const cy1 = prev.y;
-                  const cx2 = prev.x + (p.x - prev.x) / 2;
-                  const cy2 = p.y;
-                  return `${acc} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${p.x} ${p.y}`;
-                }, "");
-
-                const areaPath = `${linePath} L ${points[points.length - 1].x} 180 L ${points[0].x} 180 Z`;
-
-                return (
-                  <g>
-                    <path d={areaPath} fill="url(#areaGlow)" />
-                    <path d={linePath} fill="none" stroke="#800000" strokeWidth="3" strokeLinecap="round" />
-
-                    {points.map(({ x, y, d, i }) => {
-                      const isHovered = hoveredMonthIdx === i;
+                    {/* HORIZONTAL PURPLE DOTTED GRID LINES & Y-AXIS VALUES */}
+                    {[35, 30, 25, 20, 15, 10, 5, 0].map((val) => {
+                      const y = 30 + ((35 - val) / 35) * 190;
                       return (
-                        <g
-                          key={d.month}
-                          style={{ cursor: 'pointer' }}
-                          onMouseEnter={() => setHoveredMonthIdx(i)}
-                          onClick={() => {
-                            setActiveMonth(i);
-                            setActiveTab('month');
-                          }}
-                        >
-                          <circle
-                            cx={x}
-                            cy={y}
-                            r={isHovered ? 7 : 4.5}
-                            fill={isHovered ? '#f97316' : '#800000'}
-                            stroke="#ffffff"
-                            strokeWidth="2"
+                        <g key={val}>
+                          <line
+                            x1="52"
+                            y1={y}
+                            x2="905"
+                            y2={y}
+                            stroke="#c7d2fe"
+                            strokeOpacity="0.75"
+                            strokeDasharray="2 3"
+                            strokeWidth="1.2"
                           />
                           <text
-                            x={x}
-                            y={y - 12}
-                            textAnchor="middle"
-                            fontSize="10"
-                            fontWeight="800"
-                            fill="var(--text)"
-                          >
-                            {d.present}d
-                          </text>
-                          <text
-                            x={x}
-                            y="198"
-                            textAnchor="middle"
+                            x="44"
+                            y={y + 4}
+                            textAnchor="end"
                             fontSize="11"
-                            fontWeight={isHovered ? '900' : '700'}
-                            fill={isHovered ? '#800000' : 'var(--text-muted)'}
+                            fill="#6366f1"
+                            fontWeight="600"
                           >
-                            {d.month}
+                            {val}
                           </text>
                         </g>
                       );
                     })}
-                  </g>
-                );
-              })()}
-            </svg>
-          </div>
 
-          {/* GRAPH FOOTER SUMMARY TILES */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
-              <span style={{ fontSize: '14px' }}>⚡</span>
-              <span style={{ color: 'var(--text-muted)' }}>Daily QR Scan:</span>
-              <b style={{ color: '#16a34a' }}>1 Scan / Day</b>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
-              <span style={{ fontSize: '14px' }}>🍱</span>
-              <span style={{ color: 'var(--text-muted)' }}>Package Coverage:</span>
-              <b style={{ color: '#800000' }}>All 4 Meals Active</b>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
-              <span style={{ fontSize: '14px' }}>🗓️</span>
-              <span style={{ color: 'var(--text-muted)' }}>Annual Total:</span>
-              <b style={{ color: 'var(--text)' }}>214 / 240 Days</b>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
-              <span style={{ fontSize: '14px' }}>🏆</span>
-              <span style={{ color: 'var(--text-muted)' }}>Attendance Rate:</span>
-              <b style={{ color: '#16a34a' }}>89.1% Active</b>
-            </div>
-          </div>
+                    {/* SMOOTH SPLINE & POINTS */}
+                    {(() => {
+                      const startX = 65;
+                      const stepX = (890 - startX) / (sampleTimelineData.length - 1);
+                      const points = sampleTimelineData.map((d, i) => {
+                        const x = startX + i * stepX;
+                        const y = 30 + ((35 - d.val) / 35) * 190;
+                        return { x, y, d, i };
+                      });
+
+                      const linePath = points.reduce((acc, p, i, arr) => {
+                        if (i === 0) return `M ${p.x} ${p.y}`;
+                        const prev = arr[i - 1];
+                        const cx1 = prev.x + (p.x - prev.x) / 2;
+                        const cy1 = prev.y;
+                        const cx2 = prev.x + (p.x - prev.x) / 2;
+                        const cy2 = p.y;
+                        return `${acc} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${p.x} ${p.y}`;
+                      }, "");
+
+                      const areaPath = `${linePath} L ${points[points.length - 1].x} 220 L ${points[0].x} 220 Z`;
+
+                      return (
+                        <g>
+                          {/* GRADIENT SHADED AREA UNDER CURVE */}
+                          <path d={areaPath} fill="url(#purpleGlowFill)" />
+
+                          {/* SMOOTH BLUE WAVE LINE (EXACT AS IMAGE) */}
+                          <path
+                            d={linePath}
+                            fill="none"
+                            stroke="#3b82f6"
+                            strokeWidth="3.2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+
+                          {/* DATA POINTS (CIRCLES) & X-AXIS LABELS */}
+                          {points.map(({ x, y, d, i }) => {
+                            const isHovered = hoveredMonthIdx === i;
+                            const isHighPeak = d.val >= 30;
+
+                            return (
+                              <g
+                                key={`point-${i}`}
+                                style={{ cursor: 'pointer' }}
+                                onMouseEnter={() => setHoveredMonthIdx(i)}
+                              >
+                                {/* HOVER VERTICAL GUIDELINE */}
+                                {isHovered && (
+                                  <line
+                                    x1={x}
+                                    y1="25"
+                                    x2={x}
+                                    y2="220"
+                                    stroke="#818cf8"
+                                    strokeWidth="1.5"
+                                    strokeDasharray="2 2"
+                                  />
+                                )}
+
+                                {/* PEAK VALUE BADGE */}
+                                {d.val > 0 && (
+                                  <text
+                                    x={x}
+                                    y={y - 8}
+                                    textAnchor="middle"
+                                    fontSize="10"
+                                    fontWeight="800"
+                                    fill={isHovered ? '#1e40af' : '#6366f1'}
+                                  >
+                                    {d.val}
+                                  </text>
+                                )}
+
+                                {/* POINT CIRCLE (EXACT ORANGE/YELLOW NODES AS IMAGE) */}
+                                <circle
+                                  cx={x}
+                                  cy={y}
+                                  r={isHovered ? 6.5 : (isHighPeak ? 5.5 : 4)}
+                                  fill="#f59e0b"
+                                  stroke="#3b82f6"
+                                  strokeWidth={isHovered ? 2.5 : 1.8}
+                                />
+
+                                {/* X-AXIS DAY NUMBER (IN PURPLE AS IMAGE) */}
+                                <text
+                                  x={x}
+                                  y="244"
+                                  textAnchor="middle"
+                                  fontSize="11"
+                                  fontWeight={isHovered ? '900' : '700'}
+                                  fill={isHovered ? '#1e40af' : '#6366f1'}
+                                >
+                                  {d.day}
+                                </text>
+                              </g>
+                            );
+                          })}
+                        </g>
+                      );
+                    })()}
+                  </svg>
+                </div>
+
+                {/* GRAPH FOOTER SUMMARY TILES */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '16px', marginTop: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
+                    <span style={{ fontSize: '14px' }}>⚡</span>
+                    <span style={{ color: 'var(--text-muted)' }}>Daily QR Scan:</span>
+                    <b style={{ color: '#16a34a' }}>1 Scan / Day</b>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
+                    <span style={{ fontSize: '14px' }}>🍱</span>
+                    <span style={{ color: 'var(--text-muted)' }}>Dining Coverage:</span>
+                    <b style={{ color: '#800000' }}>All 4 Meals Active (Breakfast, Lunch, Snacks, Dinner)</b>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
+                    <span style={{ fontSize: '14px' }}>🗓️</span>
+                    <span style={{ color: 'var(--text-muted)' }}>Total Tracked:</span>
+                    <b style={{ color: 'var(--text)' }}>31-Day Timeline</b>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
+                    <span style={{ fontSize: '14px' }}>🏆</span>
+                    <span style={{ color: 'var(--text-muted)' }}>Peak Check-in:</span>
+                    <b style={{ color: '#2563eb' }}>34 Daily Points</b>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
         </div>
 
         {/* 🌟 3. INSTITUTIONAL MESS POLICY & NOTICE BOX 🌟 */}
