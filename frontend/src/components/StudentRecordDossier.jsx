@@ -8,20 +8,20 @@ const MONTH_NAMES = [
 ];
 const MONTH_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-// Comprehensive 12-Month Realistic Academic Dataset
+// Comprehensive 12-Month Realistic Academic Dataset (Single QR Scan = All 4 Meals Active)
 const ANNUAL_MESS_DATA = [
-  { month: "Jan", full: "January", meals: 76, breakfast: 25, lunch: 26, dinner: 25, present: 26, absent: 5, pct: 83.9, tag: "Winter Session" },
-  { month: "Feb", full: "February", meals: 70, breakfast: 23, lunch: 24, dinner: 23, present: 24, absent: 4, pct: 85.7, tag: "Regular" },
-  { month: "Mar", full: "March", meals: 81, breakfast: 27, lunch: 27, dinner: 27, present: 27, absent: 4, pct: 87.1, tag: "Mid-Term" },
-  { month: "Apr", full: "April", meals: 78, breakfast: 26, lunch: 26, dinner: 26, present: 26, absent: 4, pct: 86.7, tag: "Regular" },
-  { month: "May", full: "May", meals: 84, breakfast: 28, lunch: 28, dinner: 28, present: 28, absent: 3, pct: 90.3, tag: "Exam Month" },
-  { month: "Jun", full: "June", meals: 30, breakfast: 10, lunch: 10, dinner: 10, present: 10, absent: 20, pct: 33.3, tag: "Summer Vacation" },
-  { month: "Jul", full: "July", meals: 65, breakfast: 22, lunch: 21, dinner: 22, present: 22, absent: 9, pct: 71.0, tag: "Semester Start" },
-  { month: "Aug", full: "August", meals: 82, breakfast: 27, lunch: 28, dinner: 27, present: 28, absent: 3, pct: 90.3, tag: "Peak Attendance" },
-  { month: "Sep", full: "September", meals: 78, breakfast: 26, lunch: 26, dinner: 26, present: 26, absent: 4, pct: 86.7, tag: "Current Month" },
-  { month: "Oct", full: "October", meals: 54, breakfast: 18, lunch: 18, dinner: 18, present: 18, absent: 13, pct: 58.1, tag: "Festivals Break" },
-  { month: "Nov", full: "November", meals: 75, breakfast: 25, lunch: 25, dinner: 25, present: 25, absent: 5, pct: 83.3, tag: "Regular" },
-  { month: "Dec", full: "December", meals: 60, breakfast: 20, lunch: 20, dinner: 20, present: 20, absent: 11, pct: 64.5, tag: "Winter Recess" },
+  { month: "Jan", full: "January", daysTotal: 31, present: 26, leave: 5, pct: 83.9, tag: "Winter Session", mealsCovered: 104 },
+  { month: "Feb", full: "February", daysTotal: 28, present: 24, leave: 4, pct: 85.7, tag: "Regular Session", mealsCovered: 96 },
+  { month: "Mar", full: "March", daysTotal: 31, present: 27, leave: 4, pct: 87.1, tag: "Mid-Term Exams", mealsCovered: 108 },
+  { month: "Apr", full: "April", daysTotal: 30, present: 26, leave: 4, pct: 86.7, tag: "Regular Session", mealsCovered: 104 },
+  { month: "May", full: "May", daysTotal: 31, present: 28, leave: 3, pct: 90.3, tag: "End-Semester", mealsCovered: 112 },
+  { month: "Jun", full: "June", daysTotal: 30, present: 10, leave: 20, pct: 33.3, tag: "Summer Vacation", mealsCovered: 40 },
+  { month: "Jul", full: "July", daysTotal: 31, present: 22, leave: 9, pct: 71.0, tag: "Semester Start", mealsCovered: 88 },
+  { month: "Aug", full: "August", daysTotal: 31, present: 28, leave: 3, pct: 90.3, tag: "Peak Attendance", mealsCovered: 112 },
+  { month: "Sep", full: "September", daysTotal: 30, present: 26, leave: 4, pct: 86.7, tag: "Current Month", mealsCovered: 104 },
+  { month: "Oct", full: "October", daysTotal: 31, present: 18, leave: 13, pct: 58.1, tag: "Puja/Diwali Break", mealsCovered: 72 },
+  { month: "Nov", full: "November", daysTotal: 30, present: 25, leave: 5, pct: 83.3, tag: "Regular Session", mealsCovered: 100 },
+  { month: "Dec", full: "December", daysTotal: 31, present: 20, leave: 11, pct: 64.5, tag: "Winter Break", mealsCovered: 80 },
 ];
 
 function CircularBadge({ percent, size = 54, stroke = 5, label }) {
@@ -132,7 +132,7 @@ function StudentRecordDossier({
     ? `Room ${allotmentInfo.room_number} • Bed ${allotmentInfo.bed_code}`
     : (allotmentInfo?.roomNo ? `Room ${allotmentInfo.roomNo} • Bed ${allotmentInfo.bedNo || 'A'}` : (profileData?.roomNumber ? `Room ${profileData.roomNumber} • Bed ${profileData.bedNumber || 'A'}` : (isFemale ? 'Room 101 • Bed A' : 'Room 101 • Bed 1 (Bed A)')));
 
-  // Mess Analytics Data
+  // Mess Analytics Data (Single QR scan per day)
   const mess = allotmentInfo?.mess || {};
   const monthlyPresent = mess.monthlyPresent ?? 26;
   const monthlyTotal = mess.monthlyTotal ?? 30;
@@ -140,11 +140,6 @@ function StudentRecordDossier({
     () => Number(((monthlyPresent / monthlyTotal) * 100).toFixed(1)),
     [monthlyPresent, monthlyTotal]
   );
-
-  const breakfast = mess.breakfast ?? 26;
-  const lunch = mess.lunch ?? 26;
-  const dinner = mess.dinner ?? 26;
-  const totalMeals = mess.totalMeals ?? (breakfast + lunch + dinner);
 
   const annualPresent = mess.annualPresent ?? 214;
   const annualTotal = mess.annualTotal ?? 240;
@@ -155,12 +150,12 @@ function StudentRecordDossier({
 
   const leaveDays = mess.leaveDays ?? 4;
 
-  // Calendar and View States (Monthly vs 1-Year View)
+  // Calendar and View States
   const [activeTab, setActiveTab] = useState('month'); // 'month' | 'year'
   const [activeMonth, setActiveMonth] = useState(8); // 0-indexed: 8 = September 2026
   const [activeYear, setActiveYear] = useState(2026);
   const [hoveredMonthIdx, setHoveredMonthIdx] = useState(8);
-  const [chartMode, setChartMode] = useState('stacked'); // 'stacked' | 'trend'
+  const [chartMode, setChartMode] = useState('bars'); // 'bars' | 'trend'
 
   // Calculate calendar grid for current active month
   const calendarData = useMemo(() => {
@@ -171,7 +166,6 @@ function StudentRecordDossier({
     const rows = [];
     let currentRow = [];
     
-    // Add empty slots before the 1st day
     for (let i = 0; i < startDay; i++) {
       currentRow.push({ empty: true, key: `empty-${i}` });
     }
@@ -593,7 +587,7 @@ function StudentRecordDossier({
           background: var(--input-bg);
           border: 1px solid var(--border);
           border-radius: 14px;
-          padding: 12px 18px;
+          padding: 14px 18px;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -850,7 +844,7 @@ function StudentRecordDossier({
       {/* 🌟 2. MESS ATTENDANCE & DIETARY ANALYTICS (ON-SCREEN) 🌟 */}
       <div className="no-print" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
         <div className="srd-sec-head">
-          <div className="srd-sec-title">Mess Attendance &amp; Dietary Analytics</div>
+          <div className="srd-sec-title">Mess Attendance &amp; Dining Records</div>
           
           {/* VIEW SWITCHER: MONTH CALENDAR vs 1-YEAR OVERVIEW */}
           <div className="srd-view-switcher">
@@ -884,16 +878,14 @@ function StudentRecordDossier({
 
           <div className="srd-metric-card">
             <div className="srd-metric-icon" style={{ background: '#fef3c7', color: '#d97706' }}>
-              🍽️
+              🍱
             </div>
             <div>
-              <p style={{ margin: '0 0 4px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Total Meals Consumed</p>
-              <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--text)' }}>{totalMeals} Meals</h4>
-              <div style={{ display: 'flex', gap: '8px', marginTop: '4px', fontSize: '11px', color: 'var(--text-muted)' }}>
-                <span>B: <b style={{ color: 'var(--text)' }}>{breakfast}</b></span>
-                <span>L: <b style={{ color: 'var(--text)' }}>{lunch}</b></span>
-                <span>D: <b style={{ color: 'var(--text)' }}>{dinner}</b></span>
-              </div>
+              <p style={{ margin: '0 0 4px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Daily Dining Plan</p>
+              <h4 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: 'var(--text)' }}>{monthlyPresent} Days Active</h4>
+              <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#d97706', fontWeight: 700 }}>
+                4-Meal Plan (Breakfast • Lunch • Snacks • Dinner)
+              </p>
             </div>
           </div>
 
@@ -923,7 +915,7 @@ function StudentRecordDossier({
           <div className="srd-cal-container">
             <div className="srd-cal-header">
               <div>
-                <div className="srd-cal-top-tag">MESS ATTENDANCE TRACKER</div>
+                <div className="srd-cal-top-tag">DAILY MESS QR CHECK-IN TRACKER</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <button type="button" onClick={handlePrevMonth} className="srd-cal-nav-btn" title="Previous Month">❮</button>
                   <h4 className="srd-cal-month-title">{MONTH_NAMES[activeMonth]} {activeYear}</h4>
@@ -934,7 +926,7 @@ function StudentRecordDossier({
               {/* HIGHLIGHT DAY BADGE */}
               <div className="srd-cal-day-badge">
                 <strong>{monthlyPresent}</strong>
-                <span>DAYS PRESENT</span>
+                <span>DAYS ACTIVE</span>
               </div>
             </div>
 
@@ -979,7 +971,7 @@ function StudentRecordDossier({
                     <div
                       key={cell.key}
                       className={classNames}
-                      title={`Day ${cell.day} ${MONTH_SHORT[activeMonth]}: ${isPresent ? 'Present (Meals Consumed)' : 'Leave / Outpass'}`}
+                      title={`Day ${cell.day} ${MONTH_SHORT[activeMonth]}: ${isPresent ? 'QR Scanned — Complete 4-Meal Pass Active' : 'Leave / Outpass'}`}
                     >
                       {cell.day}
                     </div>
@@ -993,7 +985,7 @@ function StudentRecordDossier({
               <div style={{ display: 'flex', gap: '16px', fontSize: '12px' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#f97316', fontWeight: 800 }}>
                   <span style={{ width: '12px', height: '12px', borderRadius: '4px', background: '#f97316' }}></span>
-                  Active Present ({monthlyPresent} Days)
+                  QR Check-in Present ({monthlyPresent} Days • 4 Meals/Day)
                 </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#f87171', fontWeight: 800 }}>
                   <span style={{ width: '12px', height: '12px', borderRadius: '4px', background: 'rgba(255,255,255,0.15)', border: '1px solid #f87171' }}></span>
@@ -1001,7 +993,7 @@ function StudentRecordDossier({
                 </span>
               </div>
               <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>
-                Biometric Terminal Synced • GP Barh Mess
+                1 Daily QR Scan = Breakfast + Lunch + Evening Snacks + Dinner
               </span>
             </div>
           </div>
@@ -1032,7 +1024,7 @@ function StudentRecordDossier({
                     </div>
 
                     <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>
-                      Present: <b style={{ color: 'var(--text)' }}>{mData.present} Days</b> • Meals: <b style={{ color: '#800000' }}>{mData.meals}</b>
+                      Present: <b style={{ color: 'var(--text)' }}>{mData.present} Days</b> • 4-Meal Plan: <b style={{ color: '#800000' }}>Active</b>
                     </div>
 
                     {/* MINI ATTENDANCE PROGRESS BAR */}
@@ -1046,15 +1038,15 @@ function StudentRecordDossier({
           </div>
         )}
 
-        {/* 📊 🌟 NEW ADVANCED INTERACTIVE DATA GRAPH 🌟 📊 */}
+        {/* 📊 🌟 CLEAN ATTENDANCE DAYS & QR SCAN GRAPH 🌟 📊 */}
         <div className="srd-analytics-chart-card">
           <div className="srd-chart-top-bar">
             <div>
               <h5 style={{ margin: '0 0 4px', fontSize: '16px', fontWeight: 800, color: 'var(--text)', fontFamily: "'Fraunces', serif" }}>
-                Annual 12-Month Dining &amp; Dietary Analytics
+                Annual 12-Month Mess Attendance Trend (Jan – Dec)
               </h5>
               <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                Interactive monthly meal volume &amp; category breakdown (Academic Session {session})
+                Monthly QR check-ins (1 Daily Scan activates Breakfast + Lunch + Snacks + Dinner)
               </p>
             </div>
 
@@ -1062,10 +1054,10 @@ function StudentRecordDossier({
             <div className="srd-chart-mode-pill">
               <button
                 type="button"
-                className={`srd-chart-btn ${chartMode === 'stacked' ? 'active' : ''}`}
-                onClick={() => setChartMode('stacked')}
+                className={`srd-chart-btn ${chartMode === 'bars' ? 'active' : ''}`}
+                onClick={() => setChartMode('bars')}
               >
-                📊 Stacked Meals
+                📊 Attendance Bars
               </button>
               <button
                 type="button"
@@ -1080,30 +1072,21 @@ function StudentRecordDossier({
           {/* DYNAMIC HOVER / SELECTED MONTH DETAIL CARD */}
           <div className="srd-hover-detail-bar">
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '18px' }}>🍽️</span>
+              <span style={{ fontSize: '18px' }}>📅</span>
               <div>
-                <strong style={{ fontSize: '14px', color: 'var(--text)' }}>{activeData.full} 2026 Record:</strong>
+                <strong style={{ fontSize: '14px', color: 'var(--text)' }}>{activeData.full} 2026:</strong>
                 <span className="srd-hover-tag" style={{ marginLeft: '8px' }}>{activeData.tag}</span>
               </div>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', fontSize: '12.5px' }}>
-              <span>Total Meals: <b style={{ color: '#800000', fontSize: '14px' }}>{activeData.meals}</b></span>
+              <span>Days Present: <b style={{ color: '#800000', fontSize: '15px' }}>{activeData.present} / {activeData.daysTotal} Days</b></span>
               <span style={{ color: 'var(--border)' }}>|</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0284c7' }}></span>
-                Breakfast: <b>{activeData.breakfast}</b>
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b' }}></span>
-                Lunch: <b>{activeData.lunch}</b>
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#800000' }}></span>
-                Dinner: <b>{activeData.dinner}</b>
+              <span style={{ color: '#16a34a', fontWeight: 700 }}>
+                🍱 4-Meal Package Active ({activeData.present} Days Logged)
               </span>
               <span style={{ color: 'var(--border)' }}>|</span>
-              <span>Attendance: <b style={{ color: '#16a34a' }}>{activeData.pct}%</b></span>
+              <span>Attendance Rate: <b style={{ color: '#16a34a', fontSize: '14px' }}>{activeData.pct}%</b></span>
             </div>
           </div>
 
@@ -1118,35 +1101,36 @@ function StudentRecordDossier({
                   <stop offset="0%" stopColor="#800000" stopOpacity="0.4" />
                   <stop offset="100%" stopColor="#f97316" stopOpacity="0.0" />
                 </linearGradient>
-                <linearGradient id="barGlow" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#f97316" />
                   <stop offset="100%" stopColor="#800000" />
+                </linearGradient>
+                <linearGradient id="barHoverGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#fb923c" />
+                  <stop offset="100%" stopColor="#991b1b" />
                 </linearGradient>
               </defs>
 
               {/* GRID LINES & Y-AXIS LABELS */}
-              {[90, 60, 30, 0].map((val) => {
-                const y = 180 - (val / 90) * 140;
+              {[31, 20, 10, 0].map((val) => {
+                const y = 180 - (val / 31) * 140;
                 return (
                   <g key={val}>
                     <line x1="45" y1={y} x2="760" y2={y} stroke="var(--border)" strokeDasharray="3 3" strokeWidth="1" />
                     <text x="35" y={y + 4} textAnchor="end" fontSize="10" fill="var(--text-muted)" fontWeight="600">
-                      {val}
+                      {val}d
                     </text>
                   </g>
                 );
               })}
 
-              {/* MODE 1: STACKED BARS WITH EXACT VALUES */}
-              {chartMode === 'stacked' && (
+              {/* MODE 1: ATTENDANCE DAYS BARS WITH EXACT NUMBERS */}
+              {chartMode === 'bars' && (
                 <g>
                   {ANNUAL_MESS_DATA.map((d, i) => {
                     const x = 55 + i * 58;
-                    const bH = (d.breakfast / 90) * 140;
-                    const lH = (d.lunch / 90) * 140;
-                    const dH = (d.dinner / 90) * 140;
-                    const totalH = bH + lH + dH;
-                    const topY = 180 - totalH;
+                    const bH = (d.present / 31) * 140;
+                    const topY = 180 - bH;
                     const isHovered = hoveredMonthIdx === i;
 
                     return (
@@ -1171,45 +1155,37 @@ function StudentRecordDossier({
                           />
                         )}
 
-                        {/* DINNER SEGMENT (BOTTOM) */}
+                        {/* BACKGROUND UNATTENDED BAR TRACK */}
                         <rect
                           x={x}
-                          y={180 - dH}
+                          y="40"
                           width="28"
-                          height={dH}
-                          fill={isHovered ? '#800000' : '#8b0000'}
-                          rx="0"
+                          height="140"
+                          fill="var(--input-bg)"
+                          rx="6"
+                          stroke="var(--border)"
+                          strokeWidth="1"
                         />
 
-                        {/* LUNCH SEGMENT (MIDDLE) */}
-                        <rect
-                          x={x}
-                          y={180 - dH - lH}
-                          width="28"
-                          height={lH}
-                          fill="#f59e0b"
-                          rx="0"
-                        />
-
-                        {/* BREAKFAST SEGMENT (TOP) */}
+                        {/* FILLED ATTENDED BAR */}
                         <rect
                           x={x}
                           y={topY}
                           width="28"
                           height={bH}
-                          fill="#0284c7"
-                          rx="4"
+                          fill={isHovered ? "url(#barHoverGradient)" : "url(#barGradient)"}
+                          rx="6"
                         />
 
-                        {/* TOTAL MEAL VALUE ON TOP */}
+                        {/* EXACT DAYS PRESENT BADGE ON TOP */}
                         <rect
                           x={x - 2}
                           y={topY - 20}
                           width="32"
                           height="16"
                           rx="4"
-                          fill={isHovered ? '#800000' : 'var(--input-bg)'}
-                          stroke="var(--border)"
+                          fill={isHovered ? '#800000' : 'var(--card)'}
+                          stroke={isHovered ? '#800000' : 'var(--border)'}
                           strokeWidth="1"
                         />
                         <text
@@ -1220,7 +1196,7 @@ function StudentRecordDossier({
                           fontWeight="800"
                           fill={isHovered ? '#ffffff' : 'var(--text)'}
                         >
-                          {d.meals}
+                          {d.present}d
                         </text>
 
                         {/* MONTH LABEL */}
@@ -1244,11 +1220,10 @@ function StudentRecordDossier({
               {chartMode === 'trend' && (() => {
                 const points = ANNUAL_MESS_DATA.map((d, i) => {
                   const x = 70 + i * 58;
-                  const y = 180 - (d.meals / 90) * 140;
+                  const y = 180 - (d.present / 31) * 140;
                   return { x, y, d, i };
                 });
 
-                // Build SVG path
                 const linePath = points.reduce((acc, p, i, arr) => {
                   if (i === 0) return `M ${p.x} ${p.y}`;
                   const prev = arr[i - 1];
@@ -1263,12 +1238,9 @@ function StudentRecordDossier({
 
                 return (
                   <g>
-                    {/* Glowing Area Fill */}
                     <path d={areaPath} fill="url(#areaGlow)" />
-                    {/* Trend Line */}
                     <path d={linePath} fill="none" stroke="#800000" strokeWidth="3" strokeLinecap="round" />
 
-                    {/* Data Points */}
                     {points.map(({ x, y, d, i }) => {
                       const isHovered = hoveredMonthIdx === i;
                       return (
@@ -1281,7 +1253,6 @@ function StudentRecordDossier({
                             setActiveTab('month');
                           }}
                         >
-                          {/* Point Circle */}
                           <circle
                             cx={x}
                             cy={y}
@@ -1290,7 +1261,6 @@ function StudentRecordDossier({
                             stroke="#ffffff"
                             strokeWidth="2"
                           />
-                          {/* Value Tag */}
                           <text
                             x={x}
                             y={y - 12}
@@ -1299,9 +1269,8 @@ function StudentRecordDossier({
                             fontWeight="800"
                             fill="var(--text)"
                           >
-                            {d.meals}
+                            {d.present}d
                           </text>
-                          {/* Month Label */}
                           <text
                             x={x}
                             y="198"
@@ -1321,26 +1290,26 @@ function StudentRecordDossier({
             </svg>
           </div>
 
-          {/* GRAPH FOOTER SUMMARY CARDS */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+          {/* GRAPH FOOTER SUMMARY TILES */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
-              <span style={{ width: '10px', height: '10px', borderRadius: '2px', background: '#0284c7' }}></span>
-              <span style={{ color: 'var(--text-muted)' }}>Breakfast (Morning):</span>
-              <b style={{ color: 'var(--text)' }}>274 Total</b>
+              <span style={{ fontSize: '14px' }}>⚡</span>
+              <span style={{ color: 'var(--text-muted)' }}>Daily QR Scan:</span>
+              <b style={{ color: '#16a34a' }}>1 Scan / Day</b>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
-              <span style={{ width: '10px', height: '10px', borderRadius: '2px', background: '#f59e0b' }}></span>
-              <span style={{ color: 'var(--text-muted)' }}>Lunch (Afternoon):</span>
-              <b style={{ color: 'var(--text)' }}>276 Total</b>
+              <span style={{ fontSize: '14px' }}>🍱</span>
+              <span style={{ color: 'var(--text-muted)' }}>Package Coverage:</span>
+              <b style={{ color: '#800000' }}>All 4 Meals Active</b>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
-              <span style={{ width: '10px', height: '10px', borderRadius: '2px', background: '#800000' }}></span>
-              <span style={{ color: 'var(--text-muted)' }}>Dinner (Night):</span>
-              <b style={{ color: 'var(--text)' }}>274 Total</b>
+              <span style={{ fontSize: '14px' }}>🗓️</span>
+              <span style={{ color: 'var(--text-muted)' }}>Annual Total:</span>
+              <b style={{ color: 'var(--text)' }}>214 / 240 Days</b>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
-              <span style={{ fontSize: '13px' }}>🏆</span>
-              <span style={{ color: 'var(--text-muted)' }}>Annual Attendance:</span>
+              <span style={{ fontSize: '14px' }}>🏆</span>
+              <span style={{ color: 'var(--text-muted)' }}>Attendance Rate:</span>
               <b style={{ color: '#16a34a' }}>89.1% Active</b>
             </div>
           </div>
