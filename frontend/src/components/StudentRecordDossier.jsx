@@ -16,7 +16,7 @@ const MULTI_YEAR_MESS_DATA = {
     { month: "Mar", full: "March", daysTotal: 31, present: 27, leave: 4, pct: 87.1, tag: "Mid-Term Exams", mealsCovered: 108 },
     { month: "Apr", full: "April", daysTotal: 30, present: 26, leave: 4, pct: 86.7, tag: "Regular Session", mealsCovered: 104 },
     { month: "May", full: "May", daysTotal: 31, present: 28, leave: 3, pct: 90.3, tag: "End-Semester", mealsCovered: 112 },
-    { month: "Jun", full: "June", daysTotal: 30, present: 10, leave: 20, pct: 33.3, tag: "Summer Vacation", mealsCovered: 40 },
+    { month: "Jun", full: "June", daysTotal: 30, present: 20, leave: 10, pct: 66.7, tag: "Summer Session", mealsCovered: 80 },
     { month: "Jul", full: "July", daysTotal: 31, present: 22, leave: 9, pct: 71.0, tag: "Semester Start", mealsCovered: 88 },
     { month: "Aug", full: "August", daysTotal: 31, present: 28, leave: 3, pct: 90.3, tag: "Peak Attendance", mealsCovered: 112 },
     { month: "Sep", full: "September", daysTotal: 30, present: 26, leave: 4, pct: 86.7, tag: "Current Month", mealsCovered: 104 },
@@ -1199,25 +1199,50 @@ function StudentRecordDossier({
           </div>
         )}
 
-        {/* 📊 31-DAY MESS ATTENDANCE & DIET ACTIVITY GRAPH 📊 */}
+        {/* 📊 ANNUAL MESS ATTENDANCE & MEAL DIETS GRAPH (2026 - 2027 - 2028) 📊 */}
         <div className="srd-analytics-chart-card">
 
-          {/* TOP HEADER & LEGEND */}
+          {/* TOP HEADER & MULTI-YEAR SELECTOR */}
           <div className="srd-chart-top-bar">
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#090d16', color: '#ffffff', padding: '6px 14px', borderRadius: '8px', fontSize: '11px', fontWeight: 900, letterSpacing: '0.8px', boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}>
               <span style={{ fontSize: '13px' }}>📊</span>
-              <span>MESS ATTENDANCE &amp; DIET ACTIVITY</span>
+              <span>ANNUAL MESS ATTENDANCE &amp; DIET GRAPH</span>
+            </div>
+
+            {/* YEAR SWITCHER TABS (2026 - 2027 - 2028) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '3px' }}>
+              {[2026, 2027, 2028].map((yr) => (
+                <button
+                  key={yr}
+                  type="button"
+                  onClick={() => setSelectedGraphYear(yr)}
+                  style={{
+                    border: 'none',
+                    background: selectedGraphYear === yr ? '#8B0D0D' : 'transparent',
+                    color: selectedGraphYear === yr ? '#ffffff' : 'var(--text-muted)',
+                    padding: '5px 12px',
+                    borderRadius: '7px',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    boxShadow: selectedGraphYear === yr ? '0 2px 6px rgba(139, 13, 13, 0.4)' : 'none'
+                  }}
+                >
+                  {yr} {yr === 2026 ? '(Current)' : ''}
+                </button>
+              ))}
             </div>
 
             {/* LEGEND BADGES */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '12px', flexWrap: 'wrap' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#2563eb', fontWeight: 700 }}>
                 <span style={{ width: '12px', height: '3px', background: '#2563eb', borderRadius: '2px' }}></span>
-                QR Meal Activity
+                Days Eaten (0-31)
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#f59e0b', fontWeight: 700 }}>
                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b', border: '2px solid #2563eb' }}></span>
-                Daily Check-in
+                Monthly Peak Point
               </span>
             </div>
           </div>
@@ -1232,57 +1257,25 @@ function StudentRecordDossier({
             letterSpacing: '0.2px',
             fontFamily: "'DM Sans', sans-serif"
           }}>
-            {fullName} 's Mess Attendance &amp; Activity Graph
+            {fullName} 's Mess Attendance &amp; Activity Graph ({selectedGraphYear})
           </h3>
 
-          {/* DYNAMIC 31-DAY TIMELINE & HOVER DETAIL */}
+          {/* DYNAMIC 12-MONTH DATASET & HOVER DETAIL */}
           {(() => {
-            const sampleTimelineData = [
-              { day: 14, label: '14 Aug', val: 0, status: 'Absent / Leave', meals: '0 Meals' },
-              { day: 15, label: '15 Aug', val: 0, status: 'Independence Day', meals: 'Special Mess' },
-              { day: 16, label: '16 Aug', val: 0, status: 'Hostel Leave', meals: '0 Meals' },
-              { day: 17, label: '17 Aug', val: 0, status: 'Hostel Leave', meals: '0 Meals' },
-              { day: 18, label: '18 Aug', val: 0, status: 'Hostel Leave', meals: '0 Meals' },
-              { day: 19, label: '19 Aug', val: 0, status: 'Hostel Leave', meals: '0 Meals' },
-              { day: 20, label: '20 Aug', val: 0, status: 'Hostel Leave', meals: '0 Meals' },
-              { day: 21, label: '21 Aug', val: 1, status: 'QR Check-in Done', meals: '4 Meals Logged' },
-              { day: 22, label: '22 Aug', val: 0, status: 'Sunday Leave', meals: '0 Meals' },
-              { day: 23, label: '23 Aug', val: 1, status: 'QR Check-in Done', meals: '4 Meals Logged' },
-              { day: 24, label: '24 Aug', val: 10, status: 'Check-in Streak #10', meals: '4 Meals Active' },
-              { day: 25, label: '25 Aug', val: 0, status: 'Hostel Leave', meals: '0 Meals' },
-              { day: 26, label: '26 Aug', val: 0, status: 'Hostel Leave', meals: '0 Meals' },
-              { day: 27, label: '27 Aug', val: 0, status: 'Hostel Leave', meals: '0 Meals' },
-              { day: 28, label: '28 Aug', val: 0, status: 'Hostel Leave', meals: '0 Meals' },
-              { day: 29, label: '29 Aug', val: 0, status: 'Hostel Leave', meals: '0 Meals' },
-              { day: 30, label: '30 Aug', val: 0, status: 'Hostel Leave', meals: '0 Meals' },
-              { day: 31, label: '31 Aug', val: 0, status: 'Month End Outpass', meals: '0 Meals' },
-              { day: 1, label: '1 Sep', val: 2, status: 'QR Check-in Done', meals: '4 Meals Active' },
-              { day: 2, label: '2 Sep', val: 7, status: 'QR Check-in Streak', meals: '4 Meals Active' },
-              { day: 3, label: '3 Sep', val: 5, status: 'QR Check-in Done', meals: '4 Meals Active' },
-              { day: 4, label: '4 Sep', val: 34, status: 'All-Time Peak Attendance', meals: 'Complete 4-Meal Pass (Full Day Record)' },
-              { day: 5, label: '5 Sep', val: 3, status: 'Feast Day', meals: '4 Meals Active' },
-              { day: 6, label: '6 Sep', val: 5, status: 'QR Check-in Done', meals: '4 Meals Active' },
-              { day: 7, label: '7 Sep', val: 16, status: 'High Activity Streak', meals: '4 Meals Active' },
-              { day: 8, label: '8 Sep', val: 0, status: 'Sunday Break', meals: '0 Meals' },
-              { day: 9, label: '9 Sep', val: 1, status: 'QR Check-in Done', meals: '4 Meals Active' },
-              { day: 10, label: '10 Sep', val: 14, status: 'High Activity Streak', meals: '4 Meals Active' },
-              { day: 11, label: '11 Sep', val: 10, status: 'QR Check-in Done', meals: '4 Meals Active' },
-              { day: 12, label: '12 Sep', val: 1, status: 'QR Check-in Done', meals: '4 Meals Active' },
-              { day: 13, label: '13 Sep', val: 6, status: 'Today (Active)', meals: '4 Meals Active' },
-            ];
-
-            const currentIdx = hoveredMonthIdx >= 0 && hoveredMonthIdx < sampleTimelineData.length ? hoveredMonthIdx : sampleTimelineData.length - 1;
-            const selectedPoint = sampleTimelineData[currentIdx] || sampleTimelineData[0];
+            const yearDataset = MULTI_YEAR_MESS_DATA[selectedGraphYear] || MULTI_YEAR_MESS_DATA[2026];
+            const currentIdx = hoveredMonthIdx >= 0 && hoveredMonthIdx < yearDataset.length ? hoveredMonthIdx : 5; // Default June
+            const selectedMonth = yearDataset[currentIdx] || yearDataset[0];
+            const totalYearMeals = yearDataset.reduce((sum, m) => sum + m.mealsCovered, 0);
 
             return (
               <>
-                {/* DYNAMIC SELECTED DAY DETAIL BAR */}
+                {/* DYNAMIC SELECTED MONTH DETAIL BAR */}
                 <div className="srd-hover-detail-bar">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span style={{ fontSize: '20px' }}>🎯</span>
                     <div>
                       <strong style={{ fontSize: '14px', color: 'var(--text)' }}>
-                        Date: {selectedPoint.label}
+                        Month: {selectedMonth.full} {selectedGraphYear}
                       </strong>
                       <span style={{
                         marginLeft: '8px',
@@ -1293,20 +1286,22 @@ function StudentRecordDossier({
                         borderRadius: '12px',
                         fontWeight: 800
                       }}>
-                        {selectedPoint.status}
+                        {selectedMonth.tag}
                       </span>
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '13px', flexWrap: 'wrap' }}>
-                    <span>Activity Score: <b style={{ color: '#2563eb', fontSize: '15px' }}>{selectedPoint.val} pts</b></span>
+                    <span>Days Eaten: <b style={{ color: '#2563eb', fontSize: '15px' }}>{selectedMonth.present} / {selectedMonth.daysTotal} Days</b></span>
                     <span style={{ color: 'var(--border)' }}>|</span>
-                    <span style={{ color: selectedPoint.val > 0 ? '#16a34a' : '#ef4444', fontWeight: 800 }}>
-                      🍱 {selectedPoint.meals}
+                    <span style={{ color: '#16a34a', fontWeight: 800 }}>
+                      🍱 {selectedMonth.mealsCovered} Meals Served ({selectedMonth.pct}%)
                     </span>
+                    <span style={{ color: 'var(--border)' }}>|</span>
+                    <span style={{ color: '#dc2626' }}>🏖️ {selectedMonth.leave} Leaves</span>
                   </div>
                 </div>
 
-                {/* SVG ORIGINAL STUNNING PURPLE/BLUE WAVE GRAPH */}
+                {/* SVG ORIGINAL BEAUTIFUL PURPLE/BLUE WAVE GRAPH */}
                 <div className="srd-svg-wrap">
                   <svg
                     viewBox="0 0 920 280"
@@ -1331,12 +1326,12 @@ function StudentRecordDossier({
                       fontWeight="700"
                       letterSpacing="0.4px"
                     >
-                      Activity / Diets Score
+                      Days Eaten in Month (0 - 31 Days)
                     </text>
 
-                    {/* HORIZONTAL PURPLE DOTTED GRID LINES & Y-AXIS VALUES */}
-                    {[35, 30, 25, 20, 15, 10, 5, 0].map((val) => {
-                      const y = 30 + ((35 - val) / 35) * 190;
+                    {/* HORIZONTAL PURPLE DOTTED GRID LINES & Y-AXIS DAYS VALUES (0 to 31) */}
+                    {[31, 25, 20, 15, 10, 5, 0].map((val) => {
+                      const y = 30 + ((31 - val) / 31) * 190;
                       return (
                         <g key={val}>
                           <line
@@ -1355,7 +1350,7 @@ function StudentRecordDossier({
                             textAnchor="end"
                             fontSize="11"
                             fill="#6366f1"
-                            fontWeight="600"
+                            fontWeight="700"
                           >
                             {val}
                           </text>
@@ -1366,10 +1361,10 @@ function StudentRecordDossier({
                     {/* SMOOTH SPLINE WAVE & DATA NODES */}
                     {(() => {
                       const startX = 65;
-                      const stepX = (890 - startX) / (sampleTimelineData.length - 1);
-                      const points = sampleTimelineData.map((d, i) => {
+                      const stepX = (890 - startX) / (yearDataset.length - 1);
+                      const points = yearDataset.map((d, i) => {
                         const x = startX + i * stepX;
-                        const y = 30 + ((35 - d.val) / 35) * 190;
+                        const y = 30 + ((31 - d.present) / 31) * 190;
                         return { x, y, d, i };
                       });
 
@@ -1400,10 +1395,10 @@ function StudentRecordDossier({
                             strokeLinejoin="round"
                           />
 
-                          {/* DATA POINTS & DAY LABELS */}
+                          {/* DATA POINTS & MONTH LABELS */}
                           {points.map(({ x, y, d, i }) => {
                             const isHovered = hoveredMonthIdx === i;
-                            const isHighPeak = d.val >= 30;
+                            const isHighPeak = d.present >= 27;
 
                             return (
                               <g
@@ -1424,31 +1419,29 @@ function StudentRecordDossier({
                                   />
                                 )}
 
-                                {/* PEAK VALUE BADGE */}
-                                {d.val > 0 && (
-                                  <text
-                                    x={x}
-                                    y={y - 10}
-                                    textAnchor="middle"
-                                    fontSize="11"
-                                    fontWeight="900"
-                                    fill={isHovered ? '#1e40af' : '#6366f1'}
-                                  >
-                                    {d.val}
-                                  </text>
-                                )}
+                                {/* PEAK VALUE BADGE (DAYS EATEN) */}
+                                <text
+                                  x={x}
+                                  y={y - 10}
+                                  textAnchor="middle"
+                                  fontSize="11.5"
+                                  fontWeight="900"
+                                  fill={isHovered ? '#1e40af' : '#6366f1'}
+                                >
+                                  {d.present}
+                                </text>
 
                                 {/* POINT CIRCLE */}
                                 <circle
                                   cx={x}
                                   cy={y}
-                                  r={isHovered ? 7 : (isHighPeak ? 5.5 : 4)}
+                                  r={isHovered ? 7 : (isHighPeak ? 5.5 : 4.5)}
                                   fill="#f59e0b"
                                   stroke="#3b82f6"
                                   strokeWidth={isHovered ? 2.5 : 1.8}
                                 />
 
-                                {/* X-AXIS DAY NUMBER */}
+                                {/* X-AXIS MONTH NAME */}
                                 <text
                                   x={x}
                                   y="244"
@@ -1457,7 +1450,7 @@ function StudentRecordDossier({
                                   fontWeight={isHovered ? '900' : '700'}
                                   fill={isHovered ? '#1e40af' : '#6366f1'}
                                 >
-                                  {d.day}
+                                  {d.month}
                                 </text>
                               </g>
                             );
@@ -1473,22 +1466,22 @@ function StudentRecordDossier({
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
                     <span style={{ fontSize: '16px' }}>⚡</span>
                     <span style={{ color: 'var(--text-muted)' }}>Daily QR Scan:</span>
-                    <b style={{ color: '#16a34a' }}>1 Scan / Day</b>
+                    <b style={{ color: '#16a34a' }}>1 Scan = All 4 Meals Active</b>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
                     <span style={{ fontSize: '16px' }}>🍱</span>
-                    <span style={{ color: 'var(--text-muted)' }}>Dining Coverage:</span>
-                    <b style={{ color: '#8B0D0D' }}>All 4 Meals Active (Breakfast, Lunch, Snacks, Dinner)</b>
+                    <span style={{ color: 'var(--text-muted)' }}>Total Annual Diets:</span>
+                    <b style={{ color: '#8B0D0D' }}>{totalYearMeals} Diets Consumed ({selectedGraphYear})</b>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
                     <span style={{ fontSize: '16px' }}>🗓️</span>
-                    <span style={{ color: 'var(--text-muted)' }}>Total Tracked:</span>
-                    <b style={{ color: 'var(--text)' }}>31-Day Timeline</b>
+                    <span style={{ color: 'var(--text-muted)' }}>Academic Cycle:</span>
+                    <b style={{ color: 'var(--text)' }}>12 Months (0 - 31 Days Range)</b>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
                     <span style={{ fontSize: '16px' }}>🏆</span>
-                    <span style={{ color: 'var(--text-muted)' }}>Peak Check-in:</span>
-                    <b style={{ color: '#2563eb' }}>34 Daily Points</b>
+                    <span style={{ color: 'var(--text-muted)' }}>Peak Attendance:</span>
+                    <b style={{ color: '#2563eb' }}>May &amp; Aug (28 Days • 112 Meals)</b>
                   </div>
                 </div>
               </>
