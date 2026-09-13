@@ -175,7 +175,51 @@ function StudentRecordDossier({
   const pincode = profileData?.pincode || currentUser?.pincode || '804401';
 
   const bloodGroup = profileData?.bloodGroup || currentUser?.blood_group || 'O+';
-  const hostelBlock = allotmentInfo?.hostel_name || allotmentInfo?.hostelBlock || profileData?.hostelBlock || currentUser?.hostel_block || (isFemale ? 'Savitribai Phule Girls Hostel' : 'Birsa Munda Boys Hostel');
+  
+  const getCleanHostelBlock = () => {
+    // 1. Direct specific block name from allotmentInfo
+    const rawAllotmentBlock = String(allotmentInfo?.block_name || allotmentInfo?.block || allotmentInfo?.hostel_block || allotmentInfo?.hostelBlock || '').trim();
+    if (rawAllotmentBlock && !rawAllotmentBlock.includes('&') && !rawAllotmentBlock.includes('Blocks)')) {
+      return rawAllotmentBlock;
+    }
+
+    // 2. Check profileData and currentUser
+    const rawProfileBlock = String(profileData?.hostelBlock || profileData?.hostel_block || currentUser?.hostel_block || currentUser?.hostelBlock || '').trim();
+    if (rawProfileBlock && !rawProfileBlock.includes('&') && !rawProfileBlock.includes('Blocks)')) {
+      return rawProfileBlock;
+    }
+
+    // 3. Wing-based detection (BIRSA vs RAJENDRA)
+    const wingStr = String(allotmentInfo?.wing || allotmentInfo?.wing_name || '').toUpperCase();
+    if (wingStr.includes('RAJENDRA') || wingStr.includes('RIGHT')) {
+      return 'Dr. Rajendra Prasad Boys Hostel';
+    }
+    if (wingStr.includes('BIRSA') || wingStr.includes('LEFT')) {
+      return 'Birsa Munda Boys Hostel';
+    }
+
+    // 4. Check if allotmentInfo hostel_name is already a specific single hostel
+    const rawHostelName = String(allotmentInfo?.hostel_name || '').trim();
+    if (rawHostelName && !rawHostelName.includes('&') && !rawHostelName.includes('Dr. Rajendra Prasad Blocks')) {
+      return rawHostelName;
+    }
+
+    // 5. Keyword search in composite strings
+    const combinedStr = `${rawAllotmentBlock} ${rawProfileBlock} ${rawHostelName} ${profileData?.hostelBlock || ''}`.toLowerCase();
+    if (combinedStr.includes('rajendra')) {
+      return 'Dr. Rajendra Prasad Boys Hostel';
+    }
+    if (combinedStr.includes('birsa')) {
+      return 'Birsa Munda Boys Hostel';
+    }
+    if (combinedStr.includes('savitribai') || isFemale) {
+      return 'Savitribai Phule Girls Hostel';
+    }
+
+    return isFemale ? 'Savitribai Phule Girls Hostel' : 'Birsa Munda Boys Hostel';
+  };
+  const hostelBlock = getCleanHostelBlock();
+
   const roomBed = (allotmentInfo?.room_number && allotmentInfo?.bed_code)
     ? `Room ${allotmentInfo.room_number} • Bed ${allotmentInfo.bed_code}`
     : (allotmentInfo?.roomNo ? `Room ${allotmentInfo.roomNo} • Bed ${allotmentInfo.bedNo || 'A'}` : (profileData?.roomNumber ? `Room ${profileData.roomNumber} • Bed ${profileData.bedNumber || 'A'}` : (isFemale ? 'Room 101 • Bed A' : 'Room 101 • Bed 1 (Bed A)')));

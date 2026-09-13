@@ -1138,10 +1138,25 @@ def get_student_allotment_status(student_id: str, db: Session = Depends(get_db))
         models.AllotmentRequest.student_id == user.id
     ).order_by(models.AllotmentRequest.applied_at.desc()).first()
 
+    def resolve_specific_hostel_name(room_obj):
+        if not room_obj:
+            return "Hostel Block"
+        wing_upper = str(room_obj.wing or "").upper()
+        if "RAJENDRA" in wing_upper or "RIGHT" in wing_upper:
+            return "Dr. Rajendra Prasad Boys Hostel"
+        elif "BIRSA" in wing_upper or "LEFT" in wing_upper:
+            return "Birsa Munda Boys Hostel"
+        elif room_obj.hostel and room_obj.hostel.gender_type in ["GIRLS", "FEMALE"]:
+            return "Savitribai Phule Girls Hostel"
+        elif room_obj.hostel and room_obj.hostel.name and "Birsa Munda & Dr. Rajendra Prasad" not in room_obj.hostel.name:
+            return room_obj.hostel.name
+        return "Birsa Munda Boys Hostel"
+
     # If no explicit request record, check direct bed assignment
     if not req:
         occupied_bed = db.query(models.Bed).filter(models.Bed.current_student_id == user.id).first()
         if occupied_bed:
+            specific_hostel = resolve_specific_hostel_name(occupied_bed.room)
             return {
                 "has_request": True,
                 "request_id": 0,
@@ -1150,7 +1165,8 @@ def get_student_allotment_status(student_id: str, db: Session = Depends(get_db))
                 "floor_number": occupied_bed.room.floor_number if occupied_bed.room else 0,
                 "wing": occupied_bed.room.wing if occupied_bed.room else "",
                 "bed_code": occupied_bed.bed_code,
-                "hostel_name": occupied_bed.room.hostel.name if occupied_bed.room and occupied_bed.room.hostel else "Hostel Block",
+                "hostel_name": specific_hostel,
+                "block_name": specific_hostel,
                 "applied_at": None,
                 "remarks": "Directly Allotted",
                 "fee_unlocked": True,
@@ -1162,6 +1178,7 @@ def get_student_allotment_status(student_id: str, db: Session = Depends(get_db))
     elapsed_sec = (now - req.applied_at).total_seconds() if req.applied_at else 0
     hours_left = max(0.0, round((86400 - elapsed_sec) / 3600.0, 1))
 
+    req_hostel = resolve_specific_hostel_name(req.room)
     return {
         "has_request": True,
         "request_id": req.id,
@@ -1170,7 +1187,8 @@ def get_student_allotment_status(student_id: str, db: Session = Depends(get_db))
         "floor_number": req.room.floor_number if req.room else 0,
         "wing": req.room.wing if req.room else "",
         "bed_code": req.bed.bed_code if req.bed else "",
-        "hostel_name": req.room.hostel.name if req.room and req.room.hostel else "Hostel Block",
+        "hostel_name": req_hostel,
+        "block_name": req_hostel,
         "applied_at": req.applied_at,
         "remarks": req.remarks,
         "fee_unlocked": (req.status == "APPROVED"),
