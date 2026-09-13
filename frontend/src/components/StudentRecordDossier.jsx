@@ -510,71 +510,85 @@ function StudentRecordDossier({
 
         .srd-metric-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
           gap: 16px;
         }
         .srd-metric-card {
           background: var(--card);
           border: 1px solid var(--border);
           border-radius: 18px;
-          padding: 18px 20px;
+          padding: 20px;
           display: flex;
-          align-items: center;
-          gap: 16px;
-          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
-          min-width: 0;
+          flex-direction: column;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
           transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
           position: relative;
           overflow: hidden;
         }
         .srd-metric-card:hover {
           transform: translateY(-3px);
-          box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
-          border-color: rgba(99, 102, 241, 0.35);
+          box-shadow: 0 10px 24px rgba(0, 0, 0, 0.07);
+          border-color: rgba(128, 0, 0, 0.3);
         }
-        .srd-metric-icon {
-          width: 52px;
-          height: 52px;
-          border-radius: 14px;
+        .srd-metric-card-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 14px;
+        }
+        .srd-metric-icon-box {
+          width: 42px;
+          height: 42px;
+          border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 24px;
+          font-size: 20px;
           flex-shrink: 0;
-          box-shadow: inset 0 1px 1px rgba(255,255,255,0.4);
         }
-        .srd-metric-card > div {
-          min-width: 0;
-          flex: 1;
-        }
-        .srd-metric-tag {
+        .srd-metric-badge-pill {
           font-size: 11px;
+          font-weight: 800;
+          padding: 3px 9px;
+          border-radius: 20px;
+          letter-spacing: 0.3px;
+        }
+        .srd-metric-label {
+          font-size: 11.5px;
           font-weight: 800;
           color: var(--text-muted);
           text-transform: uppercase;
           letter-spacing: 0.6px;
-          margin: 0 0 4px;
+          margin: 0 0 6px;
+        }
+        .srd-metric-hero-val {
+          font-size: 26px;
+          font-weight: 900;
+          color: var(--text);
+          line-height: 1.1;
+          margin: 0 0 14px;
+          font-family: 'DM Sans', sans-serif;
+        }
+        .srd-metric-progress-track {
+          width: 100%;
+          height: 6px;
+          background: var(--input-bg);
+          border: 1px solid var(--border);
+          border-radius: 3px;
+          overflow: hidden;
+          margin-bottom: 10px;
+        }
+        .srd-metric-progress-bar {
+          height: 100%;
+          border-radius: 3px;
+          transition: width 0.4s ease;
+        }
+        .srd-metric-footer {
           display: flex;
           align-items: center;
           justify-content: space-between;
-        }
-        .srd-metric-val {
-          margin: 0 0 4px;
-          font-size: 20px;
-          font-weight: 900;
-          color: var(--text);
-          line-height: 1.15;
-          font-family: 'DM Sans', sans-serif;
-          overflow-wrap: anywhere;
-        }
-        .srd-metric-sub {
-          margin: 0;
-          font-size: 11.5px;
+          font-size: 12px;
           font-weight: 700;
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          line-height: 1.3;
         }
 
         /* 🗓️ SLEEK CALENDAR WIDGET (GP BARH BRAND IDENTITY) 🗓️ */
@@ -1353,85 +1367,117 @@ function StudentRecordDossier({
           </div>
         </div>
 
-        {/* 4 REAL-TIME DYNAMIC METRIC CARDS */}
+        {/* 4 REAL-TIME CLEAN MODERN METRIC CARDS */}
         <div className="srd-metric-grid">
           {/* CARD 1: MONTHLY ATTENDANCE */}
-          <div className="srd-metric-card" style={{ borderLeft: '4px solid #16a34a' }}>
-            <CircularBadge percent={monthlyPct} color="#16a34a" />
-            <div>
-              <div className="srd-metric-tag">
-                <span>Monthly Attendance</span>
-                <span style={{ fontSize: '9.5px', background: '#dcfce7', color: '#166534', padding: '1px 6px', borderRadius: '6px', fontWeight: 800 }}>
-                  {MONTH_SHORT[activeMonth]} {activeYear}
-                </span>
+          <div className="srd-metric-card" style={{ borderTop: '3px solid #16a34a' }}>
+            <div className="srd-metric-card-top">
+              <div className="srd-metric-icon-box" style={{ background: '#dcfce7', color: '#16a34a' }}>
+                📅
               </div>
-              <div className="srd-metric-val" style={{ color: '#166534' }}>
-                {monthlyPresent} <span style={{ fontSize: '13.5px', color: 'var(--text-muted)', fontWeight: 600 }}>/ {monthlyTotal} Days</span>
-              </div>
-              <p className="srd-metric-sub" style={{ color: '#16a34a' }}>
-                <span>✅</span> <span>{monthlyPct}% Scanned in {MONTH_SHORT[activeMonth]}</span>
-              </p>
+              <span className="srd-metric-badge-pill" style={{ background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0' }}>
+                {MONTH_NAMES[activeMonth]} {activeYear}
+              </span>
+            </div>
+
+            <div className="srd-metric-label">Monthly Attendance</div>
+            <div className="srd-metric-hero-val" style={{ color: '#166534' }}>
+              {monthlyPresent} <span style={{ fontSize: '16px', color: 'var(--text-muted)', fontWeight: 600 }}>/ {monthlyTotal} Days</span>
+            </div>
+
+            <div className="srd-metric-progress-track">
+              <div
+                className="srd-metric-progress-bar"
+                style={{ width: `${monthlyPct}%`, background: 'linear-gradient(90deg, #16a34a, #22c55e)' }}
+              />
+            </div>
+            <div className="srd-metric-footer" style={{ color: '#16a34a' }}>
+              <span>✅ {monthlyPct}% Present</span>
+              <span style={{ color: 'var(--text-muted)' }}>1 Scan = 4 Meals</span>
             </div>
           </div>
 
-          {/* CARD 2: MONTHLY MEALS CONSUMED (4 MEALS / DAY) */}
-          <div className="srd-metric-card" style={{ borderLeft: '4px solid #d97706' }}>
-            <div className="srd-metric-icon" style={{ background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', color: '#d97706', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
-              🍱
+          {/* CARD 2: MONTHLY MEALS CONSUMED */}
+          <div className="srd-metric-card" style={{ borderTop: '3px solid #ea580c' }}>
+            <div className="srd-metric-card-top">
+              <div className="srd-metric-icon-box" style={{ background: '#fef3c7', color: '#ea580c' }}>
+                🍱
+              </div>
+              <span className="srd-metric-badge-pill" style={{ background: '#fef3c7', color: '#c2410c', border: '1px solid #fde68a' }}>
+                4 Diets / Day
+              </span>
             </div>
-            <div>
-              <div className="srd-metric-tag">
-                <span>Monthly Diets Eaten</span>
-                <span style={{ fontSize: '9.5px', background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: '6px', fontWeight: 800 }}>
-                  4 Meals/Day
-                </span>
-              </div>
-              <div className="srd-metric-val" style={{ color: '#b45309' }}>
-                {monthlyMealsCovered} <span style={{ fontSize: '13.5px', color: 'var(--text-muted)', fontWeight: 600 }}>Diets Served</span>
-              </div>
-              <p className="srd-metric-sub" style={{ color: '#d97706' }}>
-                <span>🥞</span> <span>B:{monthlyPresent} • L:{monthlyPresent} • S:{monthlyPresent} • D:{monthlyPresent}</span>
-              </p>
+
+            <div className="srd-metric-label">Monthly Meals Consumed</div>
+            <div className="srd-metric-hero-val" style={{ color: '#c2410c' }}>
+              {monthlyMealsCovered} <span style={{ fontSize: '16px', color: 'var(--text-muted)', fontWeight: 600 }}>Meals Eaten</span>
+            </div>
+
+            <div className="srd-metric-progress-track">
+              <div
+                className="srd-metric-progress-bar"
+                style={{ width: `${monthlyPct}%`, background: 'linear-gradient(90deg, #ea580c, #f59e0b)' }}
+              />
+            </div>
+            <div className="srd-metric-footer" style={{ color: '#ea580c' }}>
+              <span>🥞 Breakfast • 🍛 Lunch</span>
+              <span>☕ Snacks • 🍲 Dinner</span>
             </div>
           </div>
 
           {/* CARD 3: ACADEMIC SESSION CUMULATIVE */}
-          <div className="srd-metric-card" style={{ borderLeft: '4px solid #6366f1' }}>
-            <CircularBadge percent={annualPct} color="#6366f1" label={String(activeYear)} />
-            <div>
-              <div className="srd-metric-tag">
-                <span>Academic Session ({activeYear})</span>
-                <span style={{ fontSize: '9.5px', background: '#ede9fe', color: '#5b21b6', padding: '1px 6px', borderRadius: '6px', fontWeight: 800 }}>
-                  12 Months
-                </span>
+          <div className="srd-metric-card" style={{ borderTop: '3px solid #6366f1' }}>
+            <div className="srd-metric-card-top">
+              <div className="srd-metric-icon-box" style={{ background: '#ede9fe', color: '#6366f1' }}>
+                📈
               </div>
-              <div className="srd-metric-val" style={{ color: '#4338ca' }}>
-                {annualTotalDaysPresent} <span style={{ fontSize: '13.5px', color: 'var(--text-muted)', fontWeight: 600 }}>/ {annualTotalDaysTotal} Days</span>
-              </div>
-              <p className="srd-metric-sub" style={{ color: '#6366f1' }}>
-                <span>📊</span> <span>{annualTotalMeals} Total Session Diets</span>
-              </p>
+              <span className="srd-metric-badge-pill" style={{ background: '#ede9fe', color: '#4f46e5', border: '1px solid #ddd6fe' }}>
+                Session {activeYear}
+              </span>
+            </div>
+
+            <div className="srd-metric-label">Annual Cumulative Attendance</div>
+            <div className="srd-metric-hero-val" style={{ color: '#4338ca' }}>
+              {annualTotalDaysPresent} <span style={{ fontSize: '16px', color: 'var(--text-muted)', fontWeight: 600 }}>/ {annualTotalDaysTotal} Days</span>
+            </div>
+
+            <div className="srd-metric-progress-track">
+              <div
+                className="srd-metric-progress-bar"
+                style={{ width: `${annualPct}%`, background: 'linear-gradient(90deg, #4f46e5, #818cf8)' }}
+              />
+            </div>
+            <div className="srd-metric-footer" style={{ color: '#6366f1' }}>
+              <span>📊 {annualPct}% Consistency</span>
+              <span style={{ color: 'var(--text-muted)' }}>{annualTotalMeals} Total Diets</span>
             </div>
           </div>
 
           {/* CARD 4: APPROVED LEAVES & OUTPASS REBATES */}
-          <div className="srd-metric-card" style={{ borderLeft: '4px solid #ef4444' }}>
-            <div className="srd-metric-icon" style={{ background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)', color: '#dc2626', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
-              🏖️
+          <div className="srd-metric-card" style={{ borderTop: '3px solid #ef4444' }}>
+            <div className="srd-metric-card-top">
+              <div className="srd-metric-icon-box" style={{ background: '#fee2e2', color: '#dc2626' }}>
+                🏖️
+              </div>
+              <span className="srd-metric-badge-pill" style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca' }}>
+                Rebated
+              </span>
             </div>
-            <div>
-              <div className="srd-metric-tag">
-                <span>Approved Leaves / Outpass</span>
-                <span style={{ fontSize: '9.5px', background: '#fee2e2', color: '#991b1b', padding: '1px 6px', borderRadius: '6px', fontWeight: 800 }}>
-                  Rebated
-                </span>
-              </div>
-              <div className="srd-metric-val" style={{ color: '#b91c1c' }}>
-                {leaveDays} <span style={{ fontSize: '13.5px', color: 'var(--text-muted)', fontWeight: 600 }}>Days Absent</span>
-              </div>
-              <p className="srd-metric-sub" style={{ color: '#dc2626' }}>
-                <span>⚡</span> <span>{leaveDays * 4} Meals Rebated ({MONTH_SHORT[activeMonth]})</span>
-              </p>
+
+            <div className="srd-metric-label">Approved Leaves / Outpass</div>
+            <div className="srd-metric-hero-val" style={{ color: '#b91c1c' }}>
+              {leaveDays} <span style={{ fontSize: '16px', color: 'var(--text-muted)', fontWeight: 600 }}>Days Leave</span>
+            </div>
+
+            <div className="srd-metric-progress-track">
+              <div
+                className="srd-metric-progress-bar"
+                style={{ width: `${Math.min(100, (leaveDays / 30) * 100)}%`, background: 'linear-gradient(90deg, #dc2626, #f87171)' }}
+              />
+            </div>
+            <div className="srd-metric-footer" style={{ color: '#dc2626' }}>
+              <span>⚡ {leaveDays * 4} Meals Rebated</span>
+              <span style={{ color: 'var(--text-muted)' }}>Pre-Approved</span>
             </div>
           </div>
         </div>
