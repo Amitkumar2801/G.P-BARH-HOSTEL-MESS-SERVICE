@@ -8,21 +8,53 @@ const MONTH_NAMES = [
 ];
 const MONTH_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-// Comprehensive 12-Month Realistic Academic Dataset (Single QR Scan = All 4 Meals Active)
-const ANNUAL_MESS_DATA = [
-  { month: "Jan", full: "January", daysTotal: 31, present: 26, leave: 5, pct: 83.9, tag: "Winter Session", mealsCovered: 104 },
-  { month: "Feb", full: "February", daysTotal: 28, present: 24, leave: 4, pct: 85.7, tag: "Regular Session", mealsCovered: 96 },
-  { month: "Mar", full: "March", daysTotal: 31, present: 27, leave: 4, pct: 87.1, tag: "Mid-Term Exams", mealsCovered: 108 },
-  { month: "Apr", full: "April", daysTotal: 30, present: 26, leave: 4, pct: 86.7, tag: "Regular Session", mealsCovered: 104 },
-  { month: "May", full: "May", daysTotal: 31, present: 28, leave: 3, pct: 90.3, tag: "End-Semester", mealsCovered: 112 },
-  { month: "Jun", full: "June", daysTotal: 30, present: 10, leave: 20, pct: 33.3, tag: "Summer Vacation", mealsCovered: 40 },
-  { month: "Jul", full: "July", daysTotal: 31, present: 22, leave: 9, pct: 71.0, tag: "Semester Start", mealsCovered: 88 },
-  { month: "Aug", full: "August", daysTotal: 31, present: 28, leave: 3, pct: 90.3, tag: "Peak Attendance", mealsCovered: 112 },
-  { month: "Sep", full: "September", daysTotal: 30, present: 26, leave: 4, pct: 86.7, tag: "Current Month", mealsCovered: 104 },
-  { month: "Oct", full: "October", daysTotal: 31, present: 18, leave: 13, pct: 58.1, tag: "Puja/Diwali Break", mealsCovered: 72 },
-  { month: "Nov", full: "November", daysTotal: 30, present: 25, leave: 5, pct: 83.3, tag: "Regular Session", mealsCovered: 100 },
-  { month: "Dec", full: "December", daysTotal: 31, present: 20, leave: 11, pct: 64.5, tag: "Winter Break", mealsCovered: 80 },
-];
+// Comprehensive Multi-Year Realistic Academic Dataset (Single QR Scan = 4 Meals Active)
+const MULTI_YEAR_MESS_DATA = {
+  2026: [
+    { month: "Jan", full: "January", daysTotal: 31, present: 26, leave: 5, pct: 83.9, tag: "Winter Session", mealsCovered: 104 },
+    { month: "Feb", full: "February", daysTotal: 28, present: 24, leave: 4, pct: 85.7, tag: "Regular Session", mealsCovered: 96 },
+    { month: "Mar", full: "March", daysTotal: 31, present: 27, leave: 4, pct: 87.1, tag: "Mid-Term Exams", mealsCovered: 108 },
+    { month: "Apr", full: "April", daysTotal: 30, present: 26, leave: 4, pct: 86.7, tag: "Regular Session", mealsCovered: 104 },
+    { month: "May", full: "May", daysTotal: 31, present: 28, leave: 3, pct: 90.3, tag: "End-Semester", mealsCovered: 112 },
+    { month: "Jun", full: "June", daysTotal: 30, present: 10, leave: 20, pct: 33.3, tag: "Summer Vacation", mealsCovered: 40 },
+    { month: "Jul", full: "July", daysTotal: 31, present: 22, leave: 9, pct: 71.0, tag: "Semester Start", mealsCovered: 88 },
+    { month: "Aug", full: "August", daysTotal: 31, present: 28, leave: 3, pct: 90.3, tag: "Peak Attendance", mealsCovered: 112 },
+    { month: "Sep", full: "September", daysTotal: 30, present: 26, leave: 4, pct: 86.7, tag: "Current Month", mealsCovered: 104 },
+    { month: "Oct", full: "October", daysTotal: 31, present: 18, leave: 13, pct: 58.1, tag: "Puja/Diwali Break", mealsCovered: 72 },
+    { month: "Nov", full: "November", daysTotal: 30, present: 25, leave: 5, pct: 83.3, tag: "Regular Session", mealsCovered: 100 },
+    { month: "Dec", full: "December", daysTotal: 31, present: 20, leave: 11, pct: 64.5, tag: "Winter Break", mealsCovered: 80 },
+  ],
+  2027: [
+    { month: "Jan", full: "January", daysTotal: 31, present: 27, leave: 4, pct: 87.1, tag: "Winter Session", mealsCovered: 108 },
+    { month: "Feb", full: "February", daysTotal: 28, present: 25, leave: 3, pct: 89.3, tag: "Regular Session", mealsCovered: 100 },
+    { month: "Mar", full: "March", daysTotal: 31, present: 28, leave: 3, pct: 90.3, tag: "Mid-Term Exams", mealsCovered: 112 },
+    { month: "Apr", full: "April", daysTotal: 30, present: 27, leave: 3, pct: 90.0, tag: "Regular Session", mealsCovered: 108 },
+    { month: "May", full: "May", daysTotal: 31, present: 29, leave: 2, pct: 93.5, tag: "End-Semester", mealsCovered: 116 },
+    { month: "Jun", full: "June", daysTotal: 30, present: 12, leave: 18, pct: 40.0, tag: "Summer Vacation", mealsCovered: 48 },
+    { month: "Jul", full: "July", daysTotal: 31, present: 24, leave: 7, pct: 77.4, tag: "Semester Start", mealsCovered: 96 },
+    { month: "Aug", full: "August", daysTotal: 31, present: 28, leave: 3, pct: 90.3, tag: "Regular Session", mealsCovered: 112 },
+    { month: "Sep", full: "September", daysTotal: 30, present: 26, leave: 4, pct: 86.7, tag: "Regular Session", mealsCovered: 104 },
+    { month: "Oct", full: "October", daysTotal: 31, present: 19, leave: 12, pct: 61.3, tag: "Festival Break", mealsCovered: 76 },
+    { month: "Nov", full: "November", daysTotal: 30, present: 26, leave: 4, pct: 86.7, tag: "Regular Session", mealsCovered: 104 },
+    { month: "Dec", full: "December", daysTotal: 31, present: 22, leave: 9, pct: 71.0, tag: "Winter Break", mealsCovered: 88 },
+  ],
+  2028: [
+    { month: "Jan", full: "January", daysTotal: 31, present: 28, leave: 3, pct: 90.3, tag: "Final Year Session", mealsCovered: 112 },
+    { month: "Feb", full: "February", daysTotal: 29, present: 26, leave: 3, pct: 89.7, tag: "Regular Session", mealsCovered: 104 },
+    { month: "Mar", full: "March", daysTotal: 31, present: 28, leave: 3, pct: 90.3, tag: "Project Submissions", mealsCovered: 112 },
+    { month: "Apr", full: "April", daysTotal: 30, present: 28, leave: 2, pct: 93.3, tag: "Final Exams", mealsCovered: 112 },
+    { month: "May", full: "May", daysTotal: 31, present: 30, leave: 1, pct: 96.8, tag: "Convocation Session", mealsCovered: 120 },
+    { month: "Jun", full: "June", daysTotal: 30, present: 15, leave: 15, pct: 50.0, tag: "Internship Period", mealsCovered: 60 },
+    { month: "Jul", full: "July", daysTotal: 31, present: 26, leave: 5, pct: 83.9, tag: "Placement Drive", mealsCovered: 104 },
+    { month: "Aug", full: "August", daysTotal: 31, present: 29, leave: 2, pct: 93.5, tag: "Campus Recruitment", mealsCovered: 116 },
+    { month: "Sep", full: "September", daysTotal: 30, present: 27, leave: 3, pct: 90.0, tag: "Final Projects", mealsCovered: 108 },
+    { month: "Oct", full: "October", daysTotal: 31, present: 20, leave: 11, pct: 64.5, tag: "Festival Break", mealsCovered: 80 },
+    { month: "Nov", full: "November", daysTotal: 30, present: 27, leave: 3, pct: 90.0, tag: "Regular Session", mealsCovered: 108 },
+    { month: "Dec", full: "December", daysTotal: 31, present: 24, leave: 7, pct: 77.4, tag: "Valedictory Meet", mealsCovered: 96 },
+  ]
+};
+
+const ANNUAL_MESS_DATA = MULTI_YEAR_MESS_DATA[2026];
 
 function CircularBadge({ percent, size = 54, stroke = 5, label }) {
   const r = (size - stroke) / 2;
@@ -170,6 +202,7 @@ function StudentRecordDossier({
   const [activeTab, setActiveTab] = useState('month'); // 'month' | 'year'
   const [activeMonth, setActiveMonth] = useState(8); // 0-indexed: 8 = September 2026
   const [activeYear, setActiveYear] = useState(2026);
+  const [selectedGraphYear, setSelectedGraphYear] = useState(2026);
   const [hoveredMonthIdx, setHoveredMonthIdx] = useState(8);
   const [chartMode, setChartMode] = useState('bars'); // 'bars' | 'trend'
 
@@ -1166,26 +1199,50 @@ function StudentRecordDossier({
           </div>
         )}
 
-        {/* 📊 MESS ATTENDANCE & MEAL DIET ANALYTICS GRAPH 📊 */}
+        {/* 📊 ANNUAL MESS ATTENDANCE & MEALS CONSUMED GRAPH (2026 - 2027 - 2028) 📊 */}
         <div className="srd-analytics-chart-card">
 
-          {/* TOP HEADER & LEGEND BAR */}
+          {/* TOP HEADER & MULTI-YEAR SELECTOR */}
           <div className="srd-chart-top-bar">
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'linear-gradient(90deg, #8B0D0D, #1e293b)', color: '#ffffff', padding: '6px 14px', borderRadius: '8px', fontSize: '11px', fontWeight: 900, letterSpacing: '0.8px', boxShadow: '0 2px 8px rgba(139, 13, 13, 0.3)' }}>
-              <span style={{ fontSize: '13px' }}>🍱</span>
-              <span style={{ color: '#fef08a' }}>GP BARH MESS</span>
-              <span style={{ opacity: 0.5 }}>•</span>
-              <span>DAILY MEAL DIET ANALYTICS</span>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#0f172a', color: '#ffffff', padding: '6px 14px', borderRadius: '8px', fontSize: '11px', fontWeight: 900, letterSpacing: '0.8px', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+              <span style={{ fontSize: '13px' }}>📊</span>
+              <span>ANNUAL MESS MEALS &amp; DIET TREND</span>
             </div>
 
+            {/* YEAR SWITCHER (2026 - 2027 - 2028) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '3px' }}>
+              {[2026, 2027, 2028].map((yr) => (
+                <button
+                  key={yr}
+                  type="button"
+                  onClick={() => setSelectedGraphYear(yr)}
+                  style={{
+                    border: 'none',
+                    background: selectedGraphYear === yr ? '#8B0D0D' : 'transparent',
+                    color: selectedGraphYear === yr ? '#ffffff' : 'var(--text-muted)',
+                    padding: '5px 12px',
+                    borderRadius: '7px',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    boxShadow: selectedGraphYear === yr ? '0 2px 6px rgba(139, 13, 13, 0.4)' : 'none'
+                  }}
+                >
+                  {yr} {yr === 2026 ? '(Current)' : ''}
+                </button>
+              ))}
+            </div>
+
+            {/* LEGEND BADGES */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '12px', flexWrap: 'wrap' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#16a34a', fontWeight: 800 }}>
-                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px #22c55e' }}></span>
-                QR Scanned (4 Meals / Full Diet)
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#2563eb', fontWeight: 700 }}>
+                <span style={{ width: '12px', height: '3px', background: '#2563eb', borderRadius: '2px' }}></span>
+                Monthly Diets Eaten
               </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#dc2626', fontWeight: 800 }}>
-                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ef4444' }}></span>
-                Leave / Outpass (0 Meals)
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#f59e0b', fontWeight: 700 }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b', border: '2px solid #2563eb' }}></span>
+                Monthly Peak Node
               </span>
             </div>
           </div>
@@ -1193,140 +1250,119 @@ function StudentRecordDossier({
           {/* CENTER GRAPH TITLE */}
           <h3 style={{
             textAlign: 'center',
-            color: '#8B0D0D',
+            color: '#6366f1',
             fontSize: 'clamp(15px, 2.4vw, 18px)',
-            fontWeight: 900,
+            fontWeight: 800,
             margin: '8px 0 14px',
             letterSpacing: '0.2px',
             fontFamily: "'DM Sans', sans-serif"
           }}>
-            {fullName} 's Daily Mess Attendance &amp; Meal Intake ({MONTH_NAMES[activeMonth]} {activeYear})
+            {fullName} 's Annual Mess Meal Consumption Trend ({selectedGraphYear})
           </h3>
 
-          {/* DYNAMIC ACCURATE 0-4 MEALS TIMELINE & HOVER DETAIL */}
+          {/* DYNAMIC 12-MONTH DATASET & HOVER DETAIL */}
           {(() => {
-            const daysInM = calendarData.daysInMonth;
-            const leaves = new Set([4, 11, 18, 22, 25].filter(d => d <= daysInM));
-            const timelineData = [];
-            let runningMeals = 0;
-
-            for (let d = 1; d <= daysInM; d++) {
-              const isLeave = leaves.has(d);
-              const meals = isLeave ? 0 : 4;
-              runningMeals += meals;
-              timelineData.push({
-                day: d,
-                label: `${d} ${MONTH_SHORT[activeMonth]}`,
-                meals: meals,
-                status: isLeave ? 'Hostel Leave / Outpass' : 'QR Scanned Present (Full Diet)',
-                desc: isLeave ? '0 Diets Consumed (Leave Approved)' : '4 Diets Consumed (Breakfast, Lunch, Snacks, Dinner)',
-                runningMeals: runningMeals
-              });
-            }
-
-            const currentIdx = hoveredMonthIdx >= 0 && hoveredMonthIdx < timelineData.length ? hoveredMonthIdx : timelineData.length - 1;
-            const selectedPoint = timelineData[currentIdx] || timelineData[0];
-            const isPresentPoint = selectedPoint.meals === 4;
+            const yearDataset = MULTI_YEAR_MESS_DATA[selectedGraphYear] || MULTI_YEAR_MESS_DATA[2026];
+            const currentIdx = hoveredMonthIdx >= 0 && hoveredMonthIdx < yearDataset.length ? hoveredMonthIdx : 7;
+            const selectedMonth = yearDataset[currentIdx] || yearDataset[0];
+            const totalYearMeals = yearDataset.reduce((sum, m) => sum + m.mealsCovered, 0);
 
             return (
               <>
-                {/* DYNAMIC SELECTED POINT DETAIL CHIP */}
+                {/* DYNAMIC SELECTED MONTH DETAIL BAR */}
                 <div className="srd-hover-detail-bar">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '20px' }}>{isPresentPoint ? '🍱' : '🏖️'}</span>
+                    <span style={{ fontSize: '20px' }}>🎯</span>
                     <div>
-                      <strong style={{ fontSize: '14px', color: 'var(--text)' }}>Date: {selectedPoint.label} {activeYear}</strong>
+                      <strong style={{ fontSize: '14px', color: 'var(--text)' }}>
+                        Month: {selectedMonth.full} {selectedGraphYear}
+                      </strong>
                       <span style={{
                         marginLeft: '8px',
                         fontSize: '11px',
-                        background: isPresentPoint ? '#dcfce7' : '#fee2e2',
-                        color: isPresentPoint ? '#166534' : '#991b1b',
+                        background: '#ede9fe',
+                        color: '#6366f1',
                         padding: '2px 8px',
                         borderRadius: '12px',
                         fontWeight: 800
                       }}>
-                        {selectedPoint.status}
+                        {selectedMonth.tag}
                       </span>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '13px', flexWrap: 'wrap' }}>
-                    <span>Daily Intake: <b style={{ color: isPresentPoint ? '#16a34a' : '#dc2626', fontSize: '15px' }}>{selectedPoint.meals} / 4 Meals</b></span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '13px', flexWrap: 'wrap' }}>
+                    <span>Total Diets Eaten: <b style={{ color: '#2563eb', fontSize: '15px' }}>{selectedMonth.mealsCovered} Meals</b></span>
                     <span style={{ color: 'var(--border)' }}>|</span>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
-                      Month Progress: <b style={{ color: '#8B0D0D' }}>{selectedPoint.runningMeals} Total Meals</b>
-                    </span>
+                    <span>Attendance Rate: <b style={{ color: '#16a34a' }}>{selectedMonth.pct}%</b> ({selectedMonth.present} / {selectedMonth.daysTotal} Days)</span>
+                    <span style={{ color: 'var(--border)' }}>|</span>
+                    <span style={{ color: '#dc2626' }}>🏖️ {selectedMonth.leave} Leaves</span>
                   </div>
                 </div>
 
-                {/* SVG RESPONSIVE DAILY MEALS GRAPH */}
+                {/* SVG ORIGINAL BEAUTIFUL PURPLE/BLUE WAVE GRAPH */}
                 <div className="srd-svg-wrap">
                   <svg
-                    viewBox="0 0 900 260"
-                    style={{ width: '100%', minWidth: '680px', height: 'auto', display: 'block' }}
+                    viewBox="0 0 920 280"
+                    style={{ width: '100%', minWidth: '720px', height: 'auto', display: 'block' }}
                   >
                     <defs>
-                      <linearGradient id="messWaveGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#10b981" stopOpacity="0.45" />
-                        <stop offset="50%" stopColor="#059669" stopOpacity="0.2" />
-                        <stop offset="100%" stopColor="#10b981" stopOpacity="0.02" />
+                      <linearGradient id="purpleGlowFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#818cf8" stopOpacity="0.45" />
+                        <stop offset="50%" stopColor="#c084fc" stopOpacity="0.2" />
+                        <stop offset="100%" stopColor="#e0e7ff" stopOpacity="0.02" />
                       </linearGradient>
                     </defs>
 
                     {/* Y-AXIS TITLE */}
                     <text
                       transform="rotate(-90)"
-                      x="-115"
+                      x="-135"
                       y="18"
                       textAnchor="middle"
-                      fill="#8B0D0D"
+                      fill="#6366f1"
                       fontSize="11.5"
-                      fontWeight="800"
-                      letterSpacing="0.5px"
+                      fontWeight="700"
+                      letterSpacing="0.4px"
                     >
-                      Meals Consumed (0-4)
+                      Monthly Diets / Meals Eaten
                     </text>
 
-                    {/* HORIZONTAL GRID LINES & Y-AXIS MEAL COUNT LABELS */}
-                    {[
-                      { val: 4, label: '4 Meals (Full)' },
-                      { val: 3, label: '3 Meals' },
-                      { val: 2, label: '2 Meals' },
-                      { val: 1, label: '1 Meal' },
-                      { val: 0, label: '0 (Leave)' }
-                    ].map((item) => {
-                      const y = 35 + ((4 - item.val) / 4) * 160;
+                    {/* HORIZONTAL PURPLE DOTTED GRID LINES & Y-AXIS VALUES */}
+                    {[120, 100, 80, 60, 40, 20, 0].map((val) => {
+                      const y = 30 + ((120 - val) / 120) * 190;
                       return (
-                        <g key={item.val}>
+                        <g key={val}>
                           <line
-                            x1="65"
+                            x1="52"
                             y1={y}
-                            x2="880"
+                            x2="905"
                             y2={y}
-                            stroke={item.val === 4 ? 'rgba(34, 197, 94, 0.35)' : item.val === 0 ? 'rgba(239, 68, 68, 0.35)' : 'rgba(203, 213, 225, 0.4)'}
-                            strokeDasharray={item.val === 4 || item.val === 0 ? 'none' : '3 3'}
-                            strokeWidth={item.val === 4 || item.val === 0 ? '1.5' : '1'}
+                            stroke="#c7d2fe"
+                            strokeOpacity="0.75"
+                            strokeDasharray="2 3"
+                            strokeWidth="1.2"
                           />
                           <text
-                            x="58"
+                            x="44"
                             y={y + 4}
                             textAnchor="end"
-                            fontSize="10.5"
-                            fill={item.val === 4 ? '#16a34a' : item.val === 0 ? '#dc2626' : '#64748b'}
-                            fontWeight={item.val === 4 || item.val === 0 ? '800' : '600'}
+                            fontSize="11"
+                            fill="#6366f1"
+                            fontWeight="600"
                           >
-                            {item.label}
+                            {val}
                           </text>
                         </g>
                       );
                     })}
 
-                    {/* SMOOTH STEP / SPLINE CURVE & POINTS */}
+                    {/* SMOOTH SPLINE WAVE & DATA NODES */}
                     {(() => {
-                      const startX = 75;
-                      const stepX = (865 - startX) / (timelineData.length - 1);
-                      const points = timelineData.map((d, i) => {
+                      const startX = 65;
+                      const stepX = (890 - startX) / (yearDataset.length - 1);
+                      const points = yearDataset.map((d, i) => {
                         const x = startX + i * stepX;
-                        const y = 35 + ((4 - d.meals) / 4) * 160;
+                        const y = 30 + ((120 - d.mealsCovered) / 120) * 190;
                         return { x, y, d, i };
                       });
 
@@ -1340,79 +1376,79 @@ function StudentRecordDossier({
                         return `${acc} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${p.x} ${p.y}`;
                       }, "");
 
-                      const areaPath = `${linePath} L ${points[points.length - 1].x} 195 L ${points[0].x} 195 Z`;
+                      const areaPath = `${linePath} L ${points[points.length - 1].x} 220 L ${points[0].x} 220 Z`;
 
                       return (
                         <g>
                           {/* GRADIENT SHADED AREA UNDER CURVE */}
-                          <path d={areaPath} fill="url(#messWaveGradient)" />
+                          <path d={areaPath} fill="url(#purpleGlowFill)" />
 
-                          {/* SMOOTH WAVE LINE */}
+                          {/* SMOOTH BLUE WAVE LINE */}
                           <path
                             d={linePath}
                             fill="none"
-                            stroke="#10b981"
-                            strokeWidth="3.2"
+                            stroke="#3b82f6"
+                            strokeWidth="3.5"
                             strokeLinecap="round"
                             strokeLinejoin="round"
                           />
 
-                          {/* DATA POINTS & LABELS */}
+                          {/* DATA POINTS & MONTH LABELS */}
                           {points.map(({ x, y, d, i }) => {
                             const isHovered = hoveredMonthIdx === i;
-                            const isPresent = d.meals === 4;
+                            const isHighPeak = d.mealsCovered >= 110;
 
                             return (
                               <g
-                                key={`pt-${i}`}
+                                key={`point-${i}`}
                                 style={{ cursor: 'pointer' }}
                                 onMouseEnter={() => setHoveredMonthIdx(i)}
                               >
-                                {/* VERTICAL GUIDELINE ON HOVER */}
+                                {/* HOVER VERTICAL GUIDELINE */}
                                 {isHovered && (
                                   <line
                                     x1={x}
-                                    y1="30"
+                                    y1="25"
                                     x2={x}
-                                    y2="200"
-                                    stroke={isPresent ? '#16a34a' : '#ef4444'}
+                                    y2="220"
+                                    stroke="#818cf8"
                                     strokeWidth="1.5"
                                     strokeDasharray="2 2"
                                   />
                                 )}
 
-                                {/* PEAK MEALS BADGE */}
+                                {/* PEAK VALUE BADGE (MEALS COUNT) */}
                                 <text
                                   x={x}
-                                  y={isPresent ? y - 8 : y + 16}
+                                  y={y - 10}
                                   textAnchor="middle"
-                                  fontSize="10"
+                                  fontSize="11"
                                   fontWeight="900"
-                                  fill={isPresent ? '#16a34a' : '#dc2626'}
+                                  fill={isHovered ? '#1e40af' : '#6366f1'}
                                 >
-                                  {isPresent ? '4M' : '0'}
+                                  {d.mealsCovered}
                                 </text>
 
-                                {/* CIRCLE NODE */}
+                                {/* POINT CIRCLE */}
                                 <circle
                                   cx={x}
                                   cy={y}
-                                  r={isHovered ? 6.5 : 4.5}
-                                  fill={isPresent ? '#22c55e' : '#ef4444'}
-                                  stroke="#ffffff"
+                                  r={isHovered ? 7 : (isHighPeak ? 5.5 : 4.5)}
+                                  fill="#f59e0b"
+                                  stroke="#3b82f6"
                                   strokeWidth={isHovered ? 2.5 : 1.8}
                                 />
 
-                                {/* X-AXIS DAY NUMBER */}
+                                {/* X-AXIS MONTH NAME */}
                                 <text
                                   x={x}
-                                  y="225"
+                                  y="244"
                                   textAnchor="middle"
-                                  fontSize="11"
+                                  fontSize="12"
                                   fontWeight={isHovered ? '900' : '700'}
-                                  fill={isHovered ? '#8B0D0D' : '#64748b'}
+                                  fill={isHovered ? '#1e40af' : '#6366f1'}
                                 >
-                                  {d.day}
+                                  {d.month}
                                 </text>
                               </g>
                             );
@@ -1427,23 +1463,23 @@ function StudentRecordDossier({
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '16px', marginTop: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
                     <span style={{ fontSize: '16px' }}>⚡</span>
-                    <span style={{ color: 'var(--text-muted)' }}>Daily QR Check-in:</span>
-                    <b style={{ color: '#16a34a' }}>1 Scan Activates All 4 Meals</b>
+                    <span style={{ color: 'var(--text-muted)' }}>Daily QR Scan:</span>
+                    <b style={{ color: '#16a34a' }}>1 Scan = All 4 Meals Active</b>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
                     <span style={{ fontSize: '16px' }}>🍱</span>
-                    <span style={{ color: 'var(--text-muted)' }}>Dining Coverage:</span>
-                    <b style={{ color: '#8B0D0D' }}>Breakfast, Lunch, Snacks, Dinner</b>
+                    <span style={{ color: 'var(--text-muted)' }}>Total Annual Diets:</span>
+                    <b style={{ color: '#8B0D0D' }}>{totalYearMeals} Diets Consumed ({selectedGraphYear})</b>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
                     <span style={{ fontSize: '16px' }}>🗓️</span>
-                    <span style={{ color: 'var(--text-muted)' }}>Month Timeline:</span>
-                    <b style={{ color: 'var(--text)' }}>{calendarData.daysInMonth} Days in {MONTH_NAMES[activeMonth]}</b>
+                    <span style={{ color: 'var(--text-muted)' }}>Academic Cycle:</span>
+                    <b style={{ color: 'var(--text)' }}>12-Month Timeline ({selectedGraphYear})</b>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
                     <span style={{ fontSize: '16px' }}>🏆</span>
-                    <span style={{ color: 'var(--text-muted)' }}>Total Diets Served:</span>
-                    <b style={{ color: '#16a34a' }}>{monthlyPresent * 4} Meals ({monthlyPresent} Present / {leaveDays} Leaves)</b>
+                    <span style={{ color: 'var(--text-muted)' }}>Peak Attendance:</span>
+                    <b style={{ color: '#2563eb' }}>May &amp; Aug (112 Meals • 90.3%)</b>
                   </div>
                 </div>
               </>
