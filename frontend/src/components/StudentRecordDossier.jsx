@@ -816,7 +816,7 @@ function StudentRecordDossier({
           box-shadow: 0 0 0 2px rgba(128,0,0,0.2);
         }
 
-        /* 📈 ANALYTICS GRAPH 📈 */
+        /* 📈 ANALYTICS GRAPH (RESPONSIVE & MOBILE APK OPTIMIZED) 📈 */
         .srd-analytics-chart-card {
           background: var(--card);
           border: 1px solid var(--border);
@@ -825,7 +825,7 @@ function StudentRecordDossier({
           box-shadow: var(--shadow-sm);
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          gap: 16px;
         }
         .srd-chart-top-bar {
           display: flex;
@@ -848,25 +848,30 @@ function StudentRecordDossier({
           gap: 10px;
         }
 
-        /* SVG CHART CONTAINER (MOBILE & APK OPTIMIZED) */
+        /* SVG CHART CONTAINER (MOBILE & APK FULL WIDTH FLUID) */
         .srd-svg-wrap {
           width: 100%;
-          overflow-x: auto;
-          -webkit-overflow-scrolling: touch;
           position: relative;
-          padding-bottom: 8px;
           border-radius: 12px;
+          overflow: hidden;
         }
-        .srd-svg-wrap::-webkit-scrollbar {
-          height: 6px;
-        }
-        .srd-svg-wrap::-webkit-scrollbar-track {
-          background: rgba(0, 0, 0, 0.06);
-          border-radius: 4px;
-        }
-        .srd-svg-wrap::-webkit-scrollbar-thumb {
-          background: rgba(139, 13, 13, 0.35);
-          border-radius: 4px;
+
+        @media (max-width: 640px) {
+          .srd-analytics-chart-card {
+            padding: 14px;
+            gap: 14px;
+          }
+          .srd-chart-top-bar {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+          }
+          .srd-hover-detail-bar {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 10px 12px;
+          }
         }
 
         /* ⚠️ NOTICE BOX ⚠️ */
@@ -1157,11 +1162,11 @@ function StudentRecordDossier({
                   </div>
                 </div>
 
-                {/* SVG ORIGINAL BEAUTIFUL PURPLE/BLUE WAVE GRAPH */}
+                {/* SVG FULLY RESPONSIVE FLUID WAVE GRAPH (OPTIMIZED FOR MOBILE APK & DESKTOP) */}
                 <div className="srd-svg-wrap">
                   <svg
-                    viewBox="0 0 920 280"
-                    style={{ width: '100%', minWidth: '720px', height: 'auto', display: 'block' }}
+                    viewBox="0 0 880 270"
+                    style={{ width: '100%', height: 'auto', display: 'block' }}
                   >
                     <defs>
                       <linearGradient id="purpleGlowFill" x1="0" y1="0" x2="0" y2="1">
@@ -1174,26 +1179,26 @@ function StudentRecordDossier({
                     {/* Y-AXIS TITLE */}
                     <text
                       transform="rotate(-90)"
-                      x="-135"
-                      y="18"
+                      x="-125"
+                      y="16"
                       textAnchor="middle"
                       fill="#6366f1"
-                      fontSize="11.5"
-                      fontWeight="700"
+                      fontSize="12"
+                      fontWeight="800"
                       letterSpacing="0.4px"
                     >
-                      Days Eaten in Month (0 - 31 Days)
+                      Days Eaten (0 - 31)
                     </text>
 
                     {/* HORIZONTAL PURPLE DOTTED GRID LINES & Y-AXIS DAYS VALUES (0 to 31) */}
                     {[31, 25, 20, 15, 10, 5, 0].map((val) => {
-                      const y = 30 + ((31 - val) / 31) * 190;
+                      const y = 28 + ((31 - val) / 31) * 175;
                       return (
                         <g key={val}>
                           <line
-                            x1="52"
+                            x1="45"
                             y1={y}
-                            x2="905"
+                            x2="865"
                             y2={y}
                             stroke="#c7d2fe"
                             strokeOpacity="0.75"
@@ -1201,12 +1206,12 @@ function StudentRecordDossier({
                             strokeWidth="1.2"
                           />
                           <text
-                            x="44"
+                            x="38"
                             y={y + 4}
                             textAnchor="end"
-                            fontSize="11"
+                            fontSize="12.5"
                             fill="#6366f1"
-                            fontWeight="700"
+                            fontWeight="800"
                           >
                             {val}
                           </text>
@@ -1216,11 +1221,12 @@ function StudentRecordDossier({
 
                     {/* SMOOTH SPLINE WAVE & DATA NODES */}
                     {(() => {
-                      const startX = 65;
-                      const stepX = (890 - startX) / (yearDataset.length - 1);
+                      const startX = 56;
+                      const endX = 855;
+                      const stepX = (endX - startX) / (yearDataset.length - 1);
                       const points = yearDataset.map((d, i) => {
                         const x = startX + i * stepX;
-                        const y = 30 + ((31 - d.present) / 31) * 190;
+                        const y = 28 + ((31 - d.present) / 31) * 175;
                         return { x, y, d, i };
                       });
 
@@ -1234,7 +1240,7 @@ function StudentRecordDossier({
                         return `${acc} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${p.x} ${p.y}`;
                       }, "");
 
-                      const areaPath = `${linePath} L ${points[points.length - 1].x} 220 L ${points[0].x} 220 Z`;
+                      const areaPath = `${linePath} L ${points[points.length - 1].x} 205 L ${points[0].x} 205 Z`;
 
                       return (
                         <g>
@@ -1245,8 +1251,8 @@ function StudentRecordDossier({
                           <path
                             d={linePath}
                             fill="none"
-                            stroke="#3b82f6"
-                            strokeWidth="3.5"
+                            stroke="#2563eb"
+                            strokeWidth="4"
                             strokeLinecap="round"
                             strokeLinejoin="round"
                           />
@@ -1254,23 +1260,23 @@ function StudentRecordDossier({
                           {/* DATA POINTS & MONTH LABELS */}
                           {points.map(({ x, y, d, i }) => {
                             const isHovered = hoveredMonthIdx === i;
-                            const isHighPeak = d.present >= 27;
 
                             return (
                               <g
                                 key={`point-${i}`}
                                 style={{ cursor: 'pointer' }}
+                                onClick={() => setHoveredMonthIdx(i)}
                                 onMouseEnter={() => setHoveredMonthIdx(i)}
                               >
-                                {/* HOVER VERTICAL GUIDELINE */}
+                                {/* HOVER / SELECTION VERTICAL GUIDELINE */}
                                 {isHovered && (
                                   <line
                                     x1={x}
-                                    y1="25"
+                                    y1="22"
                                     x2={x}
-                                    y2="220"
+                                    y2="205"
                                     stroke="#818cf8"
-                                    strokeWidth="1.5"
+                                    strokeWidth="2"
                                     strokeDasharray="2 2"
                                   />
                                 )}
@@ -1278,11 +1284,11 @@ function StudentRecordDossier({
                                 {/* PEAK VALUE BADGE (DAYS EATEN) */}
                                 <text
                                   x={x}
-                                  y={y - 10}
+                                  y={y - 11}
                                   textAnchor="middle"
-                                  fontSize="11.5"
+                                  fontSize="13.5"
                                   fontWeight="900"
-                                  fill={isHovered ? '#1e40af' : '#6366f1'}
+                                  fill={isHovered ? '#1e40af' : '#4338ca'}
                                 >
                                   {d.present}
                                 </text>
@@ -1291,20 +1297,20 @@ function StudentRecordDossier({
                                 <circle
                                   cx={x}
                                   cy={y}
-                                  r={isHovered ? 7 : (isHighPeak ? 5.5 : 4.5)}
+                                  r={isHovered ? 8 : 6}
                                   fill="#f59e0b"
-                                  stroke="#3b82f6"
-                                  strokeWidth={isHovered ? 2.5 : 1.8}
+                                  stroke="#2563eb"
+                                  strokeWidth={isHovered ? 3 : 2.2}
                                 />
 
                                 {/* X-AXIS MONTH NAME */}
                                 <text
                                   x={x}
-                                  y="244"
+                                  y="242"
                                   textAnchor="middle"
-                                  fontSize="12"
-                                  fontWeight={isHovered ? '900' : '700'}
-                                  fill={isHovered ? '#1e40af' : '#6366f1'}
+                                  fontSize="14.5"
+                                  fontWeight={isHovered ? '900' : '800'}
+                                  fill={isHovered ? '#1e40af' : '#4f46e5'}
                                 >
                                   {d.month}
                                 </text>
@@ -1317,27 +1323,35 @@ function StudentRecordDossier({
                   </svg>
                 </div>
 
-                {/* GRAPH FOOTER SUMMARY TILES */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '16px', marginTop: '12px' }}>
+                {/* GRAPH FOOTER SUMMARY TILES (RESPONSIVE 2X2 GRID ON MOBILE) */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', borderTop: '1px solid var(--border)', paddingTop: '14px', marginTop: '6px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
                     <span style={{ fontSize: '16px' }}>⚡</span>
-                    <span style={{ color: 'var(--text-muted)' }}>Daily QR Scan:</span>
-                    <b style={{ color: '#16a34a' }}>1 Scan = All 4 Meals Active</b>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '10.5px' }}>Daily QR Scan</div>
+                      <b style={{ color: '#16a34a' }}>1 Scan = 4 Meals</b>
+                    </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
                     <span style={{ fontSize: '16px' }}>🍱</span>
-                    <span style={{ color: 'var(--text-muted)' }}>Total Annual Diets:</span>
-                    <b style={{ color: '#8B0D0D' }}>{totalYearMeals} Diets Consumed ({selectedGraphYear})</b>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '10.5px' }}>Annual Diets</div>
+                      <b style={{ color: '#8B0D0D' }}>{totalYearMeals} Diets ({selectedGraphYear})</b>
+                    </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
                     <span style={{ fontSize: '16px' }}>🗓️</span>
-                    <span style={{ color: 'var(--text-muted)' }}>Academic Cycle:</span>
-                    <b style={{ color: 'var(--text)' }}>12 Months (0 - 31 Days Range)</b>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '10.5px' }}>Scale</div>
+                      <b style={{ color: 'var(--text)' }}>12 Months (0-31 Days)</b>
+                    </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
                     <span style={{ fontSize: '16px' }}>🏆</span>
-                    <span style={{ color: 'var(--text-muted)' }}>Peak Attendance:</span>
-                    <b style={{ color: '#2563eb' }}>May &amp; Aug (28 Days • 112 Meals)</b>
+                    <div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '10.5px' }}>Peak Diets</div>
+                      <b style={{ color: '#2563eb' }}>May &amp; Aug (28 Days)</b>
+                    </div>
                   </div>
                 </div>
               </>
