@@ -1165,7 +1165,7 @@ function StudentRecordDossier({
                 {/* SVG FULLY RESPONSIVE FLUID WAVE GRAPH (CRYSTAL CLEAR HIGH CONTRAST FOR MOBILE APK & DESKTOP) */}
                 <div className="srd-svg-wrap">
                   <svg
-                    viewBox="0 0 940 380"
+                    viewBox="0 0 1020 400"
                     style={{ width: '100%', height: 'auto', display: 'block' }}
                   >
                     <defs>
@@ -1179,37 +1179,37 @@ function StudentRecordDossier({
                       </filter>
                     </defs>
 
-                    {/* Y-AXIS TITLE */}
+                    {/* Y-AXIS TITLE (ROTATED) */}
                     <text
                       transform="rotate(-90)"
-                      x="-160"
-                      y="22"
+                      x="-175"
+                      y="28"
                       textAnchor="middle"
                       fill="#475569"
                       fontSize="20"
                       fontWeight="900"
-                      letterSpacing="0.6px"
+                      letterSpacing="0.8px"
                     >
                       Days Eaten (0 - 31)
                     </text>
 
                     {/* HORIZONTAL PURPLE DOTTED GRID LINES & Y-AXIS DAYS VALUES (0 to 31) */}
                     {[31, 25, 20, 15, 10, 5, 0].map((val) => {
-                      const y = 50 + ((31 - val) / 31) * 220;
+                      const y = 60 + ((31 - val) / 31) * 225;
                       return (
                         <g key={val}>
                           <line
-                            x1="70"
+                            x1="96"
                             y1={y}
-                            x2="915"
+                            x2="988"
                             y2={y}
                             stroke="#cbd5e1"
-                            strokeOpacity="0.8"
+                            strokeOpacity="0.85"
                             strokeDasharray="4 4"
                             strokeWidth="1.8"
                           />
                           <text
-                            x="60"
+                            x="82"
                             y={y + 7}
                             textAnchor="end"
                             fontSize="22"
@@ -1224,12 +1224,12 @@ function StudentRecordDossier({
 
                     {/* SMOOTH SPLINE WAVE & DATA NODES */}
                     {(() => {
-                      const startX = 75;
-                      const endX = 905;
+                      const startX = 135;
+                      const endX = 960;
                       const stepX = (endX - startX) / (yearDataset.length - 1);
                       const points = yearDataset.map((d, i) => {
                         const x = startX + i * stepX;
-                        const y = 50 + ((31 - d.present) / 31) * 220;
+                        const y = 60 + ((31 - d.present) / 31) * 225;
                         return { x, y, d, i };
                       });
 
@@ -1243,7 +1243,7 @@ function StudentRecordDossier({
                         return `${acc} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${p.x} ${p.y}`;
                       }, "");
 
-                      const areaPath = `${linePath} L ${points[points.length - 1].x} 270 L ${points[0].x} 270 Z`;
+                      const areaPath = `${linePath} L ${points[points.length - 1].x} 285 L ${points[0].x} 285 Z`;
 
                       return (
                         <g>
@@ -1252,10 +1252,10 @@ function StudentRecordDossier({
 
                           {/* BASELINE */}
                           <line
-                            x1="70"
-                            y1="270"
-                            x2="915"
-                            y2="270"
+                            x1="96"
+                            y1="285"
+                            x2="988"
+                            y2="285"
                             stroke="#94a3b8"
                             strokeWidth="2.5"
                           />
@@ -1286,7 +1286,7 @@ function StudentRecordDossier({
                                   x={x - stepX / 2}
                                   y="10"
                                   width={stepX}
-                                  height="360"
+                                  height="380"
                                   fill="transparent"
                                 />
 
@@ -1296,7 +1296,7 @@ function StudentRecordDossier({
                                     x1={x}
                                     y1="40"
                                     x2={x}
-                                    y2="270"
+                                    y2="285"
                                     stroke="#3b82f6"
                                     strokeWidth="3"
                                     strokeDasharray="4 4"
@@ -1370,7 +1370,7 @@ function StudentRecordDossier({
                                   <g>
                                     <rect
                                       x={x - 30}
-                                      y="300"
+                                      y="315"
                                       width="60"
                                       height="36"
                                       rx="8"
@@ -1378,7 +1378,7 @@ function StudentRecordDossier({
                                     />
                                     <text
                                       x={x}
-                                      y="325"
+                                      y="340"
                                       textAnchor="middle"
                                       fontSize="22"
                                       fontWeight="900"
@@ -1390,7 +1390,7 @@ function StudentRecordDossier({
                                 ) : (
                                   <text
                                     x={x}
-                                    y="325"
+                                    y="340"
                                     textAnchor="middle"
                                     fontSize="24"
                                     fontWeight="900"
