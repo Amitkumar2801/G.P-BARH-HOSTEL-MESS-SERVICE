@@ -56,7 +56,7 @@ const MULTI_YEAR_MESS_DATA = {
 
 const ANNUAL_MESS_DATA = MULTI_YEAR_MESS_DATA[2026];
 
-function CircularBadge({ percent, size = 54, stroke = 5, label }) {
+function CircularBadge({ percent, size = 56, stroke = 5, label, color = "#800000" }) {
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const offset = c - (Math.min(percent, 100) / 100) * c;
@@ -70,18 +70,20 @@ function CircularBadge({ percent, size = 54, stroke = 5, label }) {
           fill="none"
           stroke="var(--border)"
           strokeWidth={stroke}
+          opacity="0.5"
         />
         <circle
           cx={size / 2}
           cy={size / 2}
           r={r}
           fill="none"
-          stroke="#800000"
+          stroke={color}
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={c}
           strokeDashoffset={offset}
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          style={{ transition: 'stroke-dashoffset 0.4s ease' }}
         />
       </svg>
       <div style={{
@@ -95,8 +97,8 @@ function CircularBadge({ percent, size = 54, stroke = 5, label }) {
         lineHeight: 1.1,
         color: 'var(--text)'
       }}>
-        <strong style={{ fontSize: '12px', fontWeight: 800 }}>{percent}%</strong>
-        {label ? <span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>{label}</span> : null}
+        <strong style={{ fontSize: '13px', fontWeight: 900, color }}>{percent}%</strong>
+        {label ? <span style={{ fontSize: '8.5px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>{label}</span> : null}
       </div>
     </div>
   );
@@ -224,24 +226,6 @@ function StudentRecordDossier({
     ? `Room ${allotmentInfo.room_number} • Bed ${allotmentInfo.bed_code}`
     : (allotmentInfo?.roomNo ? `Room ${allotmentInfo.roomNo} • Bed ${allotmentInfo.bedNo || 'A'}` : (profileData?.roomNumber ? `Room ${profileData.roomNumber} • Bed ${profileData.bedNumber || 'A'}` : (isFemale ? 'Room 101 • Bed A' : 'Room 101 • Bed 1 (Bed A)')));
 
-  // Mess Analytics Data (Single QR scan per day)
-  const mess = allotmentInfo?.mess || {};
-  const monthlyPresent = mess.monthlyPresent ?? 26;
-  const monthlyTotal = mess.monthlyTotal ?? 30;
-  const monthlyPct = useMemo(
-    () => Number(((monthlyPresent / monthlyTotal) * 100).toFixed(1)),
-    [monthlyPresent, monthlyTotal]
-  );
-
-  const annualPresent = mess.annualPresent ?? 214;
-  const annualTotal = mess.annualTotal ?? 240;
-  const annualPct = useMemo(
-    () => Number(((annualPresent / annualTotal) * 100).toFixed(1)),
-    [annualPresent, annualTotal]
-  );
-
-  const leaveDays = mess.leaveDays ?? 4;
-
   // Calendar and View States
   const [activeTab, setActiveTab] = useState('month'); // 'month' | 'year'
   const [activeMonth, setActiveMonth] = useState(8); // 0-indexed: 8 = September 2026
@@ -249,6 +233,24 @@ function StudentRecordDossier({
   const [selectedGraphYear, setSelectedGraphYear] = useState(2026);
   const [hoveredMonthIdx, setHoveredMonthIdx] = useState(8);
   const [chartMode, setChartMode] = useState('bars'); // 'bars' | 'trend'
+
+  // Dynamic Real-Time Academic Dataset Calculations
+  const currentYearData = MULTI_YEAR_MESS_DATA[activeYear] || MULTI_YEAR_MESS_DATA[2026];
+  const currentMonthData = currentYearData[activeMonth] || currentYearData[8];
+
+  const monthlyPresent = currentMonthData.present;
+  const monthlyTotal = currentMonthData.daysTotal;
+  const monthlyPct = currentMonthData.pct;
+  const monthlyMealsCovered = currentMonthData.mealsCovered;
+  const leaveDays = currentMonthData.leave;
+
+  const annualTotalDaysPresent = useMemo(() => currentYearData.reduce((sum, m) => sum + m.present, 0), [currentYearData]);
+  const annualTotalDaysTotal = useMemo(() => currentYearData.reduce((sum, m) => sum + m.daysTotal, 0), [currentYearData]);
+  const annualTotalMeals = useMemo(() => currentYearData.reduce((sum, m) => sum + m.mealsCovered, 0), [currentYearData]);
+  const annualPct = useMemo(
+    () => Number(((annualTotalDaysPresent / annualTotalDaysTotal) * 100).toFixed(1)),
+    [annualTotalDaysPresent, annualTotalDaysTotal]
+  );
 
   // Calculate calendar grid for current active month
   const calendarData = useMemo(() => {
@@ -508,35 +510,71 @@ function StudentRecordDossier({
 
         .srd-metric-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
           gap: 16px;
         }
         .srd-metric-card {
           background: var(--card);
           border: 1px solid var(--border);
-          border-radius: 16px;
+          border-radius: 18px;
           padding: 18px 20px;
           display: flex;
           align-items: center;
           gap: 16px;
-          box-shadow: var(--shadow-sm);
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
           min-width: 0;
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          position: relative;
+          overflow: hidden;
+        }
+        .srd-metric-card:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+          border-color: rgba(99, 102, 241, 0.35);
         }
         .srd-metric-icon {
-          width: 50px;
-          height: 50px;
-          border-radius: 12px;
+          width: 52px;
+          height: 52px;
+          border-radius: 14px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 22px;
+          font-size: 24px;
           flex-shrink: 0;
+          box-shadow: inset 0 1px 1px rgba(255,255,255,0.4);
         }
         .srd-metric-card > div {
           min-width: 0;
+          flex: 1;
         }
-        .srd-metric-card h4 {
+        .srd-metric-tag {
+          font-size: 11px;
+          font-weight: 800;
+          color: var(--text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.6px;
+          margin: 0 0 4px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .srd-metric-val {
+          margin: 0 0 4px;
+          font-size: 20px;
+          font-weight: 900;
+          color: var(--text);
+          line-height: 1.15;
+          font-family: 'DM Sans', sans-serif;
           overflow-wrap: anywhere;
+        }
+        .srd-metric-sub {
+          margin: 0;
+          font-size: 11.5px;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          line-height: 1.3;
         }
 
         /* 🗓️ SLEEK CALENDAR WIDGET (GP BARH BRAND IDENTITY) 🗓️ */
@@ -1315,47 +1353,85 @@ function StudentRecordDossier({
           </div>
         </div>
 
-        {/* 4 STAT CARDS */}
+        {/* 4 REAL-TIME DYNAMIC METRIC CARDS */}
         <div className="srd-metric-grid">
-          <div className="srd-metric-card">
-            <CircularBadge percent={monthlyPct} />
+          {/* CARD 1: MONTHLY ATTENDANCE */}
+          <div className="srd-metric-card" style={{ borderLeft: '4px solid #16a34a' }}>
+            <CircularBadge percent={monthlyPct} color="#16a34a" />
             <div>
-              <p style={{ margin: '0 0 4px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Monthly Attendance</p>
-              <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--text)' }}>{monthlyPresent} / {monthlyTotal} Days</h4>
-              <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#16a34a', fontWeight: 700 }}>{monthlyPct}% Current Month</p>
-            </div>
-          </div>
-
-          <div className="srd-metric-card">
-            <div className="srd-metric-icon" style={{ background: '#fef3c7', color: '#d97706' }}>
-              🍱
-            </div>
-            <div>
-              <p style={{ margin: '0 0 4px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Daily Dining Plan</p>
-              <h4 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: 'var(--text)' }}>{monthlyPresent} Days Active</h4>
-              <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#d97706', fontWeight: 700 }}>
-                4-Meal Plan (Breakfast • Lunch • Snacks • Dinner)
+              <div className="srd-metric-tag">
+                <span>Monthly Attendance</span>
+                <span style={{ fontSize: '9.5px', background: '#dcfce7', color: '#166534', padding: '1px 6px', borderRadius: '6px', fontWeight: 800 }}>
+                  {MONTH_SHORT[activeMonth]} {activeYear}
+                </span>
+              </div>
+              <div className="srd-metric-val" style={{ color: '#166534' }}>
+                {monthlyPresent} <span style={{ fontSize: '13.5px', color: 'var(--text-muted)', fontWeight: 600 }}>/ {monthlyTotal} Days</span>
+              </div>
+              <p className="srd-metric-sub" style={{ color: '#16a34a' }}>
+                <span>✅</span> <span>{monthlyPct}% Scanned in {MONTH_SHORT[activeMonth]}</span>
               </p>
             </div>
           </div>
 
-          <div className="srd-metric-card">
-            <CircularBadge percent={annualPct} label="Annual" />
+          {/* CARD 2: MONTHLY MEALS CONSUMED (4 MEALS / DAY) */}
+          <div className="srd-metric-card" style={{ borderLeft: '4px solid #d97706' }}>
+            <div className="srd-metric-icon" style={{ background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', color: '#d97706', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
+              🍱
+            </div>
             <div>
-              <p style={{ margin: '0 0 4px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Annual Cumulative</p>
-              <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--text)' }}>{annualPresent} / {annualTotal} Days</h4>
-              <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Active Across Session</p>
+              <div className="srd-metric-tag">
+                <span>Monthly Diets Eaten</span>
+                <span style={{ fontSize: '9.5px', background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: '6px', fontWeight: 800 }}>
+                  4 Meals/Day
+                </span>
+              </div>
+              <div className="srd-metric-val" style={{ color: '#b45309' }}>
+                {monthlyMealsCovered} <span style={{ fontSize: '13.5px', color: 'var(--text-muted)', fontWeight: 600 }}>Diets Served</span>
+              </div>
+              <p className="srd-metric-sub" style={{ color: '#d97706' }}>
+                <span>🥞</span> <span>B:{monthlyPresent} • L:{monthlyPresent} • S:{monthlyPresent} • D:{monthlyPresent}</span>
+              </p>
             </div>
           </div>
 
-          <div className="srd-metric-card">
-            <div className="srd-metric-icon" style={{ background: '#e0f2fe', color: '#0284c7' }}>
-              📝
+          {/* CARD 3: ACADEMIC SESSION CUMULATIVE */}
+          <div className="srd-metric-card" style={{ borderLeft: '4px solid #6366f1' }}>
+            <CircularBadge percent={annualPct} color="#6366f1" label={String(activeYear)} />
+            <div>
+              <div className="srd-metric-tag">
+                <span>Academic Session ({activeYear})</span>
+                <span style={{ fontSize: '9.5px', background: '#ede9fe', color: '#5b21b6', padding: '1px 6px', borderRadius: '6px', fontWeight: 800 }}>
+                  12 Months
+                </span>
+              </div>
+              <div className="srd-metric-val" style={{ color: '#4338ca' }}>
+                {annualTotalDaysPresent} <span style={{ fontSize: '13.5px', color: 'var(--text-muted)', fontWeight: 600 }}>/ {annualTotalDaysTotal} Days</span>
+              </div>
+              <p className="srd-metric-sub" style={{ color: '#6366f1' }}>
+                <span>📊</span> <span>{annualTotalMeals} Total Session Diets</span>
+              </p>
+            </div>
+          </div>
+
+          {/* CARD 4: APPROVED LEAVES & OUTPASS REBATES */}
+          <div className="srd-metric-card" style={{ borderLeft: '4px solid #ef4444' }}>
+            <div className="srd-metric-icon" style={{ background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)', color: '#dc2626', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+              🏖️
             </div>
             <div>
-              <p style={{ margin: '0 0 4px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Approved Leaves / Outpass</p>
-              <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--text)' }}>{leaveDays} Days Absent</h4>
-              <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#0284c7', fontWeight: 700 }}>Pre-approved on Record</p>
+              <div className="srd-metric-tag">
+                <span>Approved Leaves / Outpass</span>
+                <span style={{ fontSize: '9.5px', background: '#fee2e2', color: '#991b1b', padding: '1px 6px', borderRadius: '6px', fontWeight: 800 }}>
+                  Rebated
+                </span>
+              </div>
+              <div className="srd-metric-val" style={{ color: '#b91c1c' }}>
+                {leaveDays} <span style={{ fontSize: '13.5px', color: 'var(--text-muted)', fontWeight: 600 }}>Days Absent</span>
+              </div>
+              <p className="srd-metric-sub" style={{ color: '#dc2626' }}>
+                <span>⚡</span> <span>{leaveDays * 4} Meals Rebated ({MONTH_SHORT[activeMonth]})</span>
+              </p>
             </div>
           </div>
         </div>
