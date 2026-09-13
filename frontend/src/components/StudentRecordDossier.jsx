@@ -1162,56 +1162,59 @@ function StudentRecordDossier({
                   </div>
                 </div>
 
-                {/* SVG FULLY RESPONSIVE FLUID WAVE GRAPH (OPTIMIZED FOR MOBILE APK & DESKTOP) */}
+                {/* SVG FULLY RESPONSIVE FLUID WAVE GRAPH (CRYSTAL CLEAR HIGH CONTRAST FOR MOBILE APK & DESKTOP) */}
                 <div className="srd-svg-wrap">
                   <svg
-                    viewBox="0 0 880 270"
+                    viewBox="0 0 940 380"
                     style={{ width: '100%', height: 'auto', display: 'block' }}
                   >
                     <defs>
                       <linearGradient id="purpleGlowFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#818cf8" stopOpacity="0.45" />
-                        <stop offset="50%" stopColor="#c084fc" stopOpacity="0.2" />
+                        <stop offset="0%" stopColor="#818cf8" stopOpacity="0.55" />
+                        <stop offset="50%" stopColor="#c084fc" stopOpacity="0.25" />
                         <stop offset="100%" stopColor="#e0e7ff" stopOpacity="0.02" />
                       </linearGradient>
+                      <filter id="badgeShadow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feDropShadow dx="0" dy="2" stdDeviation="2" floodOpacity="0.25" />
+                      </filter>
                     </defs>
 
                     {/* Y-AXIS TITLE */}
                     <text
                       transform="rotate(-90)"
-                      x="-125"
-                      y="16"
+                      x="-160"
+                      y="22"
                       textAnchor="middle"
-                      fill="#6366f1"
-                      fontSize="12"
-                      fontWeight="800"
-                      letterSpacing="0.4px"
+                      fill="#475569"
+                      fontSize="20"
+                      fontWeight="900"
+                      letterSpacing="0.6px"
                     >
                       Days Eaten (0 - 31)
                     </text>
 
                     {/* HORIZONTAL PURPLE DOTTED GRID LINES & Y-AXIS DAYS VALUES (0 to 31) */}
                     {[31, 25, 20, 15, 10, 5, 0].map((val) => {
-                      const y = 28 + ((31 - val) / 31) * 175;
+                      const y = 50 + ((31 - val) / 31) * 220;
                       return (
                         <g key={val}>
                           <line
-                            x1="45"
+                            x1="70"
                             y1={y}
-                            x2="865"
+                            x2="915"
                             y2={y}
-                            stroke="#c7d2fe"
-                            strokeOpacity="0.75"
-                            strokeDasharray="2 3"
-                            strokeWidth="1.2"
+                            stroke="#cbd5e1"
+                            strokeOpacity="0.8"
+                            strokeDasharray="4 4"
+                            strokeWidth="1.8"
                           />
                           <text
-                            x="38"
-                            y={y + 4}
+                            x="60"
+                            y={y + 7}
                             textAnchor="end"
-                            fontSize="12.5"
-                            fill="#6366f1"
-                            fontWeight="800"
+                            fontSize="22"
+                            fill="#475569"
+                            fontWeight="900"
                           >
                             {val}
                           </text>
@@ -1221,12 +1224,12 @@ function StudentRecordDossier({
 
                     {/* SMOOTH SPLINE WAVE & DATA NODES */}
                     {(() => {
-                      const startX = 56;
-                      const endX = 855;
+                      const startX = 75;
+                      const endX = 905;
                       const stepX = (endX - startX) / (yearDataset.length - 1);
                       const points = yearDataset.map((d, i) => {
                         const x = startX + i * stepX;
-                        const y = 28 + ((31 - d.present) / 31) * 175;
+                        const y = 50 + ((31 - d.present) / 31) * 220;
                         return { x, y, d, i };
                       });
 
@@ -1240,19 +1243,29 @@ function StudentRecordDossier({
                         return `${acc} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${p.x} ${p.y}`;
                       }, "");
 
-                      const areaPath = `${linePath} L ${points[points.length - 1].x} 205 L ${points[0].x} 205 Z`;
+                      const areaPath = `${linePath} L ${points[points.length - 1].x} 270 L ${points[0].x} 270 Z`;
 
                       return (
                         <g>
                           {/* GRADIENT SHADED AREA UNDER CURVE */}
                           <path d={areaPath} fill="url(#purpleGlowFill)" />
 
+                          {/* BASELINE */}
+                          <line
+                            x1="70"
+                            y1="270"
+                            x2="915"
+                            y2="270"
+                            stroke="#94a3b8"
+                            strokeWidth="2.5"
+                          />
+
                           {/* SMOOTH BLUE WAVE LINE */}
                           <path
                             d={linePath}
                             fill="none"
                             stroke="#2563eb"
-                            strokeWidth="4"
+                            strokeWidth="6"
                             strokeLinecap="round"
                             strokeLinejoin="round"
                           />
@@ -1268,52 +1281,124 @@ function StudentRecordDossier({
                                 onClick={() => setHoveredMonthIdx(i)}
                                 onMouseEnter={() => setHoveredMonthIdx(i)}
                               >
+                                {/* INVISIBLE LARGE TOUCH TARGET FOR EASY MOBILE CLICKS */}
+                                <rect
+                                  x={x - stepX / 2}
+                                  y="10"
+                                  width={stepX}
+                                  height="360"
+                                  fill="transparent"
+                                />
+
                                 {/* HOVER / SELECTION VERTICAL GUIDELINE */}
                                 {isHovered && (
                                   <line
                                     x1={x}
-                                    y1="22"
+                                    y1="40"
                                     x2={x}
-                                    y2="205"
-                                    stroke="#818cf8"
-                                    strokeWidth="2"
-                                    strokeDasharray="2 2"
+                                    y2="270"
+                                    stroke="#3b82f6"
+                                    strokeWidth="3"
+                                    strokeDasharray="4 4"
                                   />
                                 )}
 
                                 {/* PEAK VALUE BADGE (DAYS EATEN) */}
-                                <text
-                                  x={x}
-                                  y={y - 11}
-                                  textAnchor="middle"
-                                  fontSize="13.5"
-                                  fontWeight="900"
-                                  fill={isHovered ? '#1e40af' : '#4338ca'}
-                                >
-                                  {d.present}
-                                </text>
+                                {isHovered ? (
+                                  <g filter="url(#badgeShadow)">
+                                    <rect
+                                      x={x - 26}
+                                      y={y - 44}
+                                      width="52"
+                                      height="30"
+                                      rx="8"
+                                      fill="#1e40af"
+                                    />
+                                    <polygon
+                                      points={`${x - 6},${y - 14} ${x + 6},${y - 14} ${x},${y - 8}`}
+                                      fill="#1e40af"
+                                    />
+                                    <text
+                                      x={x}
+                                      y={y - 24}
+                                      textAnchor="middle"
+                                      fontSize="20"
+                                      fontWeight="900"
+                                      fill="#ffffff"
+                                    >
+                                      {d.present}
+                                    </text>
+                                  </g>
+                                ) : (
+                                  <text
+                                    x={x}
+                                    y={y - 14}
+                                    textAnchor="middle"
+                                    fontSize="24"
+                                    fontWeight="900"
+                                    fill="#0f172a"
+                                    stroke="#ffffff"
+                                    strokeWidth="4"
+                                    paintOrder="stroke fill"
+                                  >
+                                    {d.present}
+                                  </text>
+                                )}
 
                                 {/* POINT CIRCLE */}
+                                {isHovered && (
+                                  <circle
+                                    cx={x}
+                                    cy={y}
+                                    r="15"
+                                    fill="rgba(37, 99, 235, 0.25)"
+                                    stroke="#2563eb"
+                                    strokeWidth="2.5"
+                                  />
+                                )}
                                 <circle
                                   cx={x}
                                   cy={y}
-                                  r={isHovered ? 8 : 6}
+                                  r={isHovered ? 10 : 8}
                                   fill="#f59e0b"
-                                  stroke="#2563eb"
-                                  strokeWidth={isHovered ? 3 : 2.2}
+                                  stroke="#1e3a8a"
+                                  strokeWidth={isHovered ? 4 : 3}
                                 />
 
-                                {/* X-AXIS MONTH NAME */}
-                                <text
-                                  x={x}
-                                  y="242"
-                                  textAnchor="middle"
-                                  fontSize="14.5"
-                                  fontWeight={isHovered ? '900' : '800'}
-                                  fill={isHovered ? '#1e40af' : '#4f46e5'}
-                                >
-                                  {d.month}
-                                </text>
+                                {/* X-AXIS MONTH NAME (WITH HIGHLIGHT PILL WHEN ACTIVE) */}
+                                {isHovered ? (
+                                  <g>
+                                    <rect
+                                      x={x - 30}
+                                      y="300"
+                                      width="60"
+                                      height="36"
+                                      rx="8"
+                                      fill="#1e40af"
+                                    />
+                                    <text
+                                      x={x}
+                                      y="325"
+                                      textAnchor="middle"
+                                      fontSize="22"
+                                      fontWeight="900"
+                                      fill="#ffffff"
+                                    >
+                                      {d.month}
+                                    </text>
+                                  </g>
+                                ) : (
+                                  <text
+                                    x={x}
+                                    y="325"
+                                    textAnchor="middle"
+                                    fontSize="24"
+                                    fontWeight="900"
+                                    fill="#334155"
+                                  >
+                                    {d.month}
+                                  </text>
+                                )}
                               </g>
                             );
                           })}
