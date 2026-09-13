@@ -961,9 +961,10 @@ function StudentRecordDossier({
           </div>
         </div>
 
-        {/* 🗓️ VIEW 1: MONTHLY CALENDAR WIDGET 🗓️ */}
+        {/* 🗓️ VIEW 1: MONTHLY CALENDAR WIDGET (ENHANCED COUNT & STREAK DESIGN) 🗓️ */}
         {activeTab === 'month' && (
           <div className="srd-cal-container">
+            {/* TOP HEADER & MONTH CONTROLLER */}
             <div className="srd-cal-header">
               <div>
                 <div className="srd-cal-top-tag">
@@ -977,25 +978,46 @@ function StudentRecordDossier({
                 </div>
               </div>
 
-              {/* HIGHLIGHT DAY BADGE */}
-              <div className="srd-cal-day-badge">
-                <strong>{monthlyPresent}</strong>
-                <span>DAYS ACTIVE</span>
+              {/* PROMINENT ATTENDANCE COUNT BADGES */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <div className="srd-cal-day-badge">
+                  <strong>{monthlyPresent}</strong>
+                  <div>
+                    <span style={{ display: 'block' }}>DAYS PRESENT</span>
+                    <small style={{ fontSize: '9.5px', color: '#fef08a', opacity: 0.9 }}>1 Scan = 4 Meals</small>
+                  </div>
+                </div>
+
+                <div style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '14px', padding: '8px 14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '18px' }}>🍱</span>
+                  <div>
+                    <strong style={{ fontSize: '15px', color: '#38bdf8', display: 'block', lineHeight: 1 }}>{monthlyPresent * 4}</strong>
+                    <span style={{ fontSize: '9.5px', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>Meals Served</span>
+                  </div>
+                </div>
+
+                <div style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '14px', padding: '8px 14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '18px' }}>🏖️</span>
+                  <div>
+                    <strong style={{ fontSize: '15px', color: '#f87171', display: 'block', lineHeight: 1 }}>{leaveDays}</strong>
+                    <span style={{ fontSize: '9.5px', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>Leaves Taken</span>
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* WEEKDAY HEADERS */}
             <div className="srd-cal-weekdays">
-              <span>SU</span>
-              <span>MO</span>
-              <span>TU</span>
-              <span>WE</span>
-              <span>TH</span>
-              <span>FR</span>
-              <span>SA</span>
+              <span>SUN</span>
+              <span>MON</span>
+              <span>TUE</span>
+              <span>WED</span>
+              <span>THU</span>
+              <span>FRI</span>
+              <span>SAT</span>
             </div>
 
-            {/* CALENDAR ROWS WITH CAPSULE STYLING */}
+            {/* CALENDAR ROWS WITH ENHANCED CAPSULE STYLING & CLEAR DAY COUNTERS */}
             {calendarData.rows.map((row, rIdx) => (
               <div className="srd-cal-row" key={`row-${rIdx}`}>
                 {row.map((cell, cIdx) => {
@@ -1025,21 +1047,32 @@ function StudentRecordDossier({
                     <div
                       key={cell.key}
                       className={classNames}
-                      title={`Day ${cell.day} ${MONTH_SHORT[activeMonth]}: ${isPresent ? 'QR Scanned — Complete 4-Meal Pass Active' : 'Leave / Outpass'}`}
+                      style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
+                      title={`Day ${cell.day} ${MONTH_SHORT[activeMonth]} ${activeYear}: ${isPresent ? '✅ QR Scanned — Full Day Dining Package Active (Breakfast, Lunch, Snacks, Dinner)' : '🏖️ Leave / Outpass Recorded'}`}
                     >
-                      {cell.day}
+                      <span style={{ fontSize: '14.5px', fontWeight: 900, lineHeight: 1 }}>{cell.day}</span>
+                      {isPresent && (
+                        <span style={{ fontSize: '8px', opacity: 0.85, fontWeight: 800, marginTop: '2px', letterSpacing: '-0.2px' }}>
+                          4M
+                        </span>
+                      )}
+                      {isLeave && (
+                        <span style={{ fontSize: '8px', opacity: 0.75, fontWeight: 800, marginTop: '2px' }}>
+                          OFF
+                        </span>
+                      )}
                     </div>
                   );
                 })}
               </div>
             ))}
 
-            {/* LEGEND / STATUS BAR */}
+            {/* LEGEND & QUICK SUMMARY BAR */}
             <div className="srd-cal-legend">
               <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '12px', alignItems: 'center' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ffffff', fontWeight: 800 }}>
                   <span style={{ width: '14px', height: '14px', borderRadius: '4px', background: 'linear-gradient(90deg, #8B0D0D, #b91c1c)', border: '1px solid rgba(250, 204, 21, 0.4)', display: 'inline-block' }}></span>
-                  QR Check-in Present ({monthlyPresent} Days • 4 Meals/Day)
+                  QR Scanned Present ({monthlyPresent} Days • 4 Meals/Day Active)
                 </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#fca5a5', fontWeight: 800 }}>
                   <span style={{ width: '14px', height: '14px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid #f87171', display: 'inline-block' }}></span>
