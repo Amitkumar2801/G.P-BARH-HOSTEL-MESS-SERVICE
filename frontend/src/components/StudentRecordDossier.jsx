@@ -383,8 +383,6 @@ function StudentRecordDossier({
     window.print();
   };
 
-  const activeData = ANNUAL_MESS_DATA[hoveredMonthIdx] || ANNUAL_MESS_DATA[8];
-
   return (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <style>{`
