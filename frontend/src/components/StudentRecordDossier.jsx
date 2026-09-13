@@ -221,19 +221,62 @@ function StudentRecordDossier({
   const attendanceHistoryList = useMemo(() => getRealAttendanceHistory(), []);
   const studentLeavesList = useMemo(() => getRealLeavesRecords(), []);
 
-  // Check if a given date string (YYYY-MM-DD) has recorded attendance
+  // Check if a given date string (YYYY-MM-DD) has recorded attendance FOR THIS STUDENT
   const isDatePresent = (dateStr) => {
-    if (dailyAttendanceMap[dateStr]) return true;
-    if (attendanceHistoryList.some(h => h.date === dateStr || h.attendance_date === dateStr)) return true;
+    // 1. Check daily map
+    const dayRecord = dailyAttendanceMap[dateStr];
+    if (dayRecord) {
+      if (dayRecord.reg_no || dayRecord.regNo || dayRecord.student_name || dayRecord.studentName || dayRecord.email) {
+        const matchReg = (dayRecord.reg_no && String(dayRecord.reg_no) === String(regNo)) ||
+                         (dayRecord.regNo && String(dayRecord.regNo) === String(regNo));
+        const matchName = (dayRecord.student_name && dayRecord.student_name.toLowerCase().trim() === fullName.toLowerCase().trim()) ||
+                          (dayRecord.studentName && dayRecord.studentName.toLowerCase().trim() === fullName.toLowerCase().trim());
+        const matchEmail = (dayRecord.email && dayRecord.email.toLowerCase().trim() === email.toLowerCase().trim());
+        if (matchReg || matchName || matchEmail) return true;
+      }
+    }
+
+    // 2. Check history list for this student
+    if (Array.isArray(attendanceHistoryList)) {
+      const match = attendanceHistoryList.some(h => {
+        const d = h.date || h.attendance_date;
+        if (d !== dateStr) return false;
+        const matchReg = (h.reg_no && String(h.reg_no) === String(regNo)) ||
+                         (h.regNo && String(h.regNo) === String(regNo));
+        const matchName = (h.student_name && h.student_name.toLowerCase().trim() === fullName.toLowerCase().trim()) ||
+                          (h.studentName && h.studentName.toLowerCase().trim() === fullName.toLowerCase().trim());
+        const matchEmail = (h.email && h.email.toLowerCase().trim() === email.toLowerCase().trim());
+        const matchId = (h.user_id && currentUser?.id && String(h.user_id) === String(currentUser.id));
+        return Boolean(matchReg || matchName || matchEmail || matchId);
+      });
+      if (match) return true;
+    }
+
     return false;
   };
 
-  // Check if a given date string (YYYY-MM-DD) is marked as leave
+  // Check if a given date string (YYYY-MM-DD) is marked as leave FOR THIS STUDENT
   const isDateLeave = (dateStr) => {
     if (Array.isArray(studentLeavesList)) {
       return studentLeavesList.some(l => {
+        const matchReg = (l.reg_no && String(l.reg_no) === String(regNo)) ||
+                         (l.regNo && String(l.regNo) === String(regNo));
+        const matchName = (l.student_name && l.student_name.toLowerCase().trim() === fullName.toLowerCase().trim()) ||
+                          (l.studentName && l.studentName.toLowerCase().trim() === fullName.toLowerCase().trim());
+        const matchEmail = (l.email && l.email.toLowerCase().trim() === email.toLowerCase().trim());
+        const matchId = (l.user_id && currentUser?.id && String(l.user_id) === String(currentUser.id));
+
+        if (!(matchReg || matchName || matchEmail || matchId)) {
+          return false;
+        }
+
+        const isApproved = String(l.status || '').toUpperCase() === 'APPROVED';
+        if (!isApproved) return false;
+
         if (l.date === dateStr) return true;
-        if (l.startDate && l.endDate && dateStr >= l.startDate && dateStr <= l.endDate && l.status === 'APPROVED') return true;
+        if (l.startDate && l.endDate && dateStr >= l.startDate && dateStr <= l.endDate) return true;
+        if (l.from && l.to && dateStr >= String(l.from).slice(0, 10) && dateStr <= String(l.to).slice(0, 10)) return true;
+
         return false;
       });
     }
