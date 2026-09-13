@@ -588,19 +588,18 @@ function StudentRecordDossier({
         }
 
         .srd-day-square {
-          min-height: 82px;
-          background: rgba(255, 255, 255, 0.04);
-          border: 1.5px solid rgba(255, 255, 255, 0.1);
-          border-radius: 14px;
-          padding: 8px 6px;
+          height: 60px;
           display: flex;
-          flex-direction: column;
-          justify-content: space-between;
           align-items: center;
-          position: relative;
+          justify-content: center;
+          font-size: 20px;
+          font-weight: 900;
+          font-family: 'DM Sans', sans-serif;
+          border-radius: 12px;
           cursor: pointer;
-          transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
           user-select: none;
+          position: relative;
         }
         .srd-day-square.empty {
           opacity: 0;
@@ -608,86 +607,34 @@ function StudentRecordDossier({
           visibility: hidden;
         }
 
+        /* 🟩 PRESENT: VIBRANT GREEN 🟩 */
         .srd-day-square.present {
-          background: linear-gradient(145deg, rgba(139, 13, 13, 0.45) 0%, rgba(30, 41, 59, 0.85) 100%);
-          border: 1.5px solid rgba(220, 38, 38, 0.55);
-          box-shadow: 0 4px 14px rgba(139, 13, 13, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+          background: linear-gradient(135deg, #15803d 0%, #16a34a 50%, #22c55e 100%);
+          color: #ffffff;
+          border: 1.5px solid #4ade80;
+          box-shadow: 0 4px 14px rgba(22, 163, 74, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.35);
         }
         .srd-day-square.present:hover {
-          transform: translateY(-4px) scale(1.04);
-          background: linear-gradient(145deg, rgba(185, 28, 28, 0.7) 0%, rgba(15, 23, 42, 0.95) 100%);
-          border-color: #fbbf24;
-          box-shadow: 0 10px 24px rgba(185, 28, 28, 0.45), 0 0 12px rgba(251, 191, 36, 0.35);
+          transform: translateY(-4px) scale(1.08);
+          background: linear-gradient(135deg, #16a34a 0%, #22c55e 50%, #4ade80 100%);
+          border-color: #ffffff;
+          box-shadow: 0 8px 22px rgba(34, 197, 94, 0.6), 0 0 14px rgba(74, 222, 128, 0.6);
           z-index: 10;
         }
 
+        /* 🟥 LEAVE / ABSENT: VIBRANT RED 🟥 */
         .srd-day-square.leave {
-          background: rgba(239, 68, 68, 0.06);
-          border: 1.5px dashed rgba(239, 68, 68, 0.35);
+          background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 50%, #dc2626 100%);
+          color: #ffffff;
+          border: 1.5px solid #f87171;
+          box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.25);
         }
         .srd-day-square.leave:hover {
-          transform: translateY(-3px) scale(1.03);
-          background: rgba(239, 68, 68, 0.12);
-          border-color: #ef4444;
-          box-shadow: 0 8px 20px rgba(239, 68, 68, 0.25);
+          transform: translateY(-4px) scale(1.08);
+          background: linear-gradient(135deg, #991b1b 0%, #dc2626 50%, #ef4444 100%);
+          border-color: #ffffff;
+          box-shadow: 0 8px 22px rgba(239, 68, 68, 0.55), 0 0 14px rgba(248, 113, 113, 0.5);
           z-index: 10;
-        }
-
-        .srd-day-square-top {
-          width: 100%;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 0 4px;
-        }
-        .srd-day-num {
-          font-size: 16px;
-          font-weight: 900;
-          line-height: 1;
-          color: #f8fafc;
-          font-family: 'DM Sans', sans-serif;
-        }
-        .srd-day-status-icon {
-          font-size: 11px;
-          line-height: 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .srd-day-meal-badge {
-          width: 100%;
-          border-radius: 8px;
-          padding: 4px 2px;
-          text-align: center;
-          font-size: 10px;
-          font-weight: 900;
-          letter-spacing: 0.3px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 3px;
-          line-height: 1.2;
-        }
-        .srd-day-meal-badge.present {
-          background: linear-gradient(90deg, #8B0D0D, #b91c1c);
-          color: #fef08a;
-          border: 1px solid rgba(251, 191, 36, 0.3);
-          box-shadow: 0 2px 6px rgba(139, 13, 13, 0.4);
-        }
-        .srd-day-meal-badge.leave {
-          background: rgba(239, 68, 68, 0.15);
-          color: #fca5a5;
-          border: 1px solid rgba(239, 68, 68, 0.25);
-        }
-
-        .srd-day-sub-label {
-          font-size: 8.5px;
-          font-weight: 700;
-          color: #94a3b8;
-          text-transform: uppercase;
-          letter-spacing: 0.3px;
-          line-height: 1;
         }
 
         @media (max-width: 640px) {
@@ -695,19 +642,9 @@ function StudentRecordDossier({
             gap: 6px;
           }
           .srd-day-square {
-            min-height: 60px;
-            padding: 4px 2px;
-            border-radius: 10px;
-          }
-          .srd-day-num {
-            font-size: 13px;
-          }
-          .srd-day-meal-badge {
-            font-size: 8px;
-            padding: 2px 1px;
-          }
-          .srd-day-sub-label {
-            display: none;
+            height: 46px;
+            font-size: 16px;
+            border-radius: 9px;
           }
         }
 
@@ -1106,46 +1043,14 @@ function StudentRecordDossier({
                 }
 
                 const isPresent = cell.status === 'present';
-                const isLeave = cell.status === 'leave';
 
                 return (
                   <div
                     key={cell.key}
                     className={`srd-day-square ${isPresent ? 'present' : 'leave'}`}
-                    title={`Day ${cell.day} ${MONTH_SHORT[activeMonth]} ${activeYear}: ${isPresent ? '✅ QR Scanned Present — 4 Meals Eaten (Breakfast, Lunch, Snacks, Dinner)' : '🏖️ Leave / Outpass (0 Meals)'}`}
+                    title={`Day ${cell.day} ${MONTH_SHORT[activeMonth]} ${activeYear}: ${isPresent ? '✅ QR Scanned Present — 4 Meals Eaten (Breakfast, Lunch, Snacks, Dinner)' : '❌ Not Scanned / Leave (0 Meals)'}`}
                   >
-                    <div className="srd-day-square-top">
-                      <span className="srd-day-num">{cell.day}</span>
-                      <span className="srd-day-status-icon">
-                        {isPresent ? (
-                          <span style={{ color: '#4ade80', fontWeight: 900, fontSize: '13px' }}>✓</span>
-                        ) : (
-                          <span style={{ color: '#f87171', fontSize: '10px', fontWeight: 800 }}>✕</span>
-                        )}
-                      </span>
-                    </div>
-
-                    <div className={`srd-day-meal-badge ${isPresent ? 'present' : 'leave'}`}>
-                      {isPresent ? (
-                        <>
-                          <span style={{ fontSize: '11px' }}>🍱</span>
-                          <span>4 MEALS</span>
-                        </>
-                      ) : (
-                        <>
-                          <span style={{ fontSize: '11px' }}>🏖️</span>
-                          <span>0 MEALS</span>
-                        </>
-                      )}
-                    </div>
-
-                    <div className="srd-day-sub-label">
-                      {isPresent ? (
-                        <span style={{ color: '#86efac' }}>Full Diet</span>
-                      ) : (
-                        <span style={{ color: '#fca5a5' }}>On Leave</span>
-                      )}
-                    </div>
+                    {cell.day}
                   </div>
                 );
               })}
@@ -1192,18 +1097,18 @@ function StudentRecordDossier({
 
             {/* LEGEND & QUICK SUMMARY BAR */}
             <div className="srd-cal-legend">
-              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '12px', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '13px', alignItems: 'center' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ffffff', fontWeight: 800 }}>
-                  <span style={{ width: '14px', height: '14px', borderRadius: '4px', background: 'linear-gradient(90deg, #8B0D0D, #b91c1c)', border: '1px solid rgba(250, 204, 21, 0.4)', display: 'inline-block' }}></span>
-                  QR Scanned Present ({monthlyPresent} Days • 4 Meals/Day Active)
+                  <span style={{ width: '16px', height: '16px', borderRadius: '4px', background: 'linear-gradient(135deg, #15803d, #22c55e)', border: '1px solid #4ade80', display: 'inline-block' }}></span>
+                  Scanned Present ({monthlyPresent} Days • Green)
                 </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#fca5a5', fontWeight: 800 }}>
-                  <span style={{ width: '14px', height: '14px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid #f87171', display: 'inline-block' }}></span>
-                  Leave / Outpass ({leaveDays} Days • 0 Meals)
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ffffff', fontWeight: 800 }}>
+                  <span style={{ width: '16px', height: '16px', borderRadius: '4px', background: 'linear-gradient(135deg, #7f1d1d, #dc2626)', border: '1px solid #f87171', display: 'inline-block' }}></span>
+                  Not Scanned / Leave ({leaveDays} Days • Red)
                 </span>
               </div>
-              <span style={{ fontSize: '11px', color: '#fbbf24', fontWeight: 700, letterSpacing: '0.2px' }}>
-                ⚡ 1 Daily QR Scan = 4 Full Meals Activated
+              <span style={{ fontSize: '11.5px', color: '#fbbf24', fontWeight: 700, letterSpacing: '0.2px' }}>
+                ⚡ 1 Daily Scan = Green (4 Meals) | Not Scanned = Red (0 Meals)
               </span>
             </div>
           </div>
