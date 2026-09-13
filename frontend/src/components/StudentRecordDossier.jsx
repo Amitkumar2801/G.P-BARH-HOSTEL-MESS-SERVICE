@@ -70,6 +70,22 @@ function CircularBadge({ percent, size = 54, stroke = 5, label }) {
   );
 }
 
+// Single field renderer used by the Personal & Academic Records grid.
+// Having one definition (icon + label + value) means every record is
+// authored once and rendered once — no second "quick glance" copy of
+// the same data drifting out of sync elsewhere in the card.
+function RecordField({ icon, label, value, tone, mono, span2, multiline }) {
+  return (
+    <div className="srd-field-group" style={span2 ? { gridColumn: '1 / -1' } : undefined}>
+      <label className="srd-field-label">{label}</label>
+      <div className={`srd-field-box${multiline ? ' textarea' : ''}`} style={{ color: tone || 'var(--text)', fontFamily: mono ? 'monospace' : undefined, fontWeight: mono ? 700 : 600 }}>
+        {icon ? <span style={{ marginRight: '8px' }}>{icon}</span> : null}
+        {value}
+      </div>
+    </div>
+  );
+}
+
 function StudentRecordDossier({
   profileData = {},
   currentUser = {},
@@ -84,7 +100,7 @@ function StudentRecordDossier({
   const avatarSrc = profilePic || defaultAvatar;
 
   const fullName = profileData?.fullName || currentUser?.full_name || (isFemale ? 'SANA SHARMA' : 'AMIT SHARMA');
-  
+
   const getCleanRegNo = () => {
     const r1 = String(profileData?.regNo || '');
     if (r1 && !r1.includes('@')) return r1;
@@ -106,7 +122,7 @@ function StudentRecordDossier({
     return isFemale ? '+91 91234 -----' : '+91 88731 -----';
   };
   const contact = getMaskedContact();
-  
+
   const getCleanEmail = () => {
     const e1 = String(profileData?.email || '').trim();
     if (e1 && !e1.includes('arwal28') && !e1.includes('sanasharma31') && !e1.includes('student.female@') && !e1.includes('student@')) return e1;
@@ -162,14 +178,14 @@ function StudentRecordDossier({
     const daysInMonth = new Date(activeYear, activeMonth + 1, 0).getDate();
     const startDay = new Date(activeYear, activeMonth, 1).getDay(); // 0 = Sun, 1 = Mon ...
     const leaveSet = new Set([4, 11, 18, 25]);
-    
+
     const rows = [];
     let currentRow = [];
-    
+
     for (let i = 0; i < startDay; i++) {
       currentRow.push({ empty: true, key: `empty-${i}` });
     }
-    
+
     for (let d = 1; d <= daysInMonth; d++) {
       const isLeave = leaveSet.has(d);
       currentRow.push({
@@ -178,20 +194,20 @@ function StudentRecordDossier({
         status: isLeave ? 'leave' : 'present',
         key: `day-${d}`
       });
-      
+
       if (currentRow.length === 7) {
         rows.push(currentRow);
         currentRow = [];
       }
     }
-    
+
     if (currentRow.length > 0) {
       while (currentRow.length < 7) {
         currentRow.push({ empty: true, key: `empty-tail-${currentRow.length}` });
       }
       rows.push(currentRow);
     }
-    
+
     return { daysInMonth, rows };
   }, [activeMonth, activeYear]);
 
@@ -222,42 +238,95 @@ function StudentRecordDossier({
   return (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <style>{`
-        /* 🏷️ CHIPS STYLING 🏷️ */
-        .srd-chip-row {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-          width: 100%;
-          border-top: 1px solid var(--border);
-        }
-        .srd-chip {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          background: var(--input-bg);
-          border: 1px solid var(--border);
-          border-radius: 10px;
-          padding: 6px 12px;
-          font-size: 12.5px;
-          color: var(--text);
-          font-weight: 600;
-          transition: 0.2s;
-        }
-        .srd-chip:hover {
-          border-color: #800000;
+        /* ============================================================
+           BASE — fluid spacing units shared by every section so the
+           same file reads correctly from a ~360px app webview up to a
+           wide desktop monitor without separate mobile/desktop code.
+           ============================================================ */
+        .srd-shell {
+          --pad-lg: clamp(16px, 3vw, 30px);
+          --pad-md: clamp(14px, 2.4vw, 22px);
+          --radius-lg: 20px;
+          --radius-md: 14px;
         }
 
         /* 🎨 UNIFIED CARD & FORM GRID 🎨 */
         .srd-unified-card {
           background: var(--card);
           border: 1px solid var(--border);
-          border-radius: 20px;
-          padding: 26px 30px;
+          border-radius: var(--radius-lg);
+          padding: var(--pad-lg);
           box-shadow: var(--shadow-sm);
           display: flex;
           flex-direction: column;
           gap: 20px;
         }
+        .srd-profile-top {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 16px;
+        }
+        .srd-profile-id {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          min-width: 0;
+        }
+        .srd-avatar-wrap {
+          position: relative;
+          width: 64px;
+          height: 64px;
+          flex-shrink: 0;
+        }
+        .srd-name-area {
+          min-width: 0;
+        }
+        .srd-name-area h2 {
+          font-size: clamp(17px, 2.6vw, 20px);
+          font-weight: 900;
+          color: var(--text);
+          margin: 0 0 4px;
+          letter-spacing: 0.2px;
+          font-family: 'Fraunces', serif;
+          overflow-wrap: anywhere;
+        }
+        .srd-name-meta {
+          margin: 0;
+          font-size: 12.5px;
+          color: var(--text-muted);
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-weight: 600;
+          flex-wrap: wrap;
+        }
+        .srd-print-btn {
+          background: #800000;
+          color: #ffffff;
+          border: none;
+          padding: 11px 20px;
+          border-radius: 14px;
+          font-size: 12px;
+          font-weight: 800;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          box-shadow: 0 4px 14px rgba(128, 0, 0, 0.25);
+          transition: transform 0.15s ease, box-shadow 0.15s ease;
+          white-space: nowrap;
+        }
+        .srd-print-btn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 6px 18px rgba(128, 0, 0, 0.32);
+        }
+        .srd-print-btn:active {
+          transform: translateY(0);
+        }
+
         .srd-form-title {
           font-family: 'Fraunces', serif;
           font-size: 18px;
@@ -268,18 +337,14 @@ function StudentRecordDossier({
         }
         .srd-form-grid {
           display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 18px 22px;
-        }
-        @media (max-width: 768px) {
-          .srd-form-grid {
-            grid-template-columns: 1fr;
-          }
+          grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+          gap: 16px 20px;
         }
         .srd-field-group {
           display: flex;
           flex-direction: column;
           gap: 8px;
+          min-width: 0;
         }
         .srd-field-label {
           font-size: 11.5px;
@@ -302,6 +367,7 @@ function StudentRecordDossier({
           transition: 0.2s ease;
           display: flex;
           align-items: center;
+          overflow-wrap: anywhere;
         }
         .srd-field-box.textarea {
           min-height: 80px;
@@ -349,12 +415,13 @@ function StudentRecordDossier({
           border: none;
           background: transparent;
           color: var(--text-muted);
-          padding: 6px 14px;
+          padding: 8px 14px;
           border-radius: 9px;
           font-size: 12px;
           font-weight: 700;
           cursor: pointer;
           transition: all 0.2s;
+          min-height: 36px;
         }
         .srd-view-tab.active {
           background: #800000;
@@ -364,7 +431,7 @@ function StudentRecordDossier({
 
         .srd-metric-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
           gap: 16px;
         }
         .srd-metric-card {
@@ -376,6 +443,7 @@ function StudentRecordDossier({
           align-items: center;
           gap: 16px;
           box-shadow: var(--shadow-sm);
+          min-width: 0;
         }
         .srd-metric-icon {
           width: 50px;
@@ -387,13 +455,19 @@ function StudentRecordDossier({
           font-size: 22px;
           flex-shrink: 0;
         }
+        .srd-metric-card > div {
+          min-width: 0;
+        }
+        .srd-metric-card h4 {
+          overflow-wrap: anywhere;
+        }
 
-        /* 🗓️ SLEEK CALENDAR WIDGET (IMAGE 1 EXACT MATCH) 🗓️ */
+        /* 🗓️ SLEEK CALENDAR WIDGET 🗓️ */
         .srd-cal-container {
           background: #14171c;
           color: #ffffff;
-          border-radius: 24px;
-          padding: 24px 28px;
+          border-radius: var(--radius-lg);
+          padding: var(--pad-lg);
           box-shadow: 0 12px 36px rgba(0,0,0,0.3);
           border: 1px solid rgba(255,255,255,0.08);
           position: relative;
@@ -403,6 +477,8 @@ function StudentRecordDossier({
           display: flex;
           justify-content: space-between;
           align-items: center;
+          flex-wrap: wrap;
+          gap: 14px;
           margin-bottom: 24px;
         }
         .srd-cal-top-tag {
@@ -411,10 +487,10 @@ function StudentRecordDossier({
           letter-spacing: 1.5px;
           color: #f97316;
           text-transform: uppercase;
-          margin-bottom: 2px;
+          margin-bottom: 6px;
         }
         .srd-cal-month-title {
-          font-size: 22px;
+          font-size: clamp(17px, 3vw, 22px);
           font-weight: 900;
           letter-spacing: 0.5px;
           color: #ffffff;
@@ -431,6 +507,7 @@ function StudentRecordDossier({
           align-items: baseline;
           gap: 6px;
           box-shadow: 0 4px 16px rgba(249, 115, 22, 0.4);
+          white-space: nowrap;
         }
         .srd-cal-day-badge strong {
           font-size: 26px;
@@ -448,13 +525,14 @@ function StudentRecordDossier({
           border: 1px solid rgba(255,255,255,0.12);
           color: #ffffff;
           border-radius: 8px;
-          width: 32px;
-          height: 32px;
+          width: 36px;
+          height: 36px;
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
           transition: 0.2s;
+          flex-shrink: 0;
         }
         .srd-cal-nav-btn:hover {
           background: #f97316;
@@ -512,10 +590,21 @@ function StudentRecordDossier({
           border-radius: 12px;
         }
 
+        .srd-cal-legend {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-top: 20px;
+          padding-top: 16px;
+          border-top: 1px solid rgba(255,255,255,0.1);
+          flex-wrap: wrap;
+          gap: 12px;
+        }
+
         /* 🗓️ 1-YEAR (12-MONTH) OVERVIEW GRID 🗓️ */
         .srd-year-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
           gap: 16px;
         }
         .srd-year-month-card {
@@ -538,12 +627,12 @@ function StudentRecordDossier({
           box-shadow: 0 0 0 2px rgba(128,0,0,0.2);
         }
 
-        /* 📈 ADVANCED INTERACTIVE GRAPH STYLING 📈 */
+        /* 📈 ANALYTICS GRAPH 📈 */
         .srd-analytics-chart-card {
           background: var(--card);
           border: 1px solid var(--border);
-          border-radius: 20px;
-          padding: 24px 28px;
+          border-radius: var(--radius-lg);
+          padding: var(--pad-lg);
           box-shadow: var(--shadow-sm);
           display: flex;
           flex-direction: column;
@@ -556,58 +645,25 @@ function StudentRecordDossier({
           flex-wrap: wrap;
           gap: 12px;
         }
-        .srd-chart-mode-pill {
-          display: flex;
-          background: var(--input-bg);
-          border: 1px solid var(--border);
-          border-radius: 10px;
-          padding: 2px;
-          gap: 4px;
-        }
-        .srd-chart-btn {
-          border: none;
-          background: transparent;
-          color: var(--text-muted);
-          font-size: 11px;
-          font-weight: 700;
-          padding: 5px 12px;
-          border-radius: 8px;
-          cursor: pointer;
-          transition: 0.2s;
-        }
-        .srd-chart-btn.active {
-          background: var(--card);
-          color: #800000;
-          box-shadow: var(--shadow-sm);
-          border: 1px solid var(--border);
-        }
 
         /* DYNAMIC HOVER DETAILS BOX */
         .srd-hover-detail-bar {
           background: var(--input-bg);
           border: 1px solid var(--border);
           border-radius: 14px;
-          padding: 14px 18px;
+          padding: 12px 16px;
           display: flex;
           align-items: center;
           justify-content: space-between;
           flex-wrap: wrap;
-          gap: 12px;
-        }
-        .srd-hover-tag {
-          font-size: 11px;
-          font-weight: 800;
-          background: rgba(128, 0, 0, 0.1);
-          color: #800000;
-          padding: 3px 10px;
-          border-radius: 20px;
-          text-transform: uppercase;
+          gap: 10px;
         }
 
         /* SVG CHART CONTAINER */
         .srd-svg-wrap {
           width: 100%;
           overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
           position: relative;
         }
 
@@ -617,7 +673,7 @@ function StudentRecordDossier({
           border-left: 5px solid #800000;
           background: var(--card);
           border-radius: 18px;
-          padding: 24px 28px;
+          padding: var(--pad-lg);
           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
           position: relative;
         }
@@ -679,15 +735,74 @@ function StudentRecordDossier({
           color: #15803d;
           border-color: #bbf7d0;
         }
+
+        /* ============================================================
+           RESPONSIVE — tablet
+           ============================================================ */
+        @media (max-width: 768px) {
+          .srd-cal-day-badge {
+            padding: 7px 14px;
+          }
+          .srd-cal-day-badge strong {
+            font-size: 22px;
+          }
+        }
+
+        /* ============================================================
+           RESPONSIVE — phones & in-app webviews (~360–480px wide)
+           ============================================================ */
+        @media (max-width: 480px) {
+          .srd-profile-top {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .srd-print-btn {
+            width: 100%;
+          }
+          .srd-sec-head {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .srd-view-switcher {
+            width: 100%;
+          }
+          .srd-view-tab {
+            flex: 1;
+          }
+          .srd-cal-header {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          .srd-cal-day-badge {
+            align-self: flex-start;
+          }
+          .srd-cal-cell {
+            height: 36px;
+            font-size: 12.5px;
+          }
+          .srd-cal-weekdays {
+            font-size: 10px;
+          }
+          .srd-year-grid {
+            grid-template-columns: 1fr;
+          }
+          .srd-metric-grid {
+            grid-template-columns: 1fr;
+          }
+        }
       `}</style>
 
-      {/* 🌟 1. ALL-IN-ONE UNIFIED STUDENT PROFILE & DETAILS CARD (ON-SCREEN) 🌟 */}
-      <div className="no-print srd-unified-card">
+      {/* 🌟 1. UNIFIED STUDENT PROFILE & DETAILS CARD (ON-SCREEN) 🌟
+          Every data point below (name, IDs, branch, hostel, room,
+          contact, blood group, address …) is authored in exactly one
+          place — the Personal & Academic Records grid — so there is
+          no second "quick glance" strip repeating the same values. */}
+      <div className="no-print srd-shell srd-unified-card">
         {/* TOP PROFILE BAR */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div className="srd-profile-top">
+          <div className="srd-profile-id">
             {/* AVATAR WITH BADGE */}
-            <div style={{ position: 'relative', width: '64px', height: '64px', flexShrink: 0 }}>
+            <div className="srd-avatar-wrap">
               <div style={{ width: '100%', height: '100%', borderRadius: '50%', border: '2px solid var(--border)', overflow: 'hidden', background: 'var(--input-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <img src={avatarSrc} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </div>
@@ -697,155 +812,49 @@ function StudentRecordDossier({
             </div>
 
             {/* NAME & ID */}
-            <div className="prof-name-area">
-              <h2 style={{ fontSize: '20px', fontWeight: 900, color: 'var(--text)', margin: '0 0 2px', letterSpacing: '0.3px', fontFamily: "'Fraunces', serif" }}>
-                {fullName}
-              </h2>
-              <p style={{ margin: 0, fontSize: '12.5px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+            <div className="srd-name-area">
+              <h2>{fullName}</h2>
+              <p className="srd-name-meta">
                 <span>ID: {regNo}</span> • <span>Roll: {rollNo}</span>
               </p>
             </div>
           </div>
 
           {/* PRINT PDF BUTTON */}
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-            <button
-              onClick={handlePrint}
-              style={{
-                background: '#800000',
-                color: '#ffffff',
-                border: 'none',
-                padding: '10px 20px',
-                borderRadius: '14px',
-                fontSize: '12px',
-                fontWeight: 800,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                boxShadow: '0 4px 14px rgba(128, 0, 0, 0.25)',
-                transition: 'all 0.2s'
-              }}
-            >
-              <span>🖨️</span>
-              <span>PRINT PDF</span>
-            </button>
-          </div>
+          <button type="button" onClick={handlePrint} className="srd-print-btn">
+            <span>🖨️</span>
+            <span>PRINT PDF</span>
+          </button>
         </div>
 
-        {/* QUICK DETAILS CHIP ROW */}
-        <div className="srd-chip-row" style={{ paddingTop: '14px' }}>
-          <span className="srd-chip">
-            <span style={{ color: '#800000' }}>📄</span>
-            <span style={{ color: 'var(--text-muted)' }}>Branch:</span>
-            <span style={{ color: 'var(--text)', fontWeight: 700 }}>{branch}</span>
-          </span>
-          <span className="srd-chip">
-            <span style={{ color: '#800000' }}>🏠</span>
-            <span style={{ color: 'var(--text-muted)' }}>Hostel:</span>
-            <span style={{ color: 'var(--text)', fontWeight: 700 }}>{hostelBlock}</span>
-          </span>
-          <span className="srd-chip">
-            <span style={{ color: '#800000' }}>🛏️</span>
-            <span style={{ color: 'var(--text)', fontWeight: 700 }}>{roomBed}</span>
-          </span>
-          <span className="srd-chip">
-            <span style={{ color: '#800000' }}>📅</span>
-            <span style={{ color: 'var(--text-muted)' }}>Session:</span>
-            <span style={{ color: 'var(--text)', fontWeight: 700 }}>{session}</span>
-          </span>
-          <span className="srd-chip">
-            <span style={{ color: '#800000' }}>🩸</span>
-            <span style={{ color: 'var(--text-muted)' }}>Blood:</span>
-            <span style={{ color: 'var(--text)', fontWeight: 700 }}>{bloodGroup}</span>
-          </span>
-          <span className="srd-chip">
-            <span style={{ color: '#800000' }}>📞</span>
-            <span style={{ color: 'var(--text)', fontWeight: 700 }}>{contact}</span>
-          </span>
-        </div>
-
-        {/* PERSONAL & ACADEMIC RECORDS */}
+        {/* PERSONAL & ACADEMIC RECORDS — single source of truth for all profile fields */}
         <div style={{ borderTop: '1px solid var(--border)', paddingTop: '20px' }}>
           <h3 className="srd-form-title" style={{ marginBottom: '18px' }}>
             Personal &amp; Academic Records
           </h3>
 
           <div className="srd-form-grid">
-            {/* FULL NAME */}
-            <div className="srd-field-group">
-              <label className="srd-field-label">Full Name</label>
-              <div className="srd-field-box">{fullName}</div>
-            </div>
-
-            {/* REGISTRATION NUMBER */}
-            <div className="srd-field-group">
-              <label className="srd-field-label">Registration Number</label>
-              <div className="srd-field-box" style={{ fontFamily: 'monospace', fontWeight: 700 }}>{regNo}</div>
-            </div>
-
-            {/* BRANCH / DEPARTMENT */}
-            <div className="srd-field-group">
-              <label className="srd-field-label">Branch / Department</label>
-              <div className="srd-field-box">{branch}</div>
-            </div>
-
-            {/* ACADEMIC SESSION */}
-            <div className="srd-field-group">
-              <label className="srd-field-label">Academic Session</label>
-              <div className="srd-field-box">{session}</div>
-            </div>
-
-            {/* ALLOTTED HOSTEL BLOCK */}
-            <div className="srd-field-group">
-              <label className="srd-field-label">Allotted Hostel Block</label>
-              <div className="srd-field-box" style={{ color: '#166534', fontWeight: 700 }}>🏢 {hostelBlock}</div>
-            </div>
-
-            {/* ROOM & BED NUMBER */}
-            <div className="srd-field-group">
-              <label className="srd-field-label">Room &amp; Bed Number</label>
-              <div className="srd-field-box" style={{ color: '#1e40af', fontWeight: 700 }}>🛏️ {roomBed}</div>
-            </div>
-
-            {/* CONTACT NUMBER */}
-            <div className="srd-field-group">
-              <label className="srd-field-label">Contact Number</label>
-              <div className="srd-field-box">{contact}</div>
-            </div>
-
-            {/* EMAIL ADDRESS */}
-            <div className="srd-field-group">
-              <label className="srd-field-label">Email Address</label>
-              <div className="srd-field-box">{email}</div>
-            </div>
-
-            {/* BLOOD GROUP */}
-            <div className="srd-field-group">
-              <label className="srd-field-label">Blood Group</label>
-              <div className="srd-field-box">{bloodGroup}</div>
-            </div>
-
-            {/* HOME AREA PINCODE */}
-            <div className="srd-field-group">
-              <label className="srd-field-label">Home Area Pincode</label>
-              <div className="srd-field-box">{pincode}</div>
-            </div>
-
-            {/* FULL PERMANENT ADDRESS */}
-            <div className="srd-field-group" style={{ gridColumn: '1 / -1' }}>
-              <label className="srd-field-label">Full Permanent Address</label>
-              <div className="srd-field-box textarea">{address}</div>
-            </div>
+            <RecordField label="Full Name" value={fullName} />
+            <RecordField label="Registration Number" value={regNo} mono />
+            <RecordField label="Class Roll Number" value={rollNo} />
+            <RecordField label="Branch / Department" value={branch} icon="📄" />
+            <RecordField label="Academic Session" value={session} icon="📅" />
+            <RecordField label="Allotted Hostel Block" value={hostelBlock} icon="🏢" tone="#166534" />
+            <RecordField label="Room & Bed Number" value={roomBed} icon="🛏️" tone="#1e40af" />
+            <RecordField label="Contact Number" value={contact} icon="📞" />
+            <RecordField label="Email Address" value={email} icon="✉️" />
+            <RecordField label="Blood Group" value={bloodGroup} icon="🩸" />
+            <RecordField label="Home Area Pincode" value={pincode} />
+            <RecordField label="Full Permanent Address" value={address} icon="📍" span2 multiline />
           </div>
         </div>
       </div>
 
       {/* 🌟 2. MESS ATTENDANCE & DIETARY ANALYTICS (ON-SCREEN) 🌟 */}
-      <div className="no-print" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+      <div className="no-print srd-shell" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
         <div className="srd-sec-head">
           <div className="srd-sec-title">Mess Attendance &amp; Dining Records</div>
-          
+
           {/* VIEW SWITCHER: MONTH CALENDAR vs 1-YEAR OVERVIEW */}
           <div className="srd-view-switcher">
             <button
@@ -910,7 +919,7 @@ function StudentRecordDossier({
           </div>
         </div>
 
-        {/* 🗓️ VIEW 1: MONTHLY CALENDAR WIDGET (IMAGE 1 EXACT DESIGN) 🗓️ */}
+        {/* 🗓️ VIEW 1: MONTHLY CALENDAR WIDGET 🗓️ */}
         {activeTab === 'month' && (
           <div className="srd-cal-container">
             <div className="srd-cal-header">
@@ -981,8 +990,8 @@ function StudentRecordDossier({
             ))}
 
             {/* LEGEND / STATUS BAR */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', flexWrap: 'wrap', gap: '12px' }}>
-              <div style={{ display: 'flex', gap: '16px', fontSize: '12px' }}>
+            <div className="srd-cal-legend">
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '12px' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#f97316', fontWeight: 800 }}>
                   <span style={{ width: '12px', height: '12px', borderRadius: '4px', background: '#f97316' }}></span>
                   QR Check-in Present ({monthlyPresent} Days • 4 Meals/Day)
@@ -1038,17 +1047,17 @@ function StudentRecordDossier({
           </div>
         )}
 
-        {/* 📊 🌟 EXACT CONTRIBUTION WAVE GRAPH (MATCHING USER REFERENCE IMAGE) 🌟 📊 */}
-        <div className="srd-analytics-chart-card" style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '20px', padding: '24px 28px', boxShadow: 'var(--shadow-sm)' }}>
-          
-          {/* TOP TAG (EXACT MATCH TO REFERENCE IMAGE) */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+        {/* 📊 CONTRIBUTION WAVE GRAPH 📊 */}
+        <div className="srd-analytics-chart-card">
+
+          {/* TOP TAG */}
+          <div className="srd-chart-top-bar">
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#090d16', color: '#ffffff', padding: '5px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 900, letterSpacing: '1px' }}>
               <span style={{ fontSize: '12px' }}>📊</span>
               <span>GITHUB.CONTRIBUTIONS &bull; MESS.ACTIVITY</span>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '12px', flexWrap: 'wrap' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#2563eb', fontWeight: 700 }}>
                 <span style={{ width: '12px', height: '3px', background: '#2563eb', borderRadius: '2px' }}></span>
                 QR Meal Activity
@@ -1060,11 +1069,11 @@ function StudentRecordDossier({
             </div>
           </div>
 
-          {/* CENTER GRAPH TITLE (EXACT PURPLE TITLE AS REFERENCE IMAGE) */}
+          {/* CENTER GRAPH TITLE */}
           <h3 style={{
             textAlign: 'center',
             color: '#6366f1',
-            fontSize: '18px',
+            fontSize: 'clamp(15px, 2.4vw, 18px)',
             fontWeight: 800,
             margin: '12px 0 16px',
             letterSpacing: '0.2px',
@@ -1113,7 +1122,7 @@ function StudentRecordDossier({
 
             return (
               <>
-                <div className="srd-hover-detail-bar" style={{ marginBottom: '14px', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                <div className="srd-hover-detail-bar">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span style={{ fontSize: '18px' }}>🎯</span>
                     <div>
@@ -1123,7 +1132,7 @@ function StudentRecordDossier({
                       </span>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '12.5px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '12.5px', flexWrap: 'wrap' }}>
                     <span>Activity Score: <b style={{ color: '#2563eb', fontSize: '14px' }}>{selectedPoint.val} pts</b></span>
                     <span style={{ color: 'var(--border)' }}>|</span>
                     <span style={{ color: selectedPoint.val > 0 ? '#16a34a' : '#ef4444', fontWeight: 700 }}>
@@ -1133,7 +1142,7 @@ function StudentRecordDossier({
                 </div>
 
                 {/* SVG EXACT GRAPH */}
-                <div className="srd-svg-wrap" style={{ overflowX: 'auto', paddingBottom: '6px' }}>
+                <div className="srd-svg-wrap">
                   <svg
                     viewBox="0 0 920 280"
                     style={{ width: '100%', minWidth: '720px', height: 'auto', display: 'block' }}
@@ -1146,7 +1155,7 @@ function StudentRecordDossier({
                       </linearGradient>
                     </defs>
 
-                    {/* Y-AXIS TITLE (ROTATED VERTICALLY EXACT AS IMAGE) */}
+                    {/* Y-AXIS TITLE */}
                     <text
                       transform="rotate(-90)"
                       x="-135"
@@ -1216,7 +1225,7 @@ function StudentRecordDossier({
                           {/* GRADIENT SHADED AREA UNDER CURVE */}
                           <path d={areaPath} fill="url(#purpleGlowFill)" />
 
-                          {/* SMOOTH BLUE WAVE LINE (EXACT AS IMAGE) */}
+                          {/* SMOOTH BLUE WAVE LINE */}
                           <path
                             d={linePath}
                             fill="none"
@@ -1264,7 +1273,7 @@ function StudentRecordDossier({
                                   </text>
                                 )}
 
-                                {/* POINT CIRCLE (EXACT ORANGE/YELLOW NODES AS IMAGE) */}
+                                {/* POINT CIRCLE */}
                                 <circle
                                   cx={x}
                                   cy={y}
@@ -1274,7 +1283,7 @@ function StudentRecordDossier({
                                   strokeWidth={isHovered ? 2.5 : 1.8}
                                 />
 
-                                {/* X-AXIS DAY NUMBER (IN PURPLE AS IMAGE) */}
+                                {/* X-AXIS DAY NUMBER */}
                                 <text
                                   x={x}
                                   y="244"
@@ -1352,7 +1361,10 @@ function StudentRecordDossier({
         </div>
       </div>
 
-      {/* 🌟 4. OFFICIAL PRINTABLE STUDENT RECORD SHEET (PRINT-ONLY) 🌟 */}
+      {/* 🌟 4. OFFICIAL PRINTABLE STUDENT RECORD SHEET (PRINT-ONLY) 🌟
+          Left exactly as-is: this is a distinct, self-contained
+          document meant for physical/PDF paperwork, not a duplicate
+          of the on-screen dossier above. */}
       <div
         id="student-record-document"
         className="student-record-printable-card hidden print:block"
