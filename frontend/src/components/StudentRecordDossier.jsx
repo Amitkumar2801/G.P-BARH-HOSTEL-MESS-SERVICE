@@ -958,247 +958,7 @@ function StudentRecordDossier({
 
       {/* 🌟 2. MESS ATTENDANCE & DIETARY ANALYTICS (ON-SCREEN) 🌟 */}
       <div className="no-print srd-shell" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-        <div className="srd-sec-head">
-          <div className="srd-sec-title">Mess Attendance &amp; Dining Records</div>
-
-          {/* VIEW SWITCHER: MONTH CALENDAR vs 1-YEAR OVERVIEW */}
-          <div className="srd-view-switcher">
-            <button
-              type="button"
-              className={`srd-view-tab ${activeTab === 'month' ? 'active' : ''}`}
-              onClick={() => setActiveTab('month')}
-            >
-              📅 Monthly Calendar
-            </button>
-            <button
-              type="button"
-              className={`srd-view-tab ${activeTab === 'year' ? 'active' : ''}`}
-              onClick={() => setActiveTab('year')}
-            >
-              🗓️ 1-Year (12 Months)
-            </button>
-          </div>
-        </div>
-
-        {/* 4 STAT CARDS */}
-        <div className="srd-metric-grid">
-          <div className="srd-metric-card">
-            <CircularBadge percent={monthlyPct} />
-            <div>
-              <p style={{ margin: '0 0 4px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Monthly Attendance</p>
-              <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--text)' }}>{monthlyPresent} / {monthlyTotal} Days</h4>
-              <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#16a34a', fontWeight: 700 }}>{monthlyPct}% Current Month</p>
-            </div>
-          </div>
-
-          <div className="srd-metric-card">
-            <div className="srd-metric-icon" style={{ background: '#fef3c7', color: '#d97706' }}>
-              🍱
-            </div>
-            <div>
-              <p style={{ margin: '0 0 4px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Daily Dining Plan</p>
-              <h4 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: 'var(--text)' }}>{monthlyPresent} Days Active</h4>
-              <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#d97706', fontWeight: 700 }}>
-                4-Meal Plan (Breakfast • Lunch • Snacks • Dinner)
-              </p>
-            </div>
-          </div>
-
-          <div className="srd-metric-card">
-            <CircularBadge percent={annualPct} label="Annual" />
-            <div>
-              <p style={{ margin: '0 0 4px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Annual Cumulative</p>
-              <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--text)' }}>{annualPresent} / {annualTotal} Days</h4>
-              <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Active Across Session</p>
-            </div>
-          </div>
-
-          <div className="srd-metric-card">
-            <div className="srd-metric-icon" style={{ background: '#e0f2fe', color: '#0284c7' }}>
-              📝
-            </div>
-            <div>
-              <p style={{ margin: '0 0 4px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Approved Leaves / Outpass</p>
-              <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--text)' }}>{leaveDays} Days Absent</h4>
-              <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#0284c7', fontWeight: 700 }}>Pre-approved on Record</p>
-            </div>
-          </div>
-        </div>
-
-        {/* 🗓️ VIEW 1: MONTHLY CALENDAR WIDGET (ENHANCED COUNT & STREAK DESIGN) 🗓️ */}
-        {activeTab === 'month' && (
-          <div className="srd-cal-container">
-            {/* TOP HEADER & MONTH CONTROLLER */}
-            <div className="srd-cal-header">
-              <div>
-                <div className="srd-cal-top-tag">
-                  <span>✨</span>
-                  <span>DAILY MESS QR CHECK-IN TRACKER</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <button type="button" onClick={handlePrevMonth} className="srd-cal-nav-btn" title="Previous Month">❮</button>
-                  <h4 className="srd-cal-month-title">{MONTH_NAMES[activeMonth]} {activeYear}</h4>
-                  <button type="button" onClick={handleNextMonth} className="srd-cal-nav-btn" title="Next Month">❯</button>
-                </div>
-              </div>
-
-              {/* PROMINENT ATTENDANCE COUNT BADGES */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                <div className="srd-cal-day-badge">
-                  <strong>{monthlyPresent}</strong>
-                  <div>
-                    <span style={{ display: 'block' }}>DAYS PRESENT</span>
-                    <small style={{ fontSize: '9.5px', color: '#fef08a', opacity: 0.9 }}>1 Scan = 4 Meals</small>
-                  </div>
-                </div>
-
-                <div style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '14px', padding: '8px 14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '18px' }}>🍱</span>
-                  <div>
-                    <strong style={{ fontSize: '15px', color: '#38bdf8', display: 'block', lineHeight: 1 }}>{monthlyPresent * 4}</strong>
-                    <span style={{ fontSize: '9.5px', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>Meals Served</span>
-                  </div>
-                </div>
-
-                <div style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '14px', padding: '8px 14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '18px' }}>🏖️</span>
-                  <div>
-                    <strong style={{ fontSize: '15px', color: '#f87171', display: 'block', lineHeight: 1 }}>{leaveDays}</strong>
-                    <span style={{ fontSize: '9.5px', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>Leaves Taken</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* WEEKDAY HEADERS */}
-            <div className="srd-cal-weekdays">
-              <span>SUN</span>
-              <span>MON</span>
-              <span>TUE</span>
-              <span>WED</span>
-              <span>THU</span>
-              <span>FRI</span>
-              <span>SAT</span>
-            </div>
-
-            {/* SQUARE BOX ATTENDANCE CALENDAR GRID */}
-            <div className="srd-cal-square-grid">
-              {calendarData.rows.flat().map((cell) => {
-                if (cell.empty) {
-                  return <div className="srd-day-square empty" key={cell.key} />;
-                }
-
-                const isPresent = cell.status === 'present';
-
-                return (
-                  <div
-                    key={cell.key}
-                    className={`srd-day-square ${isPresent ? 'present' : 'leave'}`}
-                    title={`Day ${cell.day} ${MONTH_SHORT[activeMonth]} ${activeYear}: ${isPresent ? '✅ QR Scanned Present — 4 Meals Eaten (Breakfast, Lunch, Snacks, Dinner)' : '❌ Not Scanned / Leave (0 Meals)'}`}
-                  >
-                    {cell.day}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* LIVE MEALS CONSUMPTION COUNTER BAR */}
-            <div style={{ background: 'rgba(15, 23, 42, 0.65)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '14px', padding: '14px 18px', marginBottom: '14px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px', position: 'relative', zIndex: 2 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '20px' }}>🥞</span>
-                <div>
-                  <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>Breakfast</div>
-                  <div style={{ fontSize: '14px', fontWeight: 900, color: '#f8fafc' }}>{monthlyPresent} <span style={{ fontSize: '11px', color: '#4ade80' }}>Eaten</span></div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '20px' }}>🍛</span>
-                <div>
-                  <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>Lunch</div>
-                  <div style={{ fontSize: '14px', fontWeight: 900, color: '#f8fafc' }}>{monthlyPresent} <span style={{ fontSize: '11px', color: '#4ade80' }}>Eaten</span></div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '20px' }}>☕</span>
-                <div>
-                  <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>Snacks</div>
-                  <div style={{ fontSize: '14px', fontWeight: 900, color: '#f8fafc' }}>{monthlyPresent} <span style={{ fontSize: '11px', color: '#4ade80' }}>Eaten</span></div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '20px' }}>🍲</span>
-                <div>
-                  <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>Dinner</div>
-                  <div style={{ fontSize: '14px', fontWeight: 900, color: '#f8fafc' }}>{monthlyPresent} <span style={{ fontSize: '11px', color: '#4ade80' }}>Eaten</span></div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderLeft: '1px solid rgba(255,255,255,0.12)', paddingLeft: '12px' }}>
-                <span style={{ fontSize: '22px' }}>🍱</span>
-                <div>
-                  <div style={{ fontSize: '10px', color: '#fbbf24', fontWeight: 900, textTransform: 'uppercase' }}>Total Meals</div>
-                  <div style={{ fontSize: '16px', fontWeight: 900, color: '#fef08a' }}>{monthlyPresent * 4} <span style={{ fontSize: '10px', color: '#ffffff' }}>Diets</span></div>
-                </div>
-              </div>
-            </div>
-
-            {/* LEGEND & QUICK SUMMARY BAR */}
-            <div className="srd-cal-legend">
-              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '13px', alignItems: 'center' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ffffff', fontWeight: 800 }}>
-                  <span style={{ width: '16px', height: '16px', borderRadius: '4px', background: 'linear-gradient(135deg, #15803d, #22c55e)', border: '1px solid #4ade80', display: 'inline-block' }}></span>
-                  Scanned Present ({monthlyPresent} Days • Green)
-                </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ffffff', fontWeight: 800 }}>
-                  <span style={{ width: '16px', height: '16px', borderRadius: '4px', background: 'linear-gradient(135deg, #7f1d1d, #dc2626)', border: '1px solid #f87171', display: 'inline-block' }}></span>
-                  Not Scanned / Leave ({leaveDays} Days • Red)
-                </span>
-              </div>
-              <span style={{ fontSize: '11.5px', color: '#fbbf24', fontWeight: 700, letterSpacing: '0.2px' }}>
-                ⚡ 1 Daily Scan = Green (4 Meals) | Not Scanned = Red (0 Meals)
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* 🗓️ VIEW 2: 1-YEAR (12-MONTHS) ANNUAL OVERVIEW GRID 🗓️ */}
-        {activeTab === 'year' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div className="srd-year-grid">
-              {ANNUAL_MESS_DATA.map((mData, mIdx) => {
-                const isSelected = mIdx === activeMonth;
-
-                return (
-                  <div
-                    key={mData.full}
-                    className={`srd-year-month-card ${isSelected ? 'active' : ''}`}
-                    onClick={() => {
-                      setActiveMonth(mIdx);
-                      setActiveTab('month');
-                    }}
-                    title={`Click to view full calendar for ${mData.full}`}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                      <strong style={{ fontSize: '14px', color: 'var(--text)' }}>{mData.full}</strong>
-                      <span style={{ fontSize: '11px', fontWeight: 800, background: '#dcfce7', color: '#166534', padding: '2px 8px', borderRadius: '12px' }}>
-                        {mData.pct}%
-                      </span>
-                    </div>
-
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>
-                      Present: <b style={{ color: 'var(--text)' }}>{mData.present} Days</b> • 4-Meal Plan: <b style={{ color: '#800000' }}>Active</b>
-                    </div>
-
-                    {/* MINI ATTENDANCE PROGRESS BAR */}
-                    <div style={{ width: '100%', height: '6px', background: 'var(--border)', borderRadius: '3px', overflow: 'hidden' }}>
-                      <div style={{ width: `${mData.pct}%`, height: '100%', background: 'linear-gradient(90deg, #f97316, #800000)', borderRadius: '3px' }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
+        
         {/* 📊 ANNUAL MESS ATTENDANCE & MEAL DIETS GRAPH (2026 - 2027 - 2028) 📊 */}
         <div className="srd-analytics-chart-card">
 
@@ -1488,6 +1248,247 @@ function StudentRecordDossier({
             );
           })()}
         </div>
+
+        <div className="srd-sec-head">
+          <div className="srd-sec-title">Mess Attendance &amp; Dining Records</div>
+
+          {/* VIEW SWITCHER: MONTH CALENDAR vs 1-YEAR OVERVIEW */}
+          <div className="srd-view-switcher">
+            <button
+              type="button"
+              className={`srd-view-tab ${activeTab === 'month' ? 'active' : ''}`}
+              onClick={() => setActiveTab('month')}
+            >
+              📅 Monthly Calendar
+            </button>
+            <button
+              type="button"
+              className={`srd-view-tab ${activeTab === 'year' ? 'active' : ''}`}
+              onClick={() => setActiveTab('year')}
+            >
+              🗓️ 1-Year (12 Months)
+            </button>
+          </div>
+        </div>
+
+        {/* 4 STAT CARDS */}
+        <div className="srd-metric-grid">
+          <div className="srd-metric-card">
+            <CircularBadge percent={monthlyPct} />
+            <div>
+              <p style={{ margin: '0 0 4px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Monthly Attendance</p>
+              <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--text)' }}>{monthlyPresent} / {monthlyTotal} Days</h4>
+              <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#16a34a', fontWeight: 700 }}>{monthlyPct}% Current Month</p>
+            </div>
+          </div>
+
+          <div className="srd-metric-card">
+            <div className="srd-metric-icon" style={{ background: '#fef3c7', color: '#d97706' }}>
+              🍱
+            </div>
+            <div>
+              <p style={{ margin: '0 0 4px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Daily Dining Plan</p>
+              <h4 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: 'var(--text)' }}>{monthlyPresent} Days Active</h4>
+              <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#d97706', fontWeight: 700 }}>
+                4-Meal Plan (Breakfast • Lunch • Snacks • Dinner)
+              </p>
+            </div>
+          </div>
+
+          <div className="srd-metric-card">
+            <CircularBadge percent={annualPct} label="Annual" />
+            <div>
+              <p style={{ margin: '0 0 4px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Annual Cumulative</p>
+              <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--text)' }}>{annualPresent} / {annualTotal} Days</h4>
+              <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Active Across Session</p>
+            </div>
+          </div>
+
+          <div className="srd-metric-card">
+            <div className="srd-metric-icon" style={{ background: '#e0f2fe', color: '#0284c7' }}>
+              📝
+            </div>
+            <div>
+              <p style={{ margin: '0 0 4px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Approved Leaves / Outpass</p>
+              <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--text)' }}>{leaveDays} Days Absent</h4>
+              <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#0284c7', fontWeight: 700 }}>Pre-approved on Record</p>
+            </div>
+          </div>
+        </div>
+
+        {/* 🗓️ VIEW 1: MONTHLY CALENDAR WIDGET (ENHANCED COUNT & STREAK DESIGN) 🗓️ */}
+        {activeTab === 'month' && (
+          <div className="srd-cal-container">
+            {/* TOP HEADER & MONTH CONTROLLER */}
+            <div className="srd-cal-header">
+              <div>
+                <div className="srd-cal-top-tag">
+                  <span>✨</span>
+                  <span>DAILY MESS QR CHECK-IN TRACKER</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <button type="button" onClick={handlePrevMonth} className="srd-cal-nav-btn" title="Previous Month">❮</button>
+                  <h4 className="srd-cal-month-title">{MONTH_NAMES[activeMonth]} {activeYear}</h4>
+                  <button type="button" onClick={handleNextMonth} className="srd-cal-nav-btn" title="Next Month">❯</button>
+                </div>
+              </div>
+
+              {/* PROMINENT ATTENDANCE COUNT BADGES */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <div className="srd-cal-day-badge">
+                  <strong>{monthlyPresent}</strong>
+                  <div>
+                    <span style={{ display: 'block' }}>DAYS PRESENT</span>
+                    <small style={{ fontSize: '9.5px', color: '#fef08a', opacity: 0.9 }}>1 Scan = 4 Meals</small>
+                  </div>
+                </div>
+
+                <div style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '14px', padding: '8px 14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '18px' }}>🍱</span>
+                  <div>
+                    <strong style={{ fontSize: '15px', color: '#38bdf8', display: 'block', lineHeight: 1 }}>{monthlyPresent * 4}</strong>
+                    <span style={{ fontSize: '9.5px', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>Meals Served</span>
+                  </div>
+                </div>
+
+                <div style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '14px', padding: '8px 14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '18px' }}>🏖️</span>
+                  <div>
+                    <strong style={{ fontSize: '15px', color: '#f87171', display: 'block', lineHeight: 1 }}>{leaveDays}</strong>
+                    <span style={{ fontSize: '9.5px', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>Leaves Taken</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* WEEKDAY HEADERS */}
+            <div className="srd-cal-weekdays">
+              <span>SUN</span>
+              <span>MON</span>
+              <span>TUE</span>
+              <span>WED</span>
+              <span>THU</span>
+              <span>FRI</span>
+              <span>SAT</span>
+            </div>
+
+            {/* SQUARE BOX ATTENDANCE CALENDAR GRID */}
+            <div className="srd-cal-square-grid">
+              {calendarData.rows.flat().map((cell) => {
+                if (cell.empty) {
+                  return <div className="srd-day-square empty" key={cell.key} />;
+                }
+
+                const isPresent = cell.status === 'present';
+
+                return (
+                  <div
+                    key={cell.key}
+                    className={`srd-day-square ${isPresent ? 'present' : 'leave'}`}
+                    title={`Day ${cell.day} ${MONTH_SHORT[activeMonth]} ${activeYear}: ${isPresent ? '✅ QR Scanned Present — 4 Meals Eaten (Breakfast, Lunch, Snacks, Dinner)' : '❌ Not Scanned / Leave (0 Meals)'}`}
+                  >
+                    {cell.day}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* LIVE MEALS CONSUMPTION COUNTER BAR */}
+            <div style={{ background: 'rgba(15, 23, 42, 0.65)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '14px', padding: '14px 18px', marginBottom: '14px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px', position: 'relative', zIndex: 2 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '20px' }}>🥞</span>
+                <div>
+                  <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>Breakfast</div>
+                  <div style={{ fontSize: '14px', fontWeight: 900, color: '#f8fafc' }}>{monthlyPresent} <span style={{ fontSize: '11px', color: '#4ade80' }}>Eaten</span></div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '20px' }}>🍛</span>
+                <div>
+                  <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>Lunch</div>
+                  <div style={{ fontSize: '14px', fontWeight: 900, color: '#f8fafc' }}>{monthlyPresent} <span style={{ fontSize: '11px', color: '#4ade80' }}>Eaten</span></div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '20px' }}>☕</span>
+                <div>
+                  <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>Snacks</div>
+                  <div style={{ fontSize: '14px', fontWeight: 900, color: '#f8fafc' }}>{monthlyPresent} <span style={{ fontSize: '11px', color: '#4ade80' }}>Eaten</span></div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '20px' }}>🍲</span>
+                <div>
+                  <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase' }}>Dinner</div>
+                  <div style={{ fontSize: '14px', fontWeight: 900, color: '#f8fafc' }}>{monthlyPresent} <span style={{ fontSize: '11px', color: '#4ade80' }}>Eaten</span></div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderLeft: '1px solid rgba(255,255,255,0.12)', paddingLeft: '12px' }}>
+                <span style={{ fontSize: '22px' }}>🍱</span>
+                <div>
+                  <div style={{ fontSize: '10px', color: '#fbbf24', fontWeight: 900, textTransform: 'uppercase' }}>Total Meals</div>
+                  <div style={{ fontSize: '16px', fontWeight: 900, color: '#fef08a' }}>{monthlyPresent * 4} <span style={{ fontSize: '10px', color: '#ffffff' }}>Diets</span></div>
+                </div>
+              </div>
+            </div>
+
+            {/* LEGEND & QUICK SUMMARY BAR */}
+            <div className="srd-cal-legend">
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '13px', alignItems: 'center' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ffffff', fontWeight: 800 }}>
+                  <span style={{ width: '16px', height: '16px', borderRadius: '4px', background: 'linear-gradient(135deg, #15803d, #22c55e)', border: '1px solid #4ade80', display: 'inline-block' }}></span>
+                  Scanned Present ({monthlyPresent} Days • Green)
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ffffff', fontWeight: 800 }}>
+                  <span style={{ width: '16px', height: '16px', borderRadius: '4px', background: 'linear-gradient(135deg, #7f1d1d, #dc2626)', border: '1px solid #f87171', display: 'inline-block' }}></span>
+                  Not Scanned / Leave ({leaveDays} Days • Red)
+                </span>
+              </div>
+              <span style={{ fontSize: '11.5px', color: '#fbbf24', fontWeight: 700, letterSpacing: '0.2px' }}>
+                ⚡ 1 Daily Scan = Green (4 Meals) | Not Scanned = Red (0 Meals)
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* 🗓️ VIEW 2: 1-YEAR (12-MONTHS) ANNUAL OVERVIEW GRID 🗓️ */}
+        {activeTab === 'year' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="srd-year-grid">
+              {ANNUAL_MESS_DATA.map((mData, mIdx) => {
+                const isSelected = mIdx === activeMonth;
+
+                return (
+                  <div
+                    key={mData.full}
+                    className={`srd-year-month-card ${isSelected ? 'active' : ''}`}
+                    onClick={() => {
+                      setActiveMonth(mIdx);
+                      setActiveTab('month');
+                    }}
+                    title={`Click to view full calendar for ${mData.full}`}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <strong style={{ fontSize: '14px', color: 'var(--text)' }}>{mData.full}</strong>
+                      <span style={{ fontSize: '11px', fontWeight: 800, background: '#dcfce7', color: '#166534', padding: '2px 8px', borderRadius: '12px' }}>
+                        {mData.pct}%
+                      </span>
+                    </div>
+
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>
+                      Present: <b style={{ color: 'var(--text)' }}>{mData.present} Days</b> • 4-Meal Plan: <b style={{ color: '#800000' }}>Active</b>
+                    </div>
+
+                    {/* MINI ATTENDANCE PROGRESS BAR */}
+                    <div style={{ width: '100%', height: '6px', background: 'var(--border)', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div style={{ width: `${mData.pct}%`, height: '100%', background: 'linear-gradient(90deg, #f97316, #800000)', borderRadius: '3px' }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* 🌟 3. INSTITUTIONAL MESS POLICY & NOTICE BOX 🌟 */}
         <div className="srd-notice">
