@@ -8,53 +8,30 @@ const MONTH_NAMES = [
 ];
 const MONTH_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-// Comprehensive Multi-Year Realistic Academic Dataset (Single QR Scan = 4 Meals Active)
-const MULTI_YEAR_MESS_DATA = {
-  2026: [
-    { month: "Jan", full: "January", daysTotal: 31, present: 26, leave: 5, pct: 83.9, tag: "Winter Session", mealsCovered: 104 },
-    { month: "Feb", full: "February", daysTotal: 28, present: 24, leave: 4, pct: 85.7, tag: "Regular Session", mealsCovered: 96 },
-    { month: "Mar", full: "March", daysTotal: 31, present: 27, leave: 4, pct: 87.1, tag: "Mid-Term Exams", mealsCovered: 108 },
-    { month: "Apr", full: "April", daysTotal: 30, present: 26, leave: 4, pct: 86.7, tag: "Regular Session", mealsCovered: 104 },
-    { month: "May", full: "May", daysTotal: 31, present: 28, leave: 3, pct: 90.3, tag: "End-Semester", mealsCovered: 112 },
-    { month: "Jun", full: "June", daysTotal: 30, present: 20, leave: 10, pct: 66.7, tag: "Summer Session", mealsCovered: 80 },
-    { month: "Jul", full: "July", daysTotal: 31, present: 22, leave: 9, pct: 71.0, tag: "Semester Start", mealsCovered: 88 },
-    { month: "Aug", full: "August", daysTotal: 31, present: 28, leave: 3, pct: 90.3, tag: "Peak Attendance", mealsCovered: 112 },
-    { month: "Sep", full: "September", daysTotal: 30, present: 26, leave: 4, pct: 86.7, tag: "Current Month", mealsCovered: 104 },
-    { month: "Oct", full: "October", daysTotal: 31, present: 18, leave: 13, pct: 58.1, tag: "Puja/Diwali Break", mealsCovered: 72 },
-    { month: "Nov", full: "November", daysTotal: 30, present: 25, leave: 5, pct: 83.3, tag: "Regular Session", mealsCovered: 100 },
-    { month: "Dec", full: "December", daysTotal: 31, present: 20, leave: 11, pct: 64.5, tag: "Winter Break", mealsCovered: 80 },
-  ],
-  2027: [
-    { month: "Jan", full: "January", daysTotal: 31, present: 27, leave: 4, pct: 87.1, tag: "Winter Session", mealsCovered: 108 },
-    { month: "Feb", full: "February", daysTotal: 28, present: 25, leave: 3, pct: 89.3, tag: "Regular Session", mealsCovered: 100 },
-    { month: "Mar", full: "March", daysTotal: 31, present: 28, leave: 3, pct: 90.3, tag: "Mid-Term Exams", mealsCovered: 112 },
-    { month: "Apr", full: "April", daysTotal: 30, present: 27, leave: 3, pct: 90.0, tag: "Regular Session", mealsCovered: 108 },
-    { month: "May", full: "May", daysTotal: 31, present: 29, leave: 2, pct: 93.5, tag: "End-Semester", mealsCovered: 116 },
-    { month: "Jun", full: "June", daysTotal: 30, present: 12, leave: 18, pct: 40.0, tag: "Summer Vacation", mealsCovered: 48 },
-    { month: "Jul", full: "July", daysTotal: 31, present: 24, leave: 7, pct: 77.4, tag: "Semester Start", mealsCovered: 96 },
-    { month: "Aug", full: "August", daysTotal: 31, present: 28, leave: 3, pct: 90.3, tag: "Regular Session", mealsCovered: 112 },
-    { month: "Sep", full: "September", daysTotal: 30, present: 26, leave: 4, pct: 86.7, tag: "Regular Session", mealsCovered: 104 },
-    { month: "Oct", full: "October", daysTotal: 31, present: 19, leave: 12, pct: 61.3, tag: "Festival Break", mealsCovered: 76 },
-    { month: "Nov", full: "November", daysTotal: 30, present: 26, leave: 4, pct: 86.7, tag: "Regular Session", mealsCovered: 104 },
-    { month: "Dec", full: "December", daysTotal: 31, present: 22, leave: 9, pct: 71.0, tag: "Winter Break", mealsCovered: 88 },
-  ],
-  2028: [
-    { month: "Jan", full: "January", daysTotal: 31, present: 28, leave: 3, pct: 90.3, tag: "Final Year Session", mealsCovered: 112 },
-    { month: "Feb", full: "February", daysTotal: 29, present: 26, leave: 3, pct: 89.7, tag: "Regular Session", mealsCovered: 104 },
-    { month: "Mar", full: "March", daysTotal: 31, present: 28, leave: 3, pct: 90.3, tag: "Project Submissions", mealsCovered: 112 },
-    { month: "Apr", full: "April", daysTotal: 30, present: 28, leave: 2, pct: 93.3, tag: "Final Exams", mealsCovered: 112 },
-    { month: "May", full: "May", daysTotal: 31, present: 30, leave: 1, pct: 96.8, tag: "Convocation Session", mealsCovered: 120 },
-    { month: "Jun", full: "June", daysTotal: 30, present: 15, leave: 15, pct: 50.0, tag: "Internship Period", mealsCovered: 60 },
-    { month: "Jul", full: "July", daysTotal: 31, present: 26, leave: 5, pct: 83.9, tag: "Placement Drive", mealsCovered: 104 },
-    { month: "Aug", full: "August", daysTotal: 31, present: 29, leave: 2, pct: 93.5, tag: "Campus Recruitment", mealsCovered: 116 },
-    { month: "Sep", full: "September", daysTotal: 30, present: 27, leave: 3, pct: 90.0, tag: "Final Projects", mealsCovered: 108 },
-    { month: "Oct", full: "October", daysTotal: 31, present: 20, leave: 11, pct: 64.5, tag: "Festival Break", mealsCovered: 80 },
-    { month: "Nov", full: "November", daysTotal: 30, present: 27, leave: 3, pct: 90.0, tag: "Regular Session", mealsCovered: 108 },
-    { month: "Dec", full: "December", daysTotal: 31, present: 24, leave: 7, pct: 77.4, tag: "Valedictory Meet", mealsCovered: 96 },
-  ]
+// Real Attendance Data Reader Helpers
+const getRealAttendanceRecords = () => {
+  try {
+    const raw = localStorage.getItem('gpbarh_daily_meal_attendance_records');
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return {};
 };
 
-const ANNUAL_MESS_DATA = MULTI_YEAR_MESS_DATA[2026];
+const getRealAttendanceHistory = () => {
+  try {
+    const raw = localStorage.getItem('gpbarh_mess_attendance_history');
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return [];
+};
+
+const getRealLeavesRecords = () => {
+  try {
+    const raw = localStorage.getItem('gpbarh_leaves_data') || localStorage.getItem('gpbarh_student_leaves');
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return [];
+};
 
 function CircularBadge({ percent, size = 56, stroke = 5, label, color = "#800000" }) {
   const r = (size - stroke) / 2;
@@ -226,17 +203,89 @@ function StudentRecordDossier({
     ? `Room ${allotmentInfo.room_number} • Bed ${allotmentInfo.bed_code}`
     : (allotmentInfo?.roomNo ? `Room ${allotmentInfo.roomNo} • Bed ${allotmentInfo.bedNo || 'A'}` : (profileData?.roomNumber ? `Room ${profileData.roomNumber} • Bed ${profileData.bedNumber || 'A'}` : (isFemale ? 'Room 101 • Bed A' : 'Room 101 • Bed 1 (Bed A)')));
 
+  const currentRealDate = new Date();
+  const currentRealYear = currentRealDate.getFullYear();
+  const currentRealMonth = currentRealDate.getMonth();
+  const currentRealDay = currentRealDate.getDate();
+
   // Calendar and View States
   const [activeTab, setActiveTab] = useState('month'); // 'month' | 'year'
-  const [activeMonth, setActiveMonth] = useState(8); // 0-indexed: 8 = September 2026
-  const [activeYear, setActiveYear] = useState(2026);
-  const [selectedGraphYear, setSelectedGraphYear] = useState(2026);
-  const [hoveredMonthIdx, setHoveredMonthIdx] = useState(8);
+  const [activeMonth, setActiveMonth] = useState(currentRealMonth);
+  const [activeYear, setActiveYear] = useState(currentRealYear);
+  const [selectedGraphYear, setSelectedGraphYear] = useState(currentRealYear);
+  const [hoveredMonthIdx, setHoveredMonthIdx] = useState(currentRealMonth);
   const [chartMode, setChartMode] = useState('bars'); // 'bars' | 'trend'
 
+  // Read real dynamic attendance & leave records from live storage
+  const dailyAttendanceMap = useMemo(() => getRealAttendanceRecords(), []);
+  const attendanceHistoryList = useMemo(() => getRealAttendanceHistory(), []);
+  const studentLeavesList = useMemo(() => getRealLeavesRecords(), []);
+
+  // Check if a given date string (YYYY-MM-DD) has recorded attendance
+  const isDatePresent = (dateStr) => {
+    if (dailyAttendanceMap[dateStr]) return true;
+    if (attendanceHistoryList.some(h => h.date === dateStr || h.attendance_date === dateStr)) return true;
+    return false;
+  };
+
+  // Check if a given date string (YYYY-MM-DD) is marked as leave
+  const isDateLeave = (dateStr) => {
+    if (Array.isArray(studentLeavesList)) {
+      return studentLeavesList.some(l => {
+        if (l.date === dateStr) return true;
+        if (l.startDate && l.endDate && dateStr >= l.startDate && dateStr <= l.endDate && l.status === 'APPROVED') return true;
+        return false;
+      });
+    }
+    return false;
+  };
+
+  // Generate 100% Real Live 12-Month Academic Dataset for any selected year
+  const getYearDataset = (year) => {
+    return Array.from({ length: 12 }, (_, mIdx) => {
+      const daysTotal = new Date(year, mIdx + 1, 0).getDate();
+      let presentCount = 0;
+      let leaveCount = 0;
+
+      for (let d = 1; d <= daysTotal; d++) {
+        const dateStr = `${year}-${String(mIdx + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        if (isDatePresent(dateStr)) {
+          presentCount++;
+        } else if (isDateLeave(dateStr)) {
+          leaveCount++;
+        }
+      }
+
+      const mealsCovered = presentCount * 4;
+      const pct = daysTotal > 0 ? Number(((presentCount / daysTotal) * 100).toFixed(1)) : 0;
+      
+      let tag = "0 Days Recorded";
+      if (year === currentRealYear && mIdx === currentRealMonth) {
+        tag = presentCount > 0 ? "Current Month (Live)" : "Current Month (0 Scans)";
+      } else if (year > currentRealYear || (year === currentRealYear && mIdx > currentRealMonth)) {
+        tag = "Upcoming Session";
+      } else if (presentCount > 0) {
+        tag = `${presentCount} Days Recorded`;
+      } else {
+        tag = "New Admission (0 Days)";
+      }
+
+      return {
+        month: MONTH_SHORT[mIdx],
+        full: MONTH_NAMES[mIdx],
+        daysTotal,
+        present: presentCount,
+        leave: leaveCount,
+        pct,
+        tag,
+        mealsCovered
+      };
+    });
+  };
+
   // Dynamic Real-Time Academic Dataset Calculations
-  const currentYearData = MULTI_YEAR_MESS_DATA[activeYear] || MULTI_YEAR_MESS_DATA[2026];
-  const currentMonthData = currentYearData[activeMonth] || currentYearData[8];
+  const currentYearData = useMemo(() => getYearDataset(activeYear), [activeYear, dailyAttendanceMap, attendanceHistoryList, studentLeavesList]);
+  const currentMonthData = currentYearData[activeMonth] || currentYearData[currentRealMonth] || currentYearData[0];
 
   const monthlyPresent = currentMonthData.present;
   const monthlyTotal = currentMonthData.daysTotal;
@@ -248,15 +297,14 @@ function StudentRecordDossier({
   const annualTotalDaysTotal = useMemo(() => currentYearData.reduce((sum, m) => sum + m.daysTotal, 0), [currentYearData]);
   const annualTotalMeals = useMemo(() => currentYearData.reduce((sum, m) => sum + m.mealsCovered, 0), [currentYearData]);
   const annualPct = useMemo(
-    () => Number(((annualTotalDaysPresent / annualTotalDaysTotal) * 100).toFixed(1)),
+    () => (annualTotalDaysTotal > 0 ? Number(((annualTotalDaysPresent / annualTotalDaysTotal) * 100).toFixed(1)) : 0),
     [annualTotalDaysPresent, annualTotalDaysTotal]
   );
 
-  // Calculate calendar grid for current active month
+  // Calculate calendar grid for current active month with real attendance
   const calendarData = useMemo(() => {
     const daysInMonth = new Date(activeYear, activeMonth + 1, 0).getDate();
     const startDay = new Date(activeYear, activeMonth, 1).getDay(); // 0 = Sun, 1 = Mon ...
-    const leaveSet = new Set([4, 11, 18, 25]);
 
     const rows = [];
     let currentRow = [];
@@ -266,11 +314,34 @@ function StudentRecordDossier({
     }
 
     for (let d = 1; d <= daysInMonth; d++) {
-      const isLeave = leaveSet.has(d);
+      const dateStr = `${activeYear}-${String(activeMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const isPresent = isDatePresent(dateStr);
+      const isLeave = isDateLeave(dateStr);
+      const isToday = (activeYear === currentRealYear && activeMonth === currentRealMonth && d === currentRealDay);
+      const isPast = (activeYear < currentRealYear) || (activeYear === currentRealYear && activeMonth < currentRealMonth) || (activeYear === currentRealYear && activeMonth === currentRealMonth && d < currentRealDay);
+
+      let status = 'unmarked';
+      if (isPresent) {
+        status = 'present';
+      } else if (isLeave) {
+        status = 'leave';
+      } else if (isToday) {
+        status = 'today-pending';
+      } else if (isPast) {
+        status = 'unmarked';
+      } else {
+        status = 'future';
+      }
+
       currentRow.push({
         empty: false,
         day: d,
-        status: isLeave ? 'leave' : 'present',
+        dateStr,
+        status,
+        isPresent,
+        isLeave,
+        isToday,
+        isPast,
         key: `day-${d}`
       });
 
@@ -288,7 +359,7 @@ function StudentRecordDossier({
     }
 
     return { daysInMonth, rows };
-  }, [activeMonth, activeYear]);
+  }, [activeMonth, activeYear, dailyAttendanceMap, attendanceHistoryList, studentLeavesList]);
 
   const handlePrevMonth = () => {
     if (activeMonth === 0) {
@@ -751,7 +822,7 @@ function StudentRecordDossier({
           z-index: 10;
         }
 
-        /* 🟥 LEAVE / ABSENT: VIBRANT RED 🟥 */
+        /* 🟥 LEAVE: VIBRANT RED 🟥 */
         .srd-day-square.leave {
           background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 50%, #dc2626 100%);
           color: #ffffff;
@@ -764,6 +835,39 @@ function StudentRecordDossier({
           border-color: #ffffff;
           box-shadow: 0 8px 22px rgba(239, 68, 68, 0.55), 0 0 14px rgba(248, 113, 113, 0.5);
           z-index: 10;
+        }
+
+        /* 🟡 TODAY PENDING: GOLDEN PULSE 🟡 */
+        .srd-day-square.today-pending {
+          background: rgba(245, 158, 11, 0.15);
+          color: #fbbf24;
+          border: 2px dashed #f59e0b;
+          box-shadow: 0 0 16px rgba(245, 158, 11, 0.3);
+          animation: pulseToday 2s infinite ease-in-out;
+        }
+        @keyframes pulseToday {
+          0%, 100% { border-color: #f59e0b; box-shadow: 0 0 10px rgba(245, 158, 11, 0.2); }
+          50% { border-color: #facc15; box-shadow: 0 0 20px rgba(250, 204, 21, 0.5); }
+        }
+
+        /* ⬛ UNMARKED / NEW STUDENT DAYS: CLEAN DARK SLATE ⬛ */
+        .srd-day-square.unmarked {
+          background: rgba(255, 255, 255, 0.04);
+          color: #94a3b8;
+          border: 1px solid rgba(255, 255, 255, 0.09);
+        }
+        .srd-day-square.unmarked:hover {
+          background: rgba(255, 255, 255, 0.09);
+          color: #f1f5f9;
+          transform: translateY(-2px);
+        }
+
+        /* 🌫️ FUTURE DATES: SUBTLE 🌫️ */
+        .srd-day-square.future {
+          background: rgba(255, 255, 255, 0.02);
+          color: #475569;
+          border: 1px solid rgba(255, 255, 255, 0.04);
+          opacity: 0.5;
         }
 
         @media (max-width: 640px) {
@@ -1123,10 +1227,14 @@ function StudentRecordDossier({
 
           {/* DYNAMIC 12-MONTH DATASET & HOVER DETAIL */}
           {(() => {
-            const yearDataset = MULTI_YEAR_MESS_DATA[selectedGraphYear] || MULTI_YEAR_MESS_DATA[2026];
-            const currentIdx = hoveredMonthIdx >= 0 && hoveredMonthIdx < yearDataset.length ? hoveredMonthIdx : 5; // Default June
+            const yearDataset = getYearDataset(selectedGraphYear);
+            const currentIdx = hoveredMonthIdx >= 0 && hoveredMonthIdx < yearDataset.length ? hoveredMonthIdx : currentRealMonth;
             const selectedMonth = yearDataset[currentIdx] || yearDataset[0];
             const totalYearMeals = yearDataset.reduce((sum, m) => sum + m.mealsCovered, 0);
+            const maxMonth = yearDataset.reduce((prev, curr) => (curr.present > prev.present ? curr : prev), yearDataset[0]);
+            const peakDietsInfo = maxMonth && maxMonth.present > 0
+              ? `${maxMonth.full} (${maxMonth.present} Days • ${maxMonth.mealsCovered} Diets)`
+              : '0 Diets (New Registration)';
 
             return (
               <>
@@ -1141,8 +1249,8 @@ function StudentRecordDossier({
                       <span style={{
                         marginLeft: '8px',
                         fontSize: '11px',
-                        background: '#ede9fe',
-                        color: '#6366f1',
+                        background: selectedMonth.present > 0 ? '#dcfce7' : '#ede9fe',
+                        color: selectedMonth.present > 0 ? '#166534' : '#6366f1',
                         padding: '2px 8px',
                         borderRadius: '12px',
                         fontWeight: 800
@@ -1435,7 +1543,7 @@ function StudentRecordDossier({
                     <span style={{ fontSize: '16px' }}>🏆</span>
                     <div>
                       <div style={{ color: 'var(--text-muted)', fontSize: '10.5px' }}>Peak Diets</div>
-                      <b style={{ color: '#2563eb' }}>May &amp; Aug (28 Days)</b>
+                      <b style={{ color: '#2563eb' }}>{peakDietsInfo}</b>
                     </div>
                   </div>
                 </div>
@@ -1644,13 +1752,22 @@ function StudentRecordDossier({
                   return <div className="srd-day-square empty" key={cell.key} />;
                 }
 
-                const isPresent = cell.status === 'present';
+                let titleText = `Day ${cell.day} ${MONTH_SHORT[activeMonth]} ${activeYear}: Unrecorded`;
+                if (cell.status === 'present') {
+                  titleText = `Day ${cell.day} ${MONTH_SHORT[activeMonth]} ${activeYear}: ✅ QR Scanned Present (4 Meals Served)`;
+                } else if (cell.status === 'leave') {
+                  titleText = `Day ${cell.day} ${MONTH_SHORT[activeMonth]} ${activeYear}: 🏖️ Approved Leave (Meals Rebated)`;
+                } else if (cell.status === 'today-pending') {
+                  titleText = `Day ${cell.day} ${MONTH_SHORT[activeMonth]} ${activeYear}: ⏳ Today — QR Scan Pending`;
+                } else if (cell.status === 'future') {
+                  titleText = `Day ${cell.day} ${MONTH_SHORT[activeMonth]} ${activeYear}: Upcoming Date`;
+                }
 
                 return (
                   <div
                     key={cell.key}
-                    className={`srd-day-square ${isPresent ? 'present' : 'leave'}`}
-                    title={`Day ${cell.day} ${MONTH_SHORT[activeMonth]} ${activeYear}: ${isPresent ? '✅ QR Scanned Present — 4 Meals Eaten (Breakfast, Lunch, Snacks, Dinner)' : '❌ Not Scanned / Leave (0 Meals)'}`}
+                    className={`srd-day-square ${cell.status}`}
+                    title={titleText}
                   >
                     {cell.day}
                   </div>
@@ -1705,12 +1822,16 @@ function StudentRecordDossier({
                   Scanned Present ({monthlyPresent} Days • Green)
                 </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ffffff', fontWeight: 800 }}>
+                  <span style={{ width: '16px', height: '16px', borderRadius: '4px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', display: 'inline-block' }}></span>
+                  Unrecorded / No Scan ({calendarData.daysInMonth - monthlyPresent - leaveDays} Days • Slate)
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ffffff', fontWeight: 800 }}>
                   <span style={{ width: '16px', height: '16px', borderRadius: '4px', background: 'linear-gradient(135deg, #7f1d1d, #dc2626)', border: '1px solid #f87171', display: 'inline-block' }}></span>
-                  Not Scanned / Leave ({leaveDays} Days • Red)
+                  Approved Leaves ({leaveDays} Days • Red)
                 </span>
               </div>
               <span style={{ fontSize: '11.5px', color: '#fbbf24', fontWeight: 700, letterSpacing: '0.2px' }}>
-                ⚡ 1 Daily Scan = Green (4 Meals) | Not Scanned = Red (0 Meals)
+                ⚡ 1 Daily Scan = Green (4 Meals) | Real Institutional Attendance Feed
               </span>
             </div>
           </div>
@@ -1720,7 +1841,7 @@ function StudentRecordDossier({
         {activeTab === 'year' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div className="srd-year-grid">
-              {ANNUAL_MESS_DATA.map((mData, mIdx) => {
+              {currentYearData.map((mData, mIdx) => {
                 const isSelected = mIdx === activeMonth;
 
                 return (
@@ -1735,18 +1856,18 @@ function StudentRecordDossier({
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                       <strong style={{ fontSize: '14px', color: 'var(--text)' }}>{mData.full}</strong>
-                      <span style={{ fontSize: '11px', fontWeight: 800, background: '#dcfce7', color: '#166534', padding: '2px 8px', borderRadius: '12px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: 800, background: mData.present > 0 ? '#dcfce7' : 'var(--input-bg)', color: mData.present > 0 ? '#166534' : 'var(--text-muted)', padding: '2px 8px', borderRadius: '12px' }}>
                         {mData.pct}%
                       </span>
                     </div>
 
                     <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>
-                      Present: <b style={{ color: 'var(--text)' }}>{mData.present} Days</b> • 4-Meal Plan: <b style={{ color: '#800000' }}>Active</b>
+                      Present: <b style={{ color: 'var(--text)' }}>{mData.present} Days</b> • 4-Meal Plan: <b style={{ color: mData.present > 0 ? '#16a34a' : 'var(--text-muted)' }}>{mData.present > 0 ? `${mData.mealsCovered} Meals` : '0 Meals'}</b>
                     </div>
 
                     {/* MINI ATTENDANCE PROGRESS BAR */}
                     <div style={{ width: '100%', height: '6px', background: 'var(--border)', borderRadius: '3px', overflow: 'hidden' }}>
-                      <div style={{ width: `${mData.pct}%`, height: '100%', background: 'linear-gradient(90deg, #f97316, #800000)', borderRadius: '3px' }} />
+                      <div style={{ width: `${mData.pct}%`, height: '100%', background: 'linear-gradient(90deg, #16a34a, #22c55e)', borderRadius: '3px' }} />
                     </div>
                   </div>
                 );
