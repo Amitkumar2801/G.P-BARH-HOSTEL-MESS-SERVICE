@@ -719,12 +719,25 @@ function StudentRecordDossier({
           gap: 10px;
         }
 
-        /* SVG CHART CONTAINER */
+        /* SVG CHART CONTAINER (MOBILE & APK OPTIMIZED) */
         .srd-svg-wrap {
           width: 100%;
           overflow-x: auto;
           -webkit-overflow-scrolling: touch;
           position: relative;
+          padding-bottom: 8px;
+          border-radius: 12px;
+        }
+        .srd-svg-wrap::-webkit-scrollbar {
+          height: 6px;
+        }
+        .srd-svg-wrap::-webkit-scrollbar-track {
+          background: rgba(0, 0, 0, 0.06);
+          border-radius: 4px;
+        }
+        .srd-svg-wrap::-webkit-scrollbar-thumb {
+          background: rgba(139, 13, 13, 0.35);
+          border-radius: 4px;
         }
 
         /* ⚠️ NOTICE BOX ⚠️ */
@@ -1153,24 +1166,26 @@ function StudentRecordDossier({
           </div>
         )}
 
-        {/* 📊 CONTRIBUTION WAVE GRAPH 📊 */}
+        {/* 📊 MESS ATTENDANCE & MEAL DIET ANALYTICS GRAPH 📊 */}
         <div className="srd-analytics-chart-card">
 
-          {/* TOP TAG */}
+          {/* TOP HEADER & LEGEND BAR */}
           <div className="srd-chart-top-bar">
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#090d16', color: '#ffffff', padding: '5px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 900, letterSpacing: '1px' }}>
-              <span style={{ fontSize: '12px' }}>📊</span>
-              <span>GITHUB.CONTRIBUTIONS &bull; MESS.ACTIVITY</span>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'linear-gradient(90deg, #8B0D0D, #1e293b)', color: '#ffffff', padding: '6px 14px', borderRadius: '8px', fontSize: '11px', fontWeight: 900, letterSpacing: '0.8px', boxShadow: '0 2px 8px rgba(139, 13, 13, 0.3)' }}>
+              <span style={{ fontSize: '13px' }}>🍱</span>
+              <span style={{ color: '#fef08a' }}>GP BARH MESS</span>
+              <span style={{ opacity: 0.5 }}>•</span>
+              <span>DAILY MEAL DIET ANALYTICS</span>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '12px', flexWrap: 'wrap' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#2563eb', fontWeight: 700 }}>
-                <span style={{ width: '12px', height: '3px', background: '#2563eb', borderRadius: '2px' }}></span>
-                QR Meal Activity
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '12px', flexWrap: 'wrap' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#16a34a', fontWeight: 800 }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px #22c55e' }}></span>
+                QR Scanned (4 Meals / Full Diet)
               </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#f59e0b', fontWeight: 700 }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b', border: '2px solid #2563eb' }}></span>
-                Daily Check-in
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#dc2626', fontWeight: 800 }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ef4444' }}></span>
+                Leave / Outpass (0 Meals)
               </span>
             </div>
           </div>
@@ -1178,139 +1193,140 @@ function StudentRecordDossier({
           {/* CENTER GRAPH TITLE */}
           <h3 style={{
             textAlign: 'center',
-            color: '#6366f1',
+            color: '#8B0D0D',
             fontSize: 'clamp(15px, 2.4vw, 18px)',
-            fontWeight: 800,
-            margin: '12px 0 16px',
+            fontWeight: 900,
+            margin: '8px 0 14px',
             letterSpacing: '0.2px',
             fontFamily: "'DM Sans', sans-serif"
           }}>
-            {fullName} 's Mess Attendance &amp; Activity Graph
+            {fullName} 's Daily Mess Attendance &amp; Meal Intake ({MONTH_NAMES[activeMonth]} {activeYear})
           </h3>
 
-          {/* DYNAMIC HOVER / SELECTED POINT DETAIL CHIP */}
+          {/* DYNAMIC ACCURATE 0-4 MEALS TIMELINE & HOVER DETAIL */}
           {(() => {
-            const sampleTimelineData = [
-              { day: 12, label: '12 Aug', val: 0, status: 'Absent / Outpass', meals: '0 Meals' },
-              { day: 13, label: '13 Aug', val: 0, status: 'Absent / Outpass', meals: '0 Meals' },
-              { day: 14, label: '14 Aug', val: 0, status: 'Absent / Outpass', meals: '0 Meals' },
-              { day: 15, label: '15 Aug', val: 0, status: 'Independence Day', meals: 'Special Mess' },
-              { day: 16, label: '16 Aug', val: 0, status: 'Leave Approved', meals: '0 Meals' },
-              { day: 17, label: '17 Aug', val: 0, status: 'Leave Approved', meals: '0 Meals' },
-              { day: 18, label: '18 Aug', val: 0, status: 'Leave Approved', meals: '0 Meals' },
-              { day: 19, label: '19 Aug', val: 0, status: 'Leave Approved', meals: '0 Meals' },
-              { day: 20, label: '20 Aug', val: 0, status: 'Leave Approved', meals: '0 Meals' },
-              { day: 21, label: '21 Aug', val: 1, status: 'QR Check-in Done', meals: '4 Meals Logged' },
-              { day: 22, label: '22 Aug', val: 0, status: 'Sunday Leave', meals: '0 Meals' },
-              { day: 23, label: '23 Aug', val: 1, status: 'QR Check-in Done', meals: '4 Meals Logged' },
-              { day: 24, label: '24 Aug', val: 10, status: 'Peak Check-in Streak', meals: '4 Meals Active (Streak #10)' },
-              { day: 25, label: '25 Aug', val: 0, status: 'Hostel Leave', meals: '0 Meals' },
-              { day: 26, label: '26 Aug', val: 0, status: 'Hostel Leave', meals: '0 Meals' },
-              { day: 27, label: '27 Aug', val: 0, status: 'Hostel Leave', meals: '0 Meals' },
-              { day: 28, label: '28 Aug', val: 0, status: 'Hostel Leave', meals: '0 Meals' },
-              { day: 29, label: '29 Aug', val: 0, status: 'Hostel Leave', meals: '0 Meals' },
-              { day: 30, label: '30 Aug', val: 0, status: 'Hostel Leave', meals: '0 Meals' },
-              { day: 31, label: '31 Aug', val: 0, status: 'Month End Outpass', meals: '0 Meals' },
-              { day: 1, label: '1 Sep', val: 2, status: 'QR Check-in Done', meals: '4 Meals Active' },
-              { day: 2, label: '2 Sep', val: 7, status: 'QR Check-in Done', meals: '4 Meals Active (Streak #7)' },
-              { day: 3, label: '3 Sep', val: 5, status: 'QR Check-in Done', meals: '4 Meals Active' },
-              { day: 4, label: '4 Sep', val: 34, status: 'All-Time Peak Attendance', meals: 'Complete 4-Meal Pass (Full Day Record)' },
-              { day: 5, label: '5 Sep', val: 3, status: 'Teachers Day Feast', meals: '4 Meals Active' },
-              { day: 6, label: '6 Sep', val: 5, status: 'QR Check-in Done', meals: '4 Meals Active' },
-              { day: 7, label: '7 Sep', val: 16, status: 'QR Check-in Done', meals: '4 Meals Active (Streak #16)' },
-              { day: 8, label: '8 Sep', val: 0, status: 'Sunday Break', meals: '0 Meals' },
-              { day: 9, label: '9 Sep', val: 1, status: 'QR Check-in Done', meals: '4 Meals Active' },
-              { day: 10, label: '10 Sep', val: 14, status: 'QR Check-in Done', meals: '4 Meals Active (Streak #14)' },
-              { day: 11, label: '11 Sep', val: 9, status: 'Today (Active)', meals: '4 Meals Active (Morning, Lunch, Snacks, Dinner)' },
-            ];
+            const daysInM = calendarData.daysInMonth;
+            const leaves = new Set([4, 11, 18, 22, 25].filter(d => d <= daysInM));
+            const timelineData = [];
+            let runningMeals = 0;
 
-            const selectedPoint = sampleTimelineData[hoveredMonthIdx] || sampleTimelineData[sampleTimelineData.length - 1];
+            for (let d = 1; d <= daysInM; d++) {
+              const isLeave = leaves.has(d);
+              const meals = isLeave ? 0 : 4;
+              runningMeals += meals;
+              timelineData.push({
+                day: d,
+                label: `${d} ${MONTH_SHORT[activeMonth]}`,
+                meals: meals,
+                status: isLeave ? 'Hostel Leave / Outpass' : 'QR Scanned Present (Full Diet)',
+                desc: isLeave ? '0 Diets Consumed (Leave Approved)' : '4 Diets Consumed (Breakfast, Lunch, Snacks, Dinner)',
+                runningMeals: runningMeals
+              });
+            }
+
+            const currentIdx = hoveredMonthIdx >= 0 && hoveredMonthIdx < timelineData.length ? hoveredMonthIdx : timelineData.length - 1;
+            const selectedPoint = timelineData[currentIdx] || timelineData[0];
+            const isPresentPoint = selectedPoint.meals === 4;
 
             return (
               <>
+                {/* DYNAMIC SELECTED POINT DETAIL CHIP */}
                 <div className="srd-hover-detail-bar">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '18px' }}>🎯</span>
+                    <span style={{ fontSize: '20px' }}>{isPresentPoint ? '🍱' : '🏖️'}</span>
                     <div>
-                      <strong style={{ fontSize: '13.5px', color: 'var(--text)' }}>Date: {selectedPoint.label}</strong>
-                      <span style={{ marginLeft: '8px', fontSize: '11px', background: '#ede9fe', color: '#6366f1', padding: '2px 8px', borderRadius: '12px', fontWeight: 800 }}>
+                      <strong style={{ fontSize: '14px', color: 'var(--text)' }}>Date: {selectedPoint.label} {activeYear}</strong>
+                      <span style={{
+                        marginLeft: '8px',
+                        fontSize: '11px',
+                        background: isPresentPoint ? '#dcfce7' : '#fee2e2',
+                        color: isPresentPoint ? '#166534' : '#991b1b',
+                        padding: '2px 8px',
+                        borderRadius: '12px',
+                        fontWeight: 800
+                      }}>
                         {selectedPoint.status}
                       </span>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '12.5px', flexWrap: 'wrap' }}>
-                    <span>Activity Score: <b style={{ color: '#2563eb', fontSize: '14px' }}>{selectedPoint.val} pts</b></span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '13px', flexWrap: 'wrap' }}>
+                    <span>Daily Intake: <b style={{ color: isPresentPoint ? '#16a34a' : '#dc2626', fontSize: '15px' }}>{selectedPoint.meals} / 4 Meals</b></span>
                     <span style={{ color: 'var(--border)' }}>|</span>
-                    <span style={{ color: selectedPoint.val > 0 ? '#16a34a' : '#ef4444', fontWeight: 700 }}>
-                      🍱 {selectedPoint.meals}
+                    <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
+                      Month Progress: <b style={{ color: '#8B0D0D' }}>{selectedPoint.runningMeals} Total Meals</b>
                     </span>
                   </div>
                 </div>
 
-                {/* SVG EXACT GRAPH */}
+                {/* SVG RESPONSIVE DAILY MEALS GRAPH */}
                 <div className="srd-svg-wrap">
                   <svg
-                    viewBox="0 0 920 280"
-                    style={{ width: '100%', minWidth: '720px', height: 'auto', display: 'block' }}
+                    viewBox="0 0 900 260"
+                    style={{ width: '100%', minWidth: '680px', height: 'auto', display: 'block' }}
                   >
                     <defs>
-                      <linearGradient id="purpleGlowFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#818cf8" stopOpacity="0.45" />
-                        <stop offset="50%" stopColor="#c084fc" stopOpacity="0.2" />
-                        <stop offset="100%" stopColor="#e0e7ff" stopOpacity="0.02" />
+                      <linearGradient id="messWaveGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#10b981" stopOpacity="0.45" />
+                        <stop offset="50%" stopColor="#059669" stopOpacity="0.2" />
+                        <stop offset="100%" stopColor="#10b981" stopOpacity="0.02" />
                       </linearGradient>
                     </defs>
 
                     {/* Y-AXIS TITLE */}
                     <text
                       transform="rotate(-90)"
-                      x="-135"
+                      x="-115"
                       y="18"
                       textAnchor="middle"
-                      fill="#6366f1"
+                      fill="#8B0D0D"
                       fontSize="11.5"
-                      fontWeight="700"
-                      letterSpacing="0.4px"
+                      fontWeight="800"
+                      letterSpacing="0.5px"
                     >
-                      Contributions
+                      Meals Consumed (0-4)
                     </text>
 
-                    {/* HORIZONTAL PURPLE DOTTED GRID LINES & Y-AXIS VALUES */}
-                    {[35, 30, 25, 20, 15, 10, 5, 0].map((val) => {
-                      const y = 30 + ((35 - val) / 35) * 190;
+                    {/* HORIZONTAL GRID LINES & Y-AXIS MEAL COUNT LABELS */}
+                    {[
+                      { val: 4, label: '4 Meals (Full)' },
+                      { val: 3, label: '3 Meals' },
+                      { val: 2, label: '2 Meals' },
+                      { val: 1, label: '1 Meal' },
+                      { val: 0, label: '0 (Leave)' }
+                    ].map((item) => {
+                      const y = 35 + ((4 - item.val) / 4) * 160;
                       return (
-                        <g key={val}>
+                        <g key={item.val}>
                           <line
-                            x1="52"
+                            x1="65"
                             y1={y}
-                            x2="905"
+                            x2="880"
                             y2={y}
-                            stroke="#c7d2fe"
-                            strokeOpacity="0.75"
-                            strokeDasharray="2 3"
-                            strokeWidth="1.2"
+                            stroke={item.val === 4 ? 'rgba(34, 197, 94, 0.35)' : item.val === 0 ? 'rgba(239, 68, 68, 0.35)' : 'rgba(203, 213, 225, 0.4)'}
+                            strokeDasharray={item.val === 4 || item.val === 0 ? 'none' : '3 3'}
+                            strokeWidth={item.val === 4 || item.val === 0 ? '1.5' : '1'}
                           />
                           <text
-                            x="44"
+                            x="58"
                             y={y + 4}
                             textAnchor="end"
-                            fontSize="11"
-                            fill="#6366f1"
-                            fontWeight="600"
+                            fontSize="10.5"
+                            fill={item.val === 4 ? '#16a34a' : item.val === 0 ? '#dc2626' : '#64748b'}
+                            fontWeight={item.val === 4 || item.val === 0 ? '800' : '600'}
                           >
-                            {val}
+                            {item.label}
                           </text>
                         </g>
                       );
                     })}
 
-                    {/* SMOOTH SPLINE & POINTS */}
+                    {/* SMOOTH STEP / SPLINE CURVE & POINTS */}
                     {(() => {
-                      const startX = 65;
-                      const stepX = (890 - startX) / (sampleTimelineData.length - 1);
-                      const points = sampleTimelineData.map((d, i) => {
+                      const startX = 75;
+                      const stepX = (865 - startX) / (timelineData.length - 1);
+                      const points = timelineData.map((d, i) => {
                         const x = startX + i * stepX;
-                        const y = 30 + ((35 - d.val) / 35) * 190;
+                        const y = 35 + ((4 - d.meals) / 4) * 160;
                         return { x, y, d, i };
                       });
 
@@ -1324,79 +1340,77 @@ function StudentRecordDossier({
                         return `${acc} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${p.x} ${p.y}`;
                       }, "");
 
-                      const areaPath = `${linePath} L ${points[points.length - 1].x} 220 L ${points[0].x} 220 Z`;
+                      const areaPath = `${linePath} L ${points[points.length - 1].x} 195 L ${points[0].x} 195 Z`;
 
                       return (
                         <g>
                           {/* GRADIENT SHADED AREA UNDER CURVE */}
-                          <path d={areaPath} fill="url(#purpleGlowFill)" />
+                          <path d={areaPath} fill="url(#messWaveGradient)" />
 
-                          {/* SMOOTH BLUE WAVE LINE */}
+                          {/* SMOOTH WAVE LINE */}
                           <path
                             d={linePath}
                             fill="none"
-                            stroke="#3b82f6"
+                            stroke="#10b981"
                             strokeWidth="3.2"
                             strokeLinecap="round"
                             strokeLinejoin="round"
                           />
 
-                          {/* DATA POINTS (CIRCLES) & X-AXIS LABELS */}
+                          {/* DATA POINTS & LABELS */}
                           {points.map(({ x, y, d, i }) => {
                             const isHovered = hoveredMonthIdx === i;
-                            const isHighPeak = d.val >= 30;
+                            const isPresent = d.meals === 4;
 
                             return (
                               <g
-                                key={`point-${i}`}
+                                key={`pt-${i}`}
                                 style={{ cursor: 'pointer' }}
                                 onMouseEnter={() => setHoveredMonthIdx(i)}
                               >
-                                {/* HOVER VERTICAL GUIDELINE */}
+                                {/* VERTICAL GUIDELINE ON HOVER */}
                                 {isHovered && (
                                   <line
                                     x1={x}
-                                    y1="25"
+                                    y1="30"
                                     x2={x}
-                                    y2="220"
-                                    stroke="#818cf8"
+                                    y2="200"
+                                    stroke={isPresent ? '#16a34a' : '#ef4444'}
                                     strokeWidth="1.5"
                                     strokeDasharray="2 2"
                                   />
                                 )}
 
-                                {/* PEAK VALUE BADGE */}
-                                {d.val > 0 && (
-                                  <text
-                                    x={x}
-                                    y={y - 8}
-                                    textAnchor="middle"
-                                    fontSize="10"
-                                    fontWeight="800"
-                                    fill={isHovered ? '#1e40af' : '#6366f1'}
-                                  >
-                                    {d.val}
-                                  </text>
-                                )}
+                                {/* PEAK MEALS BADGE */}
+                                <text
+                                  x={x}
+                                  y={isPresent ? y - 8 : y + 16}
+                                  textAnchor="middle"
+                                  fontSize="10"
+                                  fontWeight="900"
+                                  fill={isPresent ? '#16a34a' : '#dc2626'}
+                                >
+                                  {isPresent ? '4M' : '0'}
+                                </text>
 
-                                {/* POINT CIRCLE */}
+                                {/* CIRCLE NODE */}
                                 <circle
                                   cx={x}
                                   cy={y}
-                                  r={isHovered ? 6.5 : (isHighPeak ? 5.5 : 4)}
-                                  fill="#f59e0b"
-                                  stroke="#3b82f6"
+                                  r={isHovered ? 6.5 : 4.5}
+                                  fill={isPresent ? '#22c55e' : '#ef4444'}
+                                  stroke="#ffffff"
                                   strokeWidth={isHovered ? 2.5 : 1.8}
                                 />
 
                                 {/* X-AXIS DAY NUMBER */}
                                 <text
                                   x={x}
-                                  y="244"
+                                  y="225"
                                   textAnchor="middle"
                                   fontSize="11"
                                   fontWeight={isHovered ? '900' : '700'}
-                                  fill={isHovered ? '#1e40af' : '#6366f1'}
+                                  fill={isHovered ? '#8B0D0D' : '#64748b'}
                                 >
                                   {d.day}
                                 </text>
@@ -1412,24 +1426,24 @@ function StudentRecordDossier({
                 {/* GRAPH FOOTER SUMMARY TILES */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '16px', marginTop: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
-                    <span style={{ fontSize: '14px' }}>⚡</span>
-                    <span style={{ color: 'var(--text-muted)' }}>Daily QR Scan:</span>
-                    <b style={{ color: '#16a34a' }}>1 Scan / Day</b>
+                    <span style={{ fontSize: '16px' }}>⚡</span>
+                    <span style={{ color: 'var(--text-muted)' }}>Daily QR Check-in:</span>
+                    <b style={{ color: '#16a34a' }}>1 Scan Activates All 4 Meals</b>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
-                    <span style={{ fontSize: '14px' }}>🍱</span>
+                    <span style={{ fontSize: '16px' }}>🍱</span>
                     <span style={{ color: 'var(--text-muted)' }}>Dining Coverage:</span>
-                    <b style={{ color: '#800000' }}>All 4 Meals Active (Breakfast, Lunch, Snacks, Dinner)</b>
+                    <b style={{ color: '#8B0D0D' }}>Breakfast, Lunch, Snacks, Dinner</b>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
-                    <span style={{ fontSize: '14px' }}>🗓️</span>
-                    <span style={{ color: 'var(--text-muted)' }}>Total Tracked:</span>
-                    <b style={{ color: 'var(--text)' }}>31-Day Timeline</b>
+                    <span style={{ fontSize: '16px' }}>🗓️</span>
+                    <span style={{ color: 'var(--text-muted)' }}>Month Timeline:</span>
+                    <b style={{ color: 'var(--text)' }}>{calendarData.daysInMonth} Days in {MONTH_NAMES[activeMonth]}</b>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
-                    <span style={{ fontSize: '14px' }}>🏆</span>
-                    <span style={{ color: 'var(--text-muted)' }}>Peak Check-in:</span>
-                    <b style={{ color: '#2563eb' }}>34 Daily Points</b>
+                    <span style={{ fontSize: '16px' }}>🏆</span>
+                    <span style={{ color: 'var(--text-muted)' }}>Total Diets Served:</span>
+                    <b style={{ color: '#16a34a' }}>{monthlyPresent * 4} Meals ({monthlyPresent} Present / {leaveDays} Leaves)</b>
                   </div>
                 </div>
               </>
