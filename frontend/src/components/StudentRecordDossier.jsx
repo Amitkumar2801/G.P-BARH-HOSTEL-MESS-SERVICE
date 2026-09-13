@@ -462,16 +462,27 @@ function StudentRecordDossier({
           overflow-wrap: anywhere;
         }
 
-        /* 🗓️ SLEEK CALENDAR WIDGET 🗓️ */
+        /* 🗓️ SLEEK CALENDAR WIDGET (GP BARH BRAND IDENTITY) 🗓️ */
         .srd-cal-container {
-          background: #14171c;
+          background: linear-gradient(145deg, #090d16 0%, #111827 50%, #1e2230 100%);
           color: #ffffff;
           border-radius: var(--radius-lg);
           padding: var(--pad-lg);
-          box-shadow: 0 12px 36px rgba(0,0,0,0.3);
-          border: 1px solid rgba(255,255,255,0.08);
+          box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+          border: 1px solid rgba(139, 13, 13, 0.35);
+          border-top: 3px solid #8B0D0D;
           position: relative;
           overflow: hidden;
+        }
+        .srd-cal-container::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          right: 0;
+          width: 250px;
+          height: 250px;
+          background: radial-gradient(circle, rgba(139, 13, 13, 0.25) 0%, transparent 70%);
+          pointer-events: none;
         }
         .srd-cal-header {
           display: flex;
@@ -480,63 +491,74 @@ function StudentRecordDossier({
           flex-wrap: wrap;
           gap: 14px;
           margin-bottom: 24px;
+          position: relative;
+          z-index: 2;
         }
         .srd-cal-top-tag {
-          font-size: 10px;
+          font-size: 11px;
           font-weight: 900;
           letter-spacing: 1.5px;
-          color: #f97316;
+          color: #fbbf24;
           text-transform: uppercase;
           margin-bottom: 6px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
         }
         .srd-cal-month-title {
-          font-size: clamp(17px, 3vw, 22px);
+          font-size: clamp(18px, 3vw, 24px);
           font-weight: 900;
           letter-spacing: 0.5px;
           color: #ffffff;
           margin: 0;
           text-transform: uppercase;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Fraunces', serif;
         }
         .srd-cal-day-badge {
-          background: #f97316;
-          color: #000000;
+          background: linear-gradient(135deg, #8B0D0D 0%, #b91c1c 60%, #991b1b 100%);
+          border: 1px solid rgba(250, 204, 21, 0.4);
+          color: #ffffff;
           border-radius: 14px;
           padding: 8px 18px;
           display: flex;
           align-items: baseline;
           gap: 6px;
-          box-shadow: 0 4px 16px rgba(249, 115, 22, 0.4);
+          box-shadow: 0 4px 18px rgba(139, 13, 13, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.2);
           white-space: nowrap;
         }
         .srd-cal-day-badge strong {
           font-size: 26px;
           font-weight: 900;
           line-height: 1;
+          color: #fef08a;
+          font-family: 'DM Sans', sans-serif;
         }
         .srd-cal-day-badge span {
           font-size: 11px;
-          font-weight: 900;
+          font-weight: 800;
           letter-spacing: 1px;
+          color: #ffffff;
         }
 
         .srd-cal-nav-btn {
-          background: rgba(255,255,255,0.08);
-          border: 1px solid rgba(255,255,255,0.12);
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.15);
           color: #ffffff;
-          border-radius: 8px;
+          border-radius: 10px;
           width: 36px;
           height: 36px;
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
-          transition: 0.2s;
+          transition: all 0.2s ease;
           flex-shrink: 0;
         }
         .srd-cal-nav-btn:hover {
-          background: #f97316;
-          color: #000;
+          background: #8B0D0D;
+          border-color: #fbbf24;
+          color: #ffffff;
+          transform: scale(1.05);
         }
 
         .srd-cal-weekdays {
@@ -545,9 +567,15 @@ function StudentRecordDossier({
           text-align: center;
           font-size: 12px;
           font-weight: 800;
-          color: #94a3b8;
+          color: #cbd5e1;
           letter-spacing: 1px;
           margin-bottom: 16px;
+          position: relative;
+          z-index: 2;
+        }
+        .srd-cal-weekdays span:first-child,
+        .srd-cal-weekdays span:last-child {
+          color: #fbbf24;
         }
 
         .srd-cal-row {
@@ -556,37 +584,49 @@ function StudentRecordDossier({
           gap: 0;
           margin-bottom: 10px;
           position: relative;
+          z-index: 2;
         }
         .srd-cal-cell {
-          height: 44px;
+          height: 46px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 14px;
+          font-size: 14.5px;
           font-weight: 800;
-          color: #e2e8f0;
+          color: #f8fafc;
           position: relative;
           z-index: 2;
+          transition: transform 0.15s ease;
         }
         .srd-cal-cell.empty {
           opacity: 0;
         }
 
         .srd-cal-cell.present {
-          background: #f97316;
-          color: #000000;
+          background: linear-gradient(90deg, #8B0D0D 0%, #b91c1c 50%, #8B0D0D 100%);
+          color: #ffffff;
+          border-top: 1px solid rgba(255, 255, 255, 0.18);
+          border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+          box-shadow: 0 4px 12px rgba(139, 13, 13, 0.35);
+        }
+        .srd-cal-cell.present:hover {
+          background: linear-gradient(90deg, #991b1b 0%, #dc2626 50%, #991b1b 100%);
+          z-index: 5;
         }
         .srd-cal-cell.present.first-in-row {
-          border-top-left-radius: 22px;
-          border-bottom-left-radius: 22px;
+          border-top-left-radius: 23px;
+          border-bottom-left-radius: 23px;
+          border-left: 1px solid rgba(255, 255, 255, 0.2);
         }
         .srd-cal-cell.present.last-in-row {
-          border-top-right-radius: 22px;
-          border-bottom-right-radius: 22px;
+          border-top-right-radius: 23px;
+          border-bottom-right-radius: 23px;
+          border-right: 1px solid rgba(255, 255, 255, 0.2);
         }
         .srd-cal-cell.leave {
-          background: rgba(255,255,255,0.08);
-          color: #f87171;
+          background: rgba(239, 68, 68, 0.1);
+          color: #fca5a5;
+          border: 1px solid rgba(239, 68, 68, 0.25);
           border-radius: 12px;
         }
 
@@ -596,9 +636,11 @@ function StudentRecordDossier({
           align-items: center;
           margin-top: 20px;
           padding-top: 16px;
-          border-top: 1px solid rgba(255,255,255,0.1);
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
           flex-wrap: wrap;
           gap: 12px;
+          position: relative;
+          z-index: 2;
         }
 
         /* 🗓️ 1-YEAR (12-MONTH) OVERVIEW GRID 🗓️ */
@@ -924,7 +966,10 @@ function StudentRecordDossier({
           <div className="srd-cal-container">
             <div className="srd-cal-header">
               <div>
-                <div className="srd-cal-top-tag">DAILY MESS QR CHECK-IN TRACKER</div>
+                <div className="srd-cal-top-tag">
+                  <span>✨</span>
+                  <span>DAILY MESS QR CHECK-IN TRACKER</span>
+                </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <button type="button" onClick={handlePrevMonth} className="srd-cal-nav-btn" title="Previous Month">❮</button>
                   <h4 className="srd-cal-month-title">{MONTH_NAMES[activeMonth]} {activeYear}</h4>
@@ -991,18 +1036,18 @@ function StudentRecordDossier({
 
             {/* LEGEND / STATUS BAR */}
             <div className="srd-cal-legend">
-              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '12px' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#f97316', fontWeight: 800 }}>
-                  <span style={{ width: '12px', height: '12px', borderRadius: '4px', background: '#f97316' }}></span>
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '12px', alignItems: 'center' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ffffff', fontWeight: 800 }}>
+                  <span style={{ width: '14px', height: '14px', borderRadius: '4px', background: 'linear-gradient(90deg, #8B0D0D, #b91c1c)', border: '1px solid rgba(250, 204, 21, 0.4)', display: 'inline-block' }}></span>
                   QR Check-in Present ({monthlyPresent} Days • 4 Meals/Day)
                 </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#f87171', fontWeight: 800 }}>
-                  <span style={{ width: '12px', height: '12px', borderRadius: '4px', background: 'rgba(255,255,255,0.15)', border: '1px solid #f87171' }}></span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#fca5a5', fontWeight: 800 }}>
+                  <span style={{ width: '14px', height: '14px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid #f87171', display: 'inline-block' }}></span>
                   Leave / Outpass ({leaveDays} Days)
                 </span>
               </div>
-              <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>
-                1 Daily QR Scan = Breakfast + Lunch + Evening Snacks + Dinner
+              <span style={{ fontSize: '11px', color: '#fbbf24', fontWeight: 700, letterSpacing: '0.2px' }}>
+                ⚡ 1 Daily QR Scan = Breakfast + Lunch + Evening Snacks + Dinner
               </span>
             </div>
           </div>
