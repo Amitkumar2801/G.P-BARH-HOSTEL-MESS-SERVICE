@@ -31,6 +31,9 @@ class User(Base):
     home_state = Column(String, default="Bihar")
     distance_km = Column(Float, nullable=True)
     distance_verified = Column(Boolean, default=False)
+    room_number = Column(String, nullable=True)
+    bed_code = Column(String, nullable=True)
+    hostel_block = Column(String, nullable=True)
 
     transactions = relationship("Transaction", back_populates="owner")
     allotment_requests = relationship("AllotmentRequest", back_populates="student", foreign_keys="[AllotmentRequest.student_id]")
@@ -127,6 +130,8 @@ class PaymentTransaction(Base):
     receipt_number = Column(String, unique=True, nullable=True, index=True)
     remarks = Column(String, nullable=True)
     payment_period = Column(String, nullable=True) # e.g. '6 Months (Semester)', 'New Batch 1st Year (5 Months)'
+    created_at = Column(DateTime, default=datetime.utcnow)
+    verified_at = Column(DateTime, nullable=True)
     student = relationship("User", foreign_keys=[student_id])
 
 class MessAttendance(Base):
