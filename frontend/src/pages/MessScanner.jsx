@@ -8,14 +8,45 @@ import toast, { Toaster } from 'react-hot-toast';
 import logo from '../assets/logo.png.png';
 
 const cleanScannerStyles = `
-  @keyframes scanLaser {
-    0% { top: 12%; opacity: 0.7; }
-    50% { top: 88%; opacity: 1; filter: drop-shadow(0 0 8px #10b981); }
-    100% { top: 12%; opacity: 0.7; }
+  @keyframes scanLaserGlow {
+    0% {
+      top: 6%;
+      opacity: 0.8;
+      filter: drop-shadow(0 0 8px #10b981) drop-shadow(0 0 16px #059669);
+    }
+    50% {
+      top: 92%;
+      opacity: 1;
+      filter: drop-shadow(0 0 14px #34d399) drop-shadow(0 0 24px #10b981);
+    }
+    100% {
+      top: 6%;
+      opacity: 0.8;
+      filter: drop-shadow(0 0 8px #10b981) drop-shadow(0 0 16px #059669);
+    }
+  }
+
+  @keyframes pulseRadar {
+    0% { transform: scale(0.95); opacity: 0.8; }
+    50% { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(0.95); opacity: 0.8; }
+  }
+
+  @keyframes floatBadge {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-3px); }
   }
 
   .scanner-laser-beam {
-    animation: scanLaser 2s ease-in-out infinite;
+    animation: scanLaserGlow 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .pulse-radar-dot {
+    animation: pulseRadar 2s ease-in-out infinite;
+  }
+
+  .floating-badge {
+    animation: floatBadge 3s ease-in-out infinite;
   }
 
   #gpbarh-camera-target video {
@@ -24,19 +55,32 @@ const cleanScannerStyles = `
     object-fit: cover !important;
     border-radius: 1.25rem !important;
   }
+
+  /* Custom scrollbar for mobile APK */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
 `;
 
 function MessScanner() {
   const navigate = useNavigate();
 
-  // Live system clock for real-time header tracking
+  // Live real-time institutional clock
   const [liveClock, setLiveClock] = useState(new Date());
   useEffect(() => {
     const timer = setInterval(() => setLiveClock(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Format today's date from live header clock
+  // Formatted date values
   const liveDateKey = liveClock.toISOString().slice(0, 10);
   const liveDateFormatted = liveClock.toLocaleDateString('en-IN', {
     weekday: 'short',
@@ -44,8 +88,13 @@ function MessScanner() {
     month: 'long',
     year: 'numeric'
   });
+  const liveTimeFormatted = liveClock.toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
 
-  // Load student profile directly from Manage Profile / LocalStorage session
+  // Load student profile directly from LocalStorage
   const [currentUser] = useState(() => {
     try {
       const saved = localStorage.getItem('user');
@@ -68,15 +117,17 @@ function MessScanner() {
     };
   });
 
-  // Extract real dynamic profile particulars for Boys & Girls
+  // Extract dynamic attributes for Boys / Girls Hostel
   const isFemale = String(currentUser?.gender || '').toUpperCase() === 'FEMALE';
-  const studentName = String(currentUser?.full_name || currentUser?.fullName || (isFemale ? 'Sana Sharma' : 'Amit Kumar Sharma')).trim();
+  const studentName = String(
+    currentUser?.full_name || currentUser?.fullName || (isFemale ? 'Sana Sharma' : 'Amit Kumar Sharma')
+  ).trim();
   const studentRegNo = String(currentUser?.reg_no || currentUser?.regNo || (isFemale ? '1554424000' : '1554424049'));
   const studentBranch = currentUser?.branch || 'Artificial Intelligence & Machine Learning';
-  
-  const studentHostelBlock = currentUser?.hostel_block || currentUser?.hostelBlock || (
-    isFemale ? 'Savitribai Phule Girls Hostel' : 'Dr. Rajendra Prasad Block'
-  );
+  const studentHostelBlock =
+    currentUser?.hostel_block ||
+    currentUser?.hostelBlock ||
+    (isFemale ? 'Savitribai Phule Girls Hostel' : 'Dr. Rajendra Prasad Block');
   const studentRoom = currentUser?.room_number || currentUser?.roomNumber || '102';
   const studentBed = currentUser?.bed_code || currentUser?.bedCode || currentUser?.bed || 'Bed B';
   const roomBedDisplay = `Room ${studentRoom} • ${studentBed.startsWith('Bed') ? studentBed : 'Bed ' + studentBed}`;
@@ -86,8 +137,9 @@ function MessScanner() {
   const [cameraError, setCameraError] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [verifiedModal, setVerifiedModal] = useState(null);
+  const [torchOn, setTorchOn] = useState(false);
 
-  // Read recorded attendance map
+  // Daily attendance state mapping
   const [dailyAttendanceRecords, setDailyAttendanceRecords] = useState(() => {
     try {
       const saved = localStorage.getItem('gpbarh_daily_meal_attendance_records');
@@ -107,12 +159,22 @@ function MessScanner() {
   const html5QrCodeRef = useRef(null);
   const scannerElementId = 'gpbarh-camera-target';
 
-  // Sync state to localStorage for StudentRecordDossier
+  // Sync state to localStorage for StudentRecordDossier and Graph
   useEffect(() => {
     localStorage.setItem('gpbarh_daily_meal_attendance_records', JSON.stringify(dailyAttendanceRecords));
   }, [dailyAttendanceRecords]);
 
-  // Audio & Vibration feedback
+  // Redirection handler: Directs to Student Dashboard and automatically opens/scrolls to Annual Mess Graph
+  const redirectToStudentRecordGraph = () => {
+    navigate('/student-dashboard?tab=student-record&scroll=annual-mess-graph', {
+      state: {
+        activeTab: 'student-record',
+        scrollTo: 'annual-mess-graph'
+      }
+    });
+  };
+
+  // Audio & Haptic Feedback on scan success
   const triggerSuccessAlert = () => {
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -121,21 +183,22 @@ function MessScanner() {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15);
+        osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+        osc.frequency.exponentialRampToValueAtTime(783.99, ctx.currentTime + 0.12); // G5
+        osc.frequency.exponentialRampToValueAtTime(1046.5, ctx.currentTime + 0.25); // C6
         gain.gain.setValueAtTime(0.01, ctx.currentTime);
         gain.gain.linearRampToValueAtTime(0.35, ctx.currentTime + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start();
-        osc.stop(ctx.currentTime + 0.4);
+        osc.stop(ctx.currentTime + 0.45);
       }
     } catch {
       // ignore
     }
     if (navigator.vibrate) {
-      navigator.vibrate([100, 50, 150]);
+      navigator.vibrate([80, 40, 140]);
     }
   };
 
@@ -149,7 +212,7 @@ function MessScanner() {
       const html5QrCode = new Html5Qrcode(scannerElementId);
       html5QrCodeRef.current = html5QrCode;
 
-      const config = { fps: 20, qrbox: { width: 230, height: 230 }, aspectRatio: 1.0 };
+      const config = { fps: 24, qrbox: { width: 240, height: 240 }, aspectRatio: 1.0 };
 
       try {
         await html5QrCode.start(
@@ -167,7 +230,7 @@ function MessScanner() {
         );
       }
     } catch {
-      setCameraError('Camera access not available. Tap "Submit Attendance" below.');
+      setCameraError('Camera access unavailable. You can still tap "Submit Today Attendance Now" below.');
       setIsScanning(false);
     }
   };
@@ -182,6 +245,27 @@ function MessScanner() {
       }
     }
     setIsScanning(false);
+    setTorchOn(false);
+  };
+
+  // Toggle Torch if supported
+  const toggleTorch = async () => {
+    try {
+      if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
+        const track = html5QrCodeRef.current.getRunningTrackCapabilities();
+        if (track && 'torch' in track) {
+          const newTorchState = !torchOn;
+          await html5QrCodeRef.current.applyVideoConstraints({
+            advanced: [{ torch: newTorchState }]
+          });
+          setTorchOn(newTorchState);
+        } else {
+          toast('Flashlight not supported on this camera', { icon: '🔦' });
+        }
+      }
+    } catch {
+      toast('Torch control unavailable', { icon: '🔦' });
+    }
   };
 
   useEffect(() => {
@@ -192,7 +276,7 @@ function MessScanner() {
     };
   }, []);
 
-  // Process Attendance Submission for Today's Live Date
+  // Process Attendance Submission for Today's Date with Daily Resetting Sequential Token
   const processAttendanceSubmission = async () => {
     if (isProcessing) return;
     setIsProcessing(true);
@@ -200,10 +284,38 @@ function MessScanner() {
 
     const timestampNow = new Date();
     const nowTimeStr = timestampNow.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const cleanReg = String(studentRegNo).slice(-4);
-    const tokenCode = `GPB-MEAL-${liveDateKey.replace(/-/g, '')}-${cleanReg}-${cleanReg}`;
 
-    // Mark attendance in backend API if available
+    // 🌟 1. Calculate Daily Sequential Token Resetting Daily from 1 (001, 002...)
+    let existingHist = [];
+    try {
+      const parsed = JSON.parse(localStorage.getItem('gpbarh_mess_attendance_history') || '[]');
+      if (Array.isArray(parsed)) existingHist = parsed;
+    } catch {
+      existingHist = [];
+    }
+
+    // Check if current student already has an assigned token for today
+    const existingStudentScanToday = existingHist.find(
+      h => h.date === liveDateKey && String(h.reg_no) === String(studentRegNo)
+    );
+
+    let seqNum = 1;
+    if (existingStudentScanToday && existingStudentScanToday.seq_num) {
+      seqNum = existingStudentScanToday.seq_num;
+    } else {
+      // Count other students who have scanned today
+      const otherScansToday = existingHist.filter(
+        h => h.date === liveDateKey && String(h.reg_no) !== String(studentRegNo)
+      );
+      seqNum = otherScansToday.length + 1;
+    }
+
+    const formattedSeq = String(seqNum).padStart(3, '0'); // e.g. "001", "002"
+    const wingCode = isFemale ? 'G' : 'B';
+    const displayTokenNumber = `TOKEN #${formattedSeq}`;
+    const tokenCode = `GPB-TOKEN-${liveDateKey.replace(/-/g, '')}-${wingCode}${formattedSeq}`;
+
+    // Backend sync
     try {
       await axios.post('http://127.0.0.1:8000/api/mess/mark-attendance', {
         student_id: currentUser?.id || 1,
@@ -214,7 +326,9 @@ function MessScanner() {
         hostel_name: studentHostelBlock,
         room_number: studentRoom,
         meal_type: 'ALL_MEALS',
-        qr_payload: `GPB-OFFICIAL-CENTRAL-MESS-COUNTER-${liveDateKey}`
+        qr_payload: `GPB-OFFICIAL-CENTRAL-MESS-COUNTER-${liveDateKey}`,
+        token_code: tokenCode,
+        seq_num: seqNum
       });
     } catch {
       // Offline fallback
@@ -222,6 +336,7 @@ function MessScanner() {
 
     const newDayRecord = {
       date: liveDateKey,
+      formatted_date: liveDateFormatted,
       status: 'PRESENT',
       student_name: studentName,
       reg_no: studentRegNo,
@@ -230,6 +345,9 @@ function MessScanner() {
       room_info: roomBedDisplay,
       scanned_at: nowTimeStr,
       token_code: tokenCode,
+      short_token: formattedSeq,
+      display_token: displayTokenNumber,
+      seq_num: seqNum,
       meals_count: 4,
       meals: {
         breakfast: true,
@@ -239,13 +357,13 @@ function MessScanner() {
       }
     };
 
-    // Update Daily Map
+    // Update Daily Attendance Map for Dossier Graph
     setDailyAttendanceRecords(prev => ({
       ...prev,
       [liveDateKey]: newDayRecord
     }));
 
-    // Update History List for Warden & Student Audit
+    // Update Audit History for Warden Dashboard
     const historyItem = {
       id: tokenCode,
       student_name: studentName,
@@ -258,149 +376,227 @@ function MessScanner() {
       meal_label: 'Full Day 4-Meal Pass (BF, LU, SN, DN)',
       date: liveDateKey,
       time: nowTimeStr,
+      scanned_at: new Date().toISOString(),
       token_code: tokenCode,
+      display_token: displayTokenNumber,
+      short_token: formattedSeq,
+      seq_num: seqNum,
       status: 'VERIFIED',
       venue: studentHostelBlock
     };
+
     try {
-      const existingHist = JSON.parse(localStorage.getItem('gpbarh_mess_attendance_history') || '[]');
-      localStorage.setItem('gpbarh_mess_attendance_history', JSON.stringify([historyItem, ...existingHist.filter(h => h.date !== liveDateKey)]));
+      const updatedHist = [historyItem, ...existingHist.filter(h => !(h.date === liveDateKey && String(h.reg_no) === String(studentRegNo)))];
+      localStorage.setItem('gpbarh_mess_attendance_history', JSON.stringify(updatedHist));
     } catch {
       // ignore
     }
 
     triggerSuccessAlert();
     confetti({
-      particleCount: 100,
-      spread: 75,
+      particleCount: 110,
+      spread: 80,
       origin: { y: 0.6 },
-      colors: ['#059669', '#2563eb', '#d97706', '#dc2626']
+      colors: ['#10b981', '#3b82f6', '#f59e0b', '#800000', '#ec4899']
     });
 
     setVerifiedModal(newDayRecord);
-    toast.success(`Attendance Recorded for ${studentName}! 4 Meals Verified ✅`, {
-      style: { background: '#064e3b', color: '#ecfdf5', borderRadius: '12px', fontWeight: 700 }
+    toast.success(`Attendance Recorded! 4 Meals Activated for Today ✅`, {
+      style: { background: '#064e3b', color: '#ecfdf5', borderRadius: '14px', fontWeight: 700 }
     });
 
     setIsProcessing(false);
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-sans flex flex-col justify-between selection:bg-red-600 selection:text-white">
+    <div className="min-h-screen bg-slate-900 text-slate-100 font-sans flex flex-col justify-between selection:bg-red-600 selection:text-white">
       <Toaster position="top-center" />
       <style dangerouslySetInnerHTML={{ __html: cleanScannerStyles }} />
 
-      {/* 🌟 1. OFFICIAL INSTITUTIONAL HEADER WITH LIVE DATE TRACKER */}
-      <header className="bg-gradient-to-r from-[#800000] via-[#991b1b] to-[#7f1d1d] text-white px-4 sm:px-6 py-3.5 shadow-md sticky top-0 z-30">
-        <div className="max-w-xl mx-auto flex items-center justify-between gap-3">
+      {/* 🌟 1. PREMIUM INSTITUTIONAL APP HEADER (MOBILE-FIRST APK BAR) */}
+      <header className="bg-gradient-to-r from-[#700000] via-[#8B0000] to-[#5a0000] text-white px-3.5 sm:px-6 py-3 shadow-xl sticky top-0 z-30 border-b border-red-900/60 backdrop-blur-md">
+        <div className="max-w-md mx-auto flex items-center justify-between gap-2.5">
           
-          {/* LOGO & TITLE */}
-          <div className="flex items-center gap-3">
+          {/* BACK BUTTON & INSTITUTIONAL TITLE */}
+          <div className="flex items-center gap-2.5 min-w-0">
             <button
               onClick={() => navigate('/student-dashboard')}
-              className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white font-bold text-sm cursor-pointer transition-all active:scale-95 shrink-0"
-              title="Return to Student Dashboard"
+              className="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 active:scale-90 border border-white/20 flex items-center justify-center text-white font-bold text-base cursor-pointer transition-all shrink-0 shadow-sm"
+              title="Return to Dashboard"
             >
               ←
             </button>
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-full bg-white p-0.5 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white p-0.5 shadow-md flex items-center justify-center overflow-hidden shrink-0 border border-white/40">
                 <img src={logo} alt="GP Barh Logo" className="w-full h-full object-contain" />
               </div>
-              <div>
-                <h1 className="text-xs sm:text-sm font-black uppercase tracking-wider text-white">Govt. Polytechnic, Barh</h1>
-                <p className="text-[10px] text-red-100 font-medium hidden xs:block">Hostel &amp; Mess QR Attendance</p>
+              <div className="min-w-0">
+                <h1 className="text-xs sm:text-sm font-black uppercase tracking-wide text-white truncate leading-tight">
+                  Govt. Polytechnic, Barh
+                </h1>
+                <p className="text-[10px] text-red-200 font-semibold tracking-wider uppercase truncate">
+                  Smart Mess QR Counter
+                </p>
               </div>
             </div>
           </div>
 
-          {/* LIVE DATE BADGE (SYNCED WITH SYSTEM TIME) */}
-          <div className="flex items-center gap-2">
-            <div className="bg-black/30 border border-white/20 px-3 py-1 rounded-full text-right shrink-0">
+          {/* LIVE SYSTEM CLOCK BADGE */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <div className="bg-black/40 border border-white/15 px-2.5 py-1 rounded-xl text-right shadow-inner">
               <div className="flex items-center gap-1.5 justify-end">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span className="text-[11px] font-bold font-mono text-white leading-none">
-                  {liveDateFormatted}
+                <span className="w-2 h-2 rounded-full bg-emerald-400 pulse-radar-dot"></span>
+                <span className="text-[10px] sm:text-[11px] font-black font-mono text-emerald-300 leading-none">
+                  {liveClock.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
                 </span>
               </div>
+              <span className="text-[9px] font-mono text-slate-300 block text-right mt-0.5">
+                {liveTimeFormatted}
+              </span>
             </div>
           </div>
 
         </div>
       </header>
 
-      {/* 🌟 2. MAIN APPLICATION WORKSPACE */}
-      <main className="flex-1 max-w-xl w-full mx-auto p-4 sm:p-6 space-y-4">
-        
-        {/* STUDENT INFO BADGE (DYNAMIC FROM MANAGE PROFILE) */}
-        <div className="bg-white border border-slate-200/90 rounded-2xl p-4 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-3.5">
-            <div className={`w-12 h-12 rounded-2xl font-black text-lg flex items-center justify-center shadow-md border shrink-0 text-white ${
-              isFemale 
-                ? 'bg-gradient-to-br from-pink-600 to-rose-700 shadow-pink-600/20 border-pink-400' 
-                : 'bg-gradient-to-br from-blue-600 to-indigo-700 shadow-blue-600/20 border-blue-400'
-            }`}>
-              {studentName[0]?.toUpperCase() || 'S'}
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-sm font-black text-slate-900 tracking-tight">{studentName}</h2>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-black uppercase border border-emerald-300">
-                  Verified
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 font-mono mt-0.5">Reg: {studentRegNo}</p>
-              <p className={`text-[11px] font-bold ${isFemale ? 'text-pink-700' : 'text-blue-700'}`}>
-                {studentHostelBlock} • {roomBedDisplay}
-              </p>
-            </div>
-          </div>
+      {/* 🌟 2. MAIN APPLICATION CONTENT (MOBILE APK CONTAINER) */}
+      <main className="flex-1 max-w-md w-full mx-auto p-3 sm:p-4 space-y-3.5">
 
-          <div className="text-right shrink-0">
-            <span className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase border inline-flex items-center gap-1 ${
-              isTodayDone
-                ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                : 'bg-amber-100 text-amber-800 border-amber-300'
-            }`}>
-              {isTodayDone ? '✅ 4 Meals Recorded' : '⏳ Today Pending'}
-            </span>
+        {/* 🎓 STUDENT PROFILE IDENTITY CARD */}
+        <div className="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-3.5 shadow-lg backdrop-blur-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div
+                className={`w-11 h-11 rounded-2xl font-black text-base flex items-center justify-center shadow-md border shrink-0 text-white ${
+                  isFemale
+                    ? 'bg-gradient-to-br from-pink-600 to-rose-700 shadow-pink-600/30 border-pink-400'
+                    : 'bg-gradient-to-br from-blue-600 to-indigo-700 shadow-blue-600/30 border-blue-400'
+                }`}
+              >
+                {studentName[0]?.toUpperCase() || 'A'}
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h2 className="text-xs sm:text-sm font-black text-white tracking-tight truncate">
+                    {studentName}
+                  </h2>
+                  <span className="px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 text-[8.5px] font-black uppercase border border-emerald-400/40">
+                    Verified
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300 font-mono mt-0.5">
+                  Reg: <span className="text-slate-100 font-bold">{studentRegNo}</span>
+                </p>
+                <p className={`text-[10.5px] font-bold truncate mt-0.5 ${isFemale ? 'text-pink-300' : 'text-blue-300'}`}>
+                  {studentHostelBlock} • {roomBedDisplay}
+                </p>
+              </div>
+            </div>
+
+            {/* STATUS PILL */}
+            <div className="text-right shrink-0">
+              <span
+                className={`px-2.5 py-1 rounded-xl text-[9.5px] font-black uppercase border inline-flex items-center gap-1 shadow-sm ${
+                  isTodayDone
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40 shadow-emerald-500/10'
+                    : 'bg-amber-500/20 text-amber-300 border-amber-400/40 shadow-amber-500/10'
+                }`}
+              >
+                {isTodayDone ? '✅ 4 Meals Active' : '⏳ Today Pending'}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* 🌟 3. PERFECTLY CENTERED PHONE REAR CAMERA SCANNER */}
-        <div className="bg-slate-900 rounded-3xl p-4 border border-slate-300 shadow-xl space-y-3 text-white">
+        {/* 📷 HIGH-TECH SCANNER VIEWFINDER CARD */}
+        <div className="bg-gradient-to-b from-slate-900 to-[#070b14] rounded-3xl p-3.5 border border-slate-700/80 shadow-2xl space-y-3 relative overflow-hidden">
           
-          <div className="relative w-full aspect-square max-h-[340px] bg-black rounded-2xl overflow-hidden flex flex-col items-center justify-center border border-slate-700 mx-auto">
+          {/* TOP CONTROLS & CAMERA STATUS */}
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-1.5">
+              <span className={`w-2 h-2 rounded-full ${isScanning ? 'bg-emerald-400 pulse-radar-dot' : 'bg-slate-500'}`}></span>
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-300">
+                {isScanning ? 'Live Viewfinder' : 'Universal Scanner'}
+              </span>
+            </div>
+
+            {/* FLASH / CLOSE TOGGLES */}
+            {isScanning && (
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={toggleTorch}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
+                    torchOn
+                      ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-md shadow-amber-400/30'
+                      : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                  }`}
+                  title="Toggle Flashlight"
+                >
+                  🔦 {torchOn ? 'Flash ON' : 'Flash'}
+                </button>
+                <button
+                  type="button"
+                  onClick={stopRearCamera}
+                  className="px-2.5 py-1 rounded-lg bg-rose-950/80 hover:bg-rose-900 text-rose-200 text-[10px] font-bold border border-rose-800/80 cursor-pointer transition-all"
+                >
+                  ✕ Close
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* VIEWFINDER SCREEN (PERFECT 1:1 SQUARE) */}
+          <div className="relative w-full aspect-square max-h-[300px] sm:max-h-[320px] bg-slate-950 rounded-2xl overflow-hidden flex flex-col items-center justify-center border border-slate-800 mx-auto shadow-inner">
             
-            {/* HTML5-QRCODE TARGET VIEW */}
+            {/* HTML5-QRCODE TARGET */}
             <div id={scannerElementId} className="absolute inset-0 w-full h-full flex items-center justify-center"></div>
 
-            {/* SCANNING LASER & CORNERS */}
+            {/* ACTIVE SCANNING HUD & LASER */}
             {isScanning && (
-              <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-4 z-10">
-                <div className="w-52 h-52 border-2 border-emerald-400 rounded-2xl relative shadow-[0_0_25px_rgba(16,185,129,0.35)]">
-                  <div className="absolute top-0 left-0 w-5 h-5 border-t-4 border-l-4 border-emerald-400 rounded-tl-lg"></div>
-                  <div className="absolute top-0 right-0 w-5 h-5 border-t-4 border-r-4 border-emerald-400 rounded-tr-lg"></div>
-                  <div className="absolute bottom-0 left-0 w-5 h-5 border-b-4 border-l-4 border-emerald-400 rounded-bl-lg"></div>
-                  <div className="absolute bottom-0 right-0 w-5 h-5 border-b-4 border-r-4 border-emerald-400 rounded-br-lg"></div>
-                  <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_10px_#10b981] absolute scanner-laser-beam"></div>
+              <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-3 z-10">
+                {/* HUD TARGET BRACKETS */}
+                <div className="w-48 h-48 sm:w-52 sm:h-52 border border-emerald-500/40 rounded-2xl relative shadow-[0_0_30px_rgba(16,185,129,0.25)]">
+                  {/* Glowing Corners */}
+                  <div className="absolute top-0 left-0 w-6 h-6 border-t-3 border-l-3 border-emerald-400 rounded-tl-xl"></div>
+                  <div className="absolute top-0 right-0 w-6 h-6 border-t-3 border-r-3 border-emerald-400 rounded-tr-xl"></div>
+                  <div className="absolute bottom-0 left-0 w-6 h-6 border-b-3 border-l-3 border-emerald-400 rounded-bl-xl"></div>
+                  <div className="absolute bottom-0 right-0 w-6 h-6 border-b-3 border-r-3 border-emerald-400 rounded-br-xl"></div>
+                  
+                  {/* Center Aim Crosshairs */}
+                  <div className="absolute inset-0 m-auto w-4 h-4 border-t border-l border-emerald-400/40"></div>
+                  <div className="absolute inset-0 m-auto w-4 h-4 border-b border-r border-emerald-400/40"></div>
+
+                  {/* Animated Laser Beam */}
+                  <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_12px_#10b981] absolute scanner-laser-beam"></div>
                 </div>
-                <span className="text-[10px] font-black text-emerald-300 mt-3 bg-black/85 px-3.5 py-1 rounded-full uppercase tracking-wider border border-emerald-500/40">
-                  📱 Phone Back Camera Active • Focus Counter QR
-                </span>
+
+                {/* 1-LINE CLEAN CAMERA STATUS BADGE */}
+                <div className="mt-3 max-w-[94%] overflow-hidden">
+                  <span className="text-[9px] sm:text-[9.5px] font-black text-emerald-300 bg-slate-950/95 px-3 py-1 rounded-full uppercase tracking-wider border border-emerald-500/40 shadow-lg whitespace-nowrap block text-center truncate">
+                    📷 BACK CAMERA ACTIVE • FOCUS COUNTER QR
+                  </span>
+                </div>
               </div>
             )}
 
-            {/* IDLE CENTERED PLACEHOLDER */}
+            {/* IDLE / INACTIVE STATE PREVIEW */}
             {!isScanning && (
-              <div className="w-full h-full flex flex-col items-center justify-center text-center p-6 space-y-2.5 z-0">
-                <div className="w-16 h-16 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-3xl shadow-inner">
-                  📷
+              <div className="w-full h-full flex flex-col items-center justify-center text-center p-5 space-y-3 z-0 bg-radial from-slate-900 to-slate-950">
+                <div className="relative">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 flex items-center justify-center text-3xl shadow-xl floating-badge">
+                    📷
+                  </div>
+                  <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 text-slate-950 rounded-full flex items-center justify-center text-[10px] font-black shadow-md">
+                    ✓
+                  </span>
                 </div>
-                <h3 className="text-sm font-black text-white">Phone Rear Camera</h3>
-                <p className="text-[11px] text-slate-400 max-w-[240px] leading-relaxed">
-                  Tap the button below to open camera and scan the official Counter QR code.
-                </p>
+                <div>
+                  <h3 className="text-xs sm:text-sm font-black text-white">Universal Mess Counter Scanner</h3>
+                  <p className="text-[11px] text-slate-400 max-w-[240px] leading-relaxed mt-1">
+                    Point camera at the official Mess Counter QR code to activate all 4 meals for today.
+                  </p>
+                </div>
               </div>
             )}
 
@@ -413,153 +609,313 @@ function MessScanner() {
             )}
           </div>
 
-          {/* 🌟 4. SINGLE ALL-IN-ONE PRIMARY BUTTON */}
+          {/* PRIMARY ACTION BUTTONS */}
           <div className="space-y-2 pt-1">
             <button
               type="button"
               onClick={isScanning ? processAttendanceSubmission : startRearCamera}
               disabled={isProcessing}
-              className={`w-full py-3.5 px-4 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 disabled:opacity-50 ${
+              className={`w-full py-3.5 px-4 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider shadow-xl flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 disabled:opacity-50 ${
                 !isScanning
-                  ? 'bg-gradient-to-r from-emerald-600 via-emerald-500 to-emerald-600 hover:from-emerald-500 hover:to-emerald-600 text-white shadow-emerald-600/30'
-                  : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-600/30'
+                  ? 'bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-900/40 border border-emerald-400/40'
+                  : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-900/40 border border-blue-400/40'
               }`}
             >
-              <span>{isScanning ? '⚡' : '📸'}</span>
+              <span className="text-base">{isScanning ? '⚡' : '📸'}</span>
               <span>
                 {isScanning
                   ? 'Tap to Submit Today Attendance Now'
-                  : (isTodayDone ? 'Re-Scan & Update Attendance' : 'Open Camera & Scan QR Attendance')}
+                  : isTodayDone
+                  ? 'Re-Scan & Update Attendance'
+                  : 'Open Camera & Scan QR Attendance'}
               </span>
             </button>
 
-            {isScanning && (
+            {/* FAST 1-TAP INSTANT CONFIRMATION IF NOT SCANNING */}
+            {!isScanning && !isTodayDone && (
               <button
                 type="button"
-                onClick={stopRearCamera}
-                className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold text-xs border border-slate-700 cursor-pointer"
+                onClick={processAttendanceSubmission}
+                disabled={isProcessing}
+                className="w-full py-2.5 px-3 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 text-slate-200 text-xs font-bold border border-slate-700 flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95"
               >
-                ✕ Close Camera
+                <span>⚡ Instant 1-Tap Attendance Confirmation</span>
               </button>
             )}
           </div>
 
         </div>
 
-        {/* 🌟 5. TODAY'S ATTENDANCE STATUS CARD (CLEAN & SIMPLE) */}
-        <div className={`p-4 rounded-2xl border transition-all ${
-          isTodayDone
-            ? 'bg-emerald-50 border-emerald-300 shadow-sm'
-            : 'bg-white border-slate-200 shadow-sm'
-        }`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">
-                Today's Attendance Status • {liveDateFormatted}
+        {/* 🌟 3. ACTIVE DIGITAL MEAL TOKEN SECTION (APPEARS WHEN SCANNED/VERIFIED) 🌟 */}
+        {isTodayDone && (
+          <div className="bg-gradient-to-br from-emerald-950/80 via-slate-900 to-emerald-900/60 border-2 border-emerald-500/60 rounded-3xl p-4 shadow-xl shadow-emerald-950/50 space-y-3 relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Ambient Background Sheen */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+            <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2.5">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-emerald-400 pulse-radar-dot"></span>
+                <span className="text-[10.5px] font-black uppercase tracking-widest text-emerald-300">
+                  Active Meal Token Pass
+                </span>
+              </div>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-400 text-slate-950 font-black text-[9px] uppercase tracking-wider shadow-sm">
+                Verified Today
               </span>
-              <h3 className={`text-sm font-black mt-0.5 ${
-                isTodayDone ? 'text-emerald-900' : 'text-slate-700'
-              }`}>
-                {isTodayDone ? '✅ 4 Meals Recorded for Today' : '⏳ Today\'s Attendance Pending'}
-              </h3>
             </div>
 
-            {isTodayDone && (
-              <span className="text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-lg border border-emerald-300 shrink-0">
-                {todayRecord.scanned_at}
+            {/* BIG HIGH-CONTRAST TOKEN DISPLAY (FOR MESS COUNTER DISTANT VIEWING) */}
+            <div className="bg-black/70 rounded-2xl p-4 border border-emerald-500/40 text-center space-y-1.5 shadow-inner">
+              <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">
+                Official Daily Reset Token
+              </p>
+              
+              {/* BIG BOLD TOKEN NUMBER */}
+              <div className="text-3xl sm:text-4xl font-black font-mono text-white tracking-widest flex items-center justify-center gap-1 drop-shadow-[0_0_16px_rgba(52,211,153,0.6)]">
+                <span>{todayRecord?.display_token || `TOKEN #${todayRecord?.short_token || '001'}`}</span>
+              </div>
+
+              {/* DATE & TIME BADGE */}
+              <div className="pt-1 flex items-center justify-center gap-2 flex-wrap">
+                <span className="text-[11px] font-bold text-amber-300 bg-amber-500/20 px-2.5 py-0.5 rounded-lg border border-amber-400/30">
+                  📅 {todayRecord?.formatted_date || liveDateFormatted}
+                </span>
+                <span className="text-[11px] font-bold text-emerald-300 bg-emerald-500/20 px-2.5 py-0.5 rounded-lg border border-emerald-400/30 font-mono">
+                  ⏰ {todayRecord?.scanned_at || liveTimeFormatted}
+                </span>
+              </div>
+            </div>
+
+            {/* VIEW FULL TOKEN PASS MODAL BUTTON */}
+            <button
+              type="button"
+              onClick={() => setVerifiedModal(todayRecord)}
+              className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/20 cursor-pointer transition-all"
+            >
+              <span>🎫 View Full Token Pass &amp; Receipt</span>
+            </button>
+          </div>
+        )}
+
+        {/* 🌟 4. 4-MEALS REALTIME BREAKDOWN GRID (1 SCAN = 4 MEALS) */}
+        <div className="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-3.5 shadow-lg space-y-2.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs">🍽️</span>
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-300">
+                1 Daily Scan = 4 Meals Active
               </span>
-            )}
+            </div>
+            <span className="text-[9.5px] font-mono text-slate-400">
+              {liveDateFormatted}
+            </span>
           </div>
 
-          {isTodayDone ? (
-            <div className="mt-3 pt-2.5 border-t border-emerald-200 flex items-center justify-between text-xs">
-              <span className="text-[11px] font-bold text-emerald-800">
-                🥞 Breakfast • 🍛 Lunch • 🫖 Snacks • 🍲 Dinner
+          <div className="grid grid-cols-2 gap-2">
+            {/* Breakfast */}
+            <div
+              className={`p-2.5 rounded-xl border flex items-center justify-between transition-all ${
+                isTodayDone
+                  ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
+                  : 'bg-slate-900/60 border-slate-700/60 text-slate-400'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-base">🥞</span>
+                <div>
+                  <h4 className="text-[11px] font-bold text-white leading-tight">Breakfast</h4>
+                  <p className="text-[9px] text-slate-400">07:30 - 09:30 AM</p>
+                </div>
+              </div>
+              <span className={`text-[10px] font-black ${isTodayDone ? 'text-emerald-400' : 'text-slate-500'}`}>
+                {isTodayDone ? '✓ ACTIVE' : 'PENDING'}
               </span>
-              <button
-                onClick={() => navigate('/student-dashboard')}
-                className="text-[11px] font-bold text-blue-700 hover:text-blue-900 underline cursor-pointer"
-              >
-                View in Charts →
-              </button>
             </div>
-          ) : (
-            <p className="text-[11px] text-slate-500 mt-2">
-              Scan the official Counter QR or tap the button above to automatically mark Breakfast, Lunch, Snacks &amp; Dinner for {liveDateFormatted}.
-            </p>
-          )}
+
+            {/* Lunch */}
+            <div
+              className={`p-2.5 rounded-xl border flex items-center justify-between transition-all ${
+                isTodayDone
+                  ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
+                  : 'bg-slate-900/60 border-slate-700/60 text-slate-400'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-base">🍛</span>
+                <div>
+                  <h4 className="text-[11px] font-bold text-white leading-tight">Lunch</h4>
+                  <p className="text-[9px] text-slate-400">12:30 - 02:30 PM</p>
+                </div>
+              </div>
+              <span className={`text-[10px] font-black ${isTodayDone ? 'text-emerald-400' : 'text-slate-500'}`}>
+                {isTodayDone ? '✓ ACTIVE' : 'PENDING'}
+              </span>
+            </div>
+
+            {/* Snacks */}
+            <div
+              className={`p-2.5 rounded-xl border flex items-center justify-between transition-all ${
+                isTodayDone
+                  ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
+                  : 'bg-slate-900/60 border-slate-700/60 text-slate-400'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-base">🫖</span>
+                <div>
+                  <h4 className="text-[11px] font-bold text-white leading-tight">Snacks</h4>
+                  <p className="text-[9px] text-slate-400">05:00 - 06:30 PM</p>
+                </div>
+              </div>
+              <span className={`text-[10px] font-black ${isTodayDone ? 'text-emerald-400' : 'text-slate-500'}`}>
+                {isTodayDone ? '✓ ACTIVE' : 'PENDING'}
+              </span>
+            </div>
+
+            {/* Dinner */}
+            <div
+              className={`p-2.5 rounded-xl border flex items-center justify-between transition-all ${
+                isTodayDone
+                  ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
+                  : 'bg-slate-900/60 border-slate-700/60 text-slate-400'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-base">🍲</span>
+                <div>
+                  <h4 className="text-[11px] font-bold text-white leading-tight">Dinner</h4>
+                  <p className="text-[9px] text-slate-400">08:00 - 10:00 PM</p>
+                </div>
+              </div>
+              <span className={`text-[10px] font-black ${isTodayDone ? 'text-emerald-400' : 'text-slate-500'}`}>
+                {isTodayDone ? '✓ ACTIVE' : 'PENDING'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* 🌟 5. REDESIGNED ULTRA-ATTRACTIVE ANNUAL MESS ATTENDANCE GRAPH BANNER CARD 🌟 */}
+        <div
+          onClick={redirectToStudentRecordGraph}
+          className="bg-gradient-to-br from-[#1e1b4b] via-[#172554] to-slate-900 border-2 border-indigo-500/50 hover:border-indigo-400 rounded-3xl p-4 shadow-2xl shadow-indigo-950/60 cursor-pointer transition-all active:scale-98 group relative overflow-hidden"
+        >
+          {/* Glowing Ambient Gradient */}
+          <div className="absolute -right-10 -bottom-10 w-36 h-36 bg-indigo-500/20 rounded-full blur-2xl pointer-events-none group-hover:scale-125 transition-transform duration-500"></div>
+
+          <div className="flex items-center justify-between gap-3 relative z-10">
+            <div className="flex items-center gap-3.5 min-w-0">
+              {/* Vibrant Icon Box */}
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 border border-indigo-300/40 flex items-center justify-center text-2xl shrink-0 shadow-lg shadow-indigo-600/40 group-hover:scale-105 transition-transform">
+                📊
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-xs sm:text-sm font-black text-white group-hover:text-indigo-200 transition-colors leading-tight">
+                  Annual Mess Attendance &amp; Activity Graph
+                </h3>
+                <p className="text-[11px] text-indigo-200/80 mt-1 leading-snug">
+                  Tap to view dynamic 12-Month meal wave chart &amp; dossier
+                </p>
+              </div>
+            </div>
+
+            {/* Glowing Arrow Pill */}
+            <div className="flex items-center justify-center w-9 h-9 rounded-2xl bg-gradient-to-r from-indigo-500 to-blue-600 text-white shadow-md shadow-indigo-600/40 shrink-0 group-hover:translate-x-1 transition-transform border border-indigo-300/30">
+              <span className="text-base font-black">↗</span>
+            </div>
+          </div>
         </div>
 
       </main>
 
-      {/* 🌟 6. OFFICIAL FOOTER */}
-      <footer className="p-3.5 bg-white border-t border-slate-200 text-center text-xs text-slate-500">
-        <div className="max-w-xl mx-auto flex items-center justify-between px-2">
-          <span>Government Polytechnic Barh • Bihar</span>
+      {/* 🌟 6. OFFICIAL FOOTER (APK SAFE-BOTTOM BAR) */}
+      <footer className="p-3 bg-slate-950/90 border-t border-slate-800 text-center text-xs text-slate-400 backdrop-blur-sm">
+        <div className="max-w-md mx-auto flex items-center justify-between px-2">
+          <span className="text-[11px] font-medium text-slate-400">
+            Govt. Polytechnic Barh • Bihar
+          </span>
           <button
-            onClick={() => navigate('/student-dashboard')}
-            className="text-xs font-bold text-blue-600 hover:text-blue-800 cursor-pointer"
+            type="button"
+            onClick={redirectToStudentRecordGraph}
+            className="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 underline cursor-pointer flex items-center gap-1"
           >
-            Student Record &amp; Charts ↗
+            <span>Student Record &amp; Charts</span>
+            <span>↗</span>
           </button>
         </div>
       </footer>
 
-      {/* 🌟 7. SUCCESS RECEIPT MODAL */}
+      {/* 🌟 7. BIG HIGH-VISIBILITY TOKEN PASS MODAL (FOR COUNTER DISTANT VIEWING) 🌟 */}
       {verifiedModal && (
-        <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full border border-slate-200 shadow-2xl text-center space-y-4 animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-3.5 backdrop-blur-md">
+          <div className="bg-slate-900 rounded-3xl p-5 max-w-sm w-full border-2 border-emerald-400 shadow-2xl shadow-emerald-500/20 text-center space-y-3.5 animate-in fade-in zoom-in-95 duration-150 relative overflow-hidden">
             
-            <div className="w-16 h-16 rounded-full bg-emerald-100 border-2 border-emerald-500 flex items-center justify-center text-3xl mx-auto shadow-md">
-              ✅
+            {/* TOP GLOWING BADGE & DATE */}
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl p-4 text-white shadow-lg border border-emerald-300/40 space-y-1">
+              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-100 block">
+                ⭐ OFFICIAL MEAL TOKEN PASS ⭐
+              </span>
+              
+              {/* HUGE TOKEN NUMBER (VISIBLE FROM DISTANCE) */}
+              <div className="text-3xl sm:text-4xl font-black font-mono tracking-widest text-white drop-shadow-md py-1">
+                {verifiedModal.display_token || `TOKEN #${verifiedModal.short_token || '001'}`}
+              </div>
+
+              {/* HIGH CONTRAST DATE BADGE */}
+              <div className="inline-block bg-black/40 px-3 py-1 rounded-xl text-xs font-black font-mono text-amber-300 border border-white/20">
+                📅 {verifiedModal.formatted_date || liveDateFormatted}
+              </div>
             </div>
 
-            <div>
-              <h3 className="text-lg font-black text-slate-900">Attendance Recorded!</h3>
-              <p className="text-xs text-slate-500 mt-0.5 font-mono">Date: {verifiedModal.date}</p>
+            {/* VERIFICATION CHECK */}
+            <div className="flex items-center justify-center gap-1.5 text-emerald-400 font-black text-xs uppercase tracking-wider">
+              <span className="text-base">✅</span>
+              <span>4 Meals Verified for Today</span>
             </div>
 
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-left space-y-2 text-xs font-mono">
-              <div className="flex justify-between text-slate-600">
+            {/* STUDENT & HOSTEL DETAILS */}
+            <div className="p-3 bg-slate-950/90 rounded-2xl border border-slate-800 text-left space-y-1.5 text-xs font-mono">
+              <div className="flex justify-between text-slate-400">
                 <span>Student:</span>
-                <strong className="text-slate-900 font-sans">{studentName}</strong>
+                <strong className="text-white font-sans text-xs">{studentName}</strong>
               </div>
-              <div className="flex justify-between text-slate-600">
+              <div className="flex justify-between text-slate-400">
                 <span>Reg No:</span>
-                <strong className="text-slate-900">{studentRegNo}</strong>
+                <strong className="text-white">{studentRegNo}</strong>
               </div>
-              <div className="flex justify-between text-slate-600">
-                <span>Hostel Block:</span>
-                <strong className={isFemale ? 'text-pink-700' : 'text-blue-700'}>{studentHostelBlock}</strong>
+              <div className="flex justify-between text-slate-400">
+                <span>Hostel:</span>
+                <strong className={isFemale ? 'text-pink-400' : 'text-blue-400'}>{studentHostelBlock}</strong>
               </div>
-              <div className="flex justify-between text-slate-600">
-                <span>Room / Bed:</span>
-                <strong className="text-slate-800">{roomBedDisplay}</strong>
+              <div className="flex justify-between text-slate-400">
+                <span>Room/Bed:</span>
+                <strong className="text-slate-200">{roomBedDisplay}</strong>
               </div>
-              <div className="flex justify-between text-slate-600">
-                <span>Coverage:</span>
-                <strong className="text-emerald-700 font-bold">4/4 Meals (BF, LU, SN, DN)</strong>
+              <div className="flex justify-between text-slate-400">
+                <span>Scan Time:</span>
+                <strong className="text-emerald-400">{verifiedModal.scanned_at || liveTimeFormatted}</strong>
               </div>
-              <div className="flex justify-between text-slate-600">
-                <span>Token:</span>
-                <strong className="text-slate-800">{verifiedModal.token_code}</strong>
+              <div className="flex justify-between text-slate-400 pt-1 border-t border-slate-800 text-[10px]">
+                <span>Full Code:</span>
+                <strong className="text-slate-300 truncate max-w-[170px]">{verifiedModal.token_code}</strong>
               </div>
             </div>
 
+            {/* ACTIONS */}
             <div className="space-y-2 pt-1">
               <button
                 type="button"
-                onClick={() => setVerifiedModal(null)}
-                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs uppercase cursor-pointer shadow-md shadow-emerald-600/20"
+                onClick={redirectToStudentRecordGraph}
+                className="w-full py-3 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white rounded-xl font-bold text-xs uppercase cursor-pointer shadow-lg shadow-indigo-600/30 border border-indigo-400/40 flex items-center justify-center gap-1.5"
               >
-                Close &amp; Finish
+                <span>📊 View in Student Record &amp; Charts →</span>
               </button>
+              
               <button
                 type="button"
-                onClick={() => navigate('/student-dashboard')}
-                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl font-bold text-xs cursor-pointer border border-slate-300"
+                onClick={() => setVerifiedModal(null)}
+                className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold text-xs cursor-pointer border border-slate-700"
               >
-                View in Student Record &amp; Charts →
+                Close &amp; Keep Active
               </button>
             </div>
 
