@@ -132,7 +132,15 @@ def run_tests():
         print(f"Student Analytics: Present Days: {analytics_agg.attendance_summary.get('present_days')} | Paid: {analytics_agg.financial_progress.get('total_paid')} | Timeline Items: {len(analytics_agg.activity_timeline)}")
         assert len(analytics_agg.monthly_attendance) == 30
 
-        print("\n--- 13. Testing Dev Database Reset Endpoint ---")
+        print("\n--- 13. Testing Warden Mess Multi-Timeframe Analytics ---")
+        daily_analytics = main.get_warden_mess_analytics(timeframe="DAILY", db=db)
+        print(f"Daily Analytics Data Points: {len(daily_analytics.boys_data)} boys vs {len(daily_analytics.girls_data)} girls")
+        
+        yearly_analytics = main.get_warden_mess_analytics(timeframe="YEARLY", db=db)
+        print(f"Yearly Analytics Data Points: {len(yearly_analytics.boys_data)} boys vs {len(yearly_analytics.girls_data)} girls")
+        assert len(daily_analytics.categories) > 0
+
+        print("\n--- 14. Testing Dev Database Reset Endpoint ---")
         reset_out = main.reset_database()
         print("Dev Reset Response:", reset_out)
         assert reset_out["status"] == "success"
@@ -143,3 +151,4 @@ def run_tests():
 
 if __name__ == "__main__":
     run_tests()
+
