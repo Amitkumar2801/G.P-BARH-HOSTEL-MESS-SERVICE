@@ -209,6 +209,29 @@ def normalize_gender(gender_str: Optional[str]) -> str:
         return "FEMALE"
     return "MALE"
 
+def resolve_student_user(student_identifier, db: Session) -> Optional[models.User]:
+    """Robust student resolver that safely handles registration numbers, emails, and database primary key IDs."""
+    if student_identifier is None:
+        return None
+    s_str = str(student_identifier).strip()
+    if not s_str or s_str.lower() in ["null", "undefined", "none"]:
+        return None
+    
+    # 1. Primary Priority: Match by registration number or email
+    user = db.query(models.User).filter(
+        (models.User.reg_no == s_str) | (models.User.reg_no_email == s_str)
+    ).first()
+    if user:
+        return user
+        
+    # 2. Secondary Priority: Match by database ID if numeric
+    if s_str.isdigit():
+        user = db.query(models.User).filter(models.User.id == int(s_str)).first()
+        if user:
+            return user
+            
+    return None
+
 # ---------------------------------------------------------
 # AUTHENTICATION ENDPOINTS
 # ---------------------------------------------------------
@@ -886,7 +909,7 @@ def seed_hostel_data(db: Session):
 
 @app.get("/hostel-layout", response_model=schemas.HostelLayoutSchema, tags=["Hostel Allocation"])
 @app.get("/api/hostels/grid", response_model=schemas.HostelLayoutSchema, tags=["Hostel Allocation"])
-def get_hostel_layout(gender: str = Query("MALE"), student_id: Optional[int] = None, db: Session = Depends(get_db)):
+def get_hostel_layout(gender: str = Query("MALE"), student_id: Optional[str] = Query(None), db: Session = Depends(get_db)):
     seed_hostel_data(db)
     norm_gender = normalize_gender(gender)
     
@@ -897,11 +920,13 @@ def get_hostel_layout(gender: str = Query("MALE"), student_id: Optional[int] = N
     # Fetch active pending requests for student
     my_pending_bed_ids = set()
     if student_id:
-        pending_reqs = db.query(models.AllotmentRequest).filter(
-            models.AllotmentRequest.student_id == student_id,
-            models.AllotmentRequest.status == "PENDING"
-        ).all()
-        my_pending_bed_ids = {r.bed_id for r in pending_reqs}
+        user_obj = resolve_student_user(student_id, db)
+        if user_obj:
+            pending_reqs = db.query(models.AllotmentRequest).filter(
+                models.AllotmentRequest.student_id == user_obj.id,
+                models.AllotmentRequest.status == "PENDING"
+            ).all()
+            my_pending_bed_ids = {r.bed_id for r in pending_reqs}
 
     rooms_list = []
     for room in hostel.rooms:
@@ -978,42 +1003,52 @@ def check_and_expire_allotment_requests(db: Session):
 def request_bed(payload: schemas.BedRequestCreate, db: Session = Depends(get_db)):
     check_and_expire_allotment_requests(db)
 
-    student = None
-    if isinstance(payload.student_id, int) or str(payload.student_id).isdigit():
-        student = db.query(models.User).filter(models.User.id == int(payload.student_id)).first()
+    student = resolve_student_user(payload.student_id, db)
     if not student:
-        student = db.query(models.User).filter(
-            (models.User.reg_no_email == str(payload.student_id)) | (models.User.reg_no == str(payload.student_id))
-        ).first()
+        raise HTTPException(status_code=404, detail="Student record not found! Please check your registration ID.")
 
-    if not student:
-        raise HTTPException(status_code=404, detail="Student record not found!")
-
-    # Check if student already has an approved or active pending request
+    # Check if student already has an approved allotment
     existing_approved = db.query(models.AllotmentRequest).filter(
         models.AllotmentRequest.student_id == student.id,
-        models.AllotmentRequest.status.in_(["PENDING", "APPROVED"])
+        models.AllotmentRequest.status == "APPROVED"
     ).first()
 
     if existing_approved:
-        if existing_approved.status == "APPROVED":
-            raise HTTPException(status_code=400, detail="You already have an approved room allotment! All features are unlocked.")
-        else:
-            raise HTTPException(status_code=400, detail="You already have a pending allotment request awaiting Warden approval.")
+        raise HTTPException(status_code=400, detail="You already have an approved room allotment! All features are unlocked.")
 
     bed = db.query(models.Bed).filter(models.Bed.id == payload.bed_id).first()
     if not bed:
         raise HTTPException(status_code=404, detail="Requested bed not found!")
-    if bed.is_occupied:
+    if bed.is_occupied and bed.current_student_id != student.id:
         raise HTTPException(status_code=400, detail="This bed is already occupied by another student!")
 
     # Check if bed has a pending request from another student
     pending_bed_req = db.query(models.AllotmentRequest).filter(
         models.AllotmentRequest.bed_id == payload.bed_id,
+        models.AllotmentRequest.student_id != student.id,
         models.AllotmentRequest.status == "PENDING"
     ).first()
     if pending_bed_req:
         raise HTTPException(status_code=400, detail="This bed currently has a pending request awaiting Warden review.")
+
+    # Check if student already has an existing pending request: if so, gracefully update their room/bed choice!
+    existing_pending = db.query(models.AllotmentRequest).filter(
+        models.AllotmentRequest.student_id == student.id,
+        models.AllotmentRequest.status == "PENDING"
+    ).first()
+
+    if existing_pending:
+        existing_pending.room_id = payload.room_id
+        existing_pending.bed_id = payload.bed_id
+        existing_pending.applied_at = datetime.utcnow()
+        existing_pending.remarks = "Updated bed selection by student"
+        db.commit()
+        db.refresh(existing_pending)
+        return {
+            "message": f"Bed allotment request updated to Room {existing_pending.room.room_number if existing_pending.room else ''} (Bed {existing_pending.bed.bed_code if existing_pending.bed else ''})! Awaiting Warden approval (24-hour review window). ⏳",
+            "request_id": existing_pending.id,
+            "status": "PENDING_APPROVAL"
+        }
 
     new_req = models.AllotmentRequest(
         student_id=student.id,
@@ -1199,14 +1234,7 @@ def revoke_student_allotment(student_id: int, remarks: Optional[str] = "Allotmen
 def get_student_allotment_status(student_id: str, db: Session = Depends(get_db)):
     check_and_expire_allotment_requests(db)
 
-    user = None
-    if str(student_id).isdigit():
-        user = db.query(models.User).filter(models.User.id == int(student_id)).first()
-    if not user:
-        user = db.query(models.User).filter(
-            (models.User.reg_no_email == str(student_id)) | (models.User.reg_no == str(student_id))
-        ).first()
-
+    user = resolve_student_user(student_id, db)
     if not user:
         return {"has_request": False, "status": "NONE", "fee_unlocked": False, "can_reapply": True}
 

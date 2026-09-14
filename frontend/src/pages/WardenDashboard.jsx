@@ -213,6 +213,8 @@ function WardenDashboard() {
 
   useEffect(() => {
     fetchWardenData();
+    const interval = setInterval(fetchWardenData, 4000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleSaveFeeConfig = async (e) => {
@@ -262,20 +264,17 @@ function WardenDashboard() {
 
   const handleAllotmentAction = async (allotmentId, action) => {
     setProcessingId(allotmentId);
-    // Optimistically remove the request from the pending list
-    setPendingRequests(prev => prev.filter(r => r.id !== allotmentId));
     try {
       const remark = actionRemarks[allotmentId] || (action === 'approve' ? 'Allotment approved by Chief Warden' : 'Allotment request declined by Chief Warden');
       if (action === 'approve') {
         localStorage.setItem('gpbarh_student_allotment_approved', 'true');
         localStorage.setItem('gpbarh_allotment_status', 'APPROVED');
-        localStorage.setItem('gpbarh_admission_fee_paid', 'true');
       }
       await axios.put(`http://127.0.0.1:8000/api/warden/allotments/${allotmentId}/action`, {
         action,
         remarks: remark
       });
-      toast.success(action === 'approve' ? 'Bed allocation approved! 24-hour admission window granted. ✅' : 'Allotment request rejected.', {
+      toast.success(action === 'approve' ? 'Bed allocation approved! Student portal features unlocked. ✅' : 'Allotment request rejected.', {
         duration: 4500,
         style: { borderRadius: '12px', background: action === 'approve' ? '#166534' : '#991b1b', color: '#fff', fontWeight: 700 }
       });

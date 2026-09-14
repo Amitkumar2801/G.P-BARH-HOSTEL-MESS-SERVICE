@@ -114,6 +114,10 @@ def run_tests():
         qr_token_payload = main.get_daily_mess_qr_token()
         print("Daily Mess Token Payload:", qr_token_payload)
 
+        # Clean any previous attendance for test user to allow re-testing
+        db.query(models.MessAttendance).filter(models.MessAttendance.student_id == user_info["id"]).delete()
+        db.commit()
+
         # Mark breakfast attendance for student
         mess_res = main.mark_mess_attendance(schemas.MessAttendanceMarkRequest(
             student_id=user_info["id"],
@@ -134,11 +138,11 @@ def run_tests():
 
         print("\n--- 13. Testing Warden Mess Multi-Timeframe Analytics ---")
         daily_analytics = main.get_warden_mess_analytics(timeframe="DAILY", db=db)
-        print(f"Daily Analytics Data Points: {len(daily_analytics.boys_data)} boys vs {len(daily_analytics.girls_data)} girls")
+        print(f"Daily Analytics Data Points: {len(daily_analytics.boys_chart_data)} boys vs {len(daily_analytics.girls_chart_data)} girls")
         
         yearly_analytics = main.get_warden_mess_analytics(timeframe="YEARLY", db=db)
-        print(f"Yearly Analytics Data Points: {len(yearly_analytics.boys_data)} boys vs {len(yearly_analytics.girls_data)} girls")
-        assert len(daily_analytics.categories) > 0
+        print(f"Yearly Analytics Data Points: {len(yearly_analytics.boys_chart_data)} boys vs {len(yearly_analytics.girls_chart_data)} girls")
+        assert len(daily_analytics.chart_data) > 0
 
         print("\n--- 14. Testing Dev Database Reset Endpoint ---")
         reset_out = main.reset_database()

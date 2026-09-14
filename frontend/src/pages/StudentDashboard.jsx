@@ -580,9 +580,10 @@ function StudentDashboard() {
       console.warn("Could not parse user from localStorage", e);
     }
     return {
-      id: 1,
-      full_name: 'Amit Kumar Sharma',
+      id: 2,
+      full_name: 'AMIT KUMAR SHARMA',
       reg_no_email: '1554424049',
+      reg_no: '1554424049',
       gender: 'MALE',
       role: 'student'
     };
@@ -898,7 +899,7 @@ function StudentDashboard() {
 
   const fetchStudentAllotment = async () => {
     try {
-      const studentIdentifier = currentUser?.id || currentUser?.reg_no || currentUser?.reg_no_email || profileData?.regNo;
+      const studentIdentifier = currentUser?.reg_no || currentUser?.reg_no_email || profileData?.regNo || currentUser?.id || '1554424049';
       if (!studentIdentifier) return;
       const res = await axios.get(`http://127.0.0.1:8000/api/student/allotment-status/${studentIdentifier}`);
       if (res.data) {
@@ -921,16 +922,14 @@ function StudentDashboard() {
 
   useEffect(() => {
     fetchStudentAllotment();
-    const interval = setInterval(fetchStudentAllotment, 6000);
+    const interval = setInterval(fetchStudentAllotment, 4000);
     return () => clearInterval(interval);
   }, [currentUser, profileData]);
 
   const isAllotmentApproved = Boolean(
     allotmentInfo?.status === 'APPROVED' ||
     allotmentInfo?.fee_unlocked === true ||
-    (allotmentInfo?.room_number && allotmentInfo?.room_number !== '') ||
-    (currentUser?.room_number && currentUser?.room_number !== '') ||
-    (currentUser?.roomNumber && currentUser?.roomNumber !== '')
+    currentUser?.allotment_status === 'APPROVED'
   );
 
   const handleNavClick = (tab) => {
@@ -2127,7 +2126,7 @@ function StudentDashboard() {
                   {/* STUDENT GENDER-ISOLATED ROOM ALLOCATION BLUEPRINT */}
                   <RoomAllocationGrid
                     gender={String(currentUser?.gender || profileData?.gender || 'MALE').toUpperCase() === 'FEMALE' ? 'FEMALE' : 'MALE'}
-                    studentId={currentUser?.id || profileData?.regNo || 1}
+                    studentId={currentUser?.reg_no || currentUser?.reg_no_email || profileData?.regNo || currentUser?.id || '1554424049'}
                     isDarkMode={isDarkMode}
                     onBedRequested={fetchStudentAllotment}
                     activeAllotment={allotmentInfo}

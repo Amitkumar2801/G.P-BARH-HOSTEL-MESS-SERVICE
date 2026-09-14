@@ -1,6 +1,6 @@
 # backend/schemas.py
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Union
 from datetime import datetime
 
 # ==========================================
@@ -136,7 +136,7 @@ class HostelLayoutSchema(BaseModel):
         from_attributes = True
 
 class BedRequestCreate(BaseModel):
-    student_id: int
+    student_id: Union[int, str]
     room_id: int
     bed_id: int
 
