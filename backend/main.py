@@ -43,8 +43,18 @@ def run_sqlite_migrations():
             ("users", "home_state", "VARCHAR DEFAULT 'Bihar'"),
             ("users", "distance_km", "FLOAT"),
             ("users", "distance_verified", "BOOLEAN DEFAULT 0"),
+            ("users", "room_number", "VARCHAR"),
+            ("users", "bed_code", "VARCHAR"),
+            ("users", "hostel_block", "VARCHAR"),
             ("beds", "current_student_id", "INTEGER"),
-            ("allotment_requests", "remarks", "VARCHAR")
+            ("allotment_requests", "remarks", "VARCHAR"),
+            ("payment_transactions", "payment_period", "VARCHAR"),
+            ("payment_transactions", "created_at", "DATETIME"),
+            ("payment_transactions", "verified_at", "DATETIME"),
+            ("payment_transactions", "proof_url", "TEXT"),
+            ("payment_transactions", "remarks", "VARCHAR"),
+            ("payment_transactions", "receipt_number", "VARCHAR"),
+            ("payment_transactions", "gender", "VARCHAR DEFAULT 'MALE'")
         ]
         for table, col, col_type in columns_to_add:
             try:
@@ -260,7 +270,7 @@ def login_user(user: schemas.UserLogin, db: Session = Depends(get_db)):
 
     return {
         "message": "Login successful!",
-        "user": serialize_user_dict(db_user)
+        "user": serialize_user_dict(db_user, db)
     }
 
 # ---------------------------------------------------------
@@ -285,8 +295,34 @@ def clean_expired_qr_sessions():
     for sid in expired_ids:
         qr_sessions.pop(sid, None)
 
-def serialize_user_dict(user: models.User) -> dict:
-    """Format user model to standard JSON dictionary."""
+def serialize_user_dict(user: models.User, db: Session = None) -> dict:
+    """Format user model to standard JSON dictionary with active room allotment."""
+    room_number = None
+    bed_code = None
+    hostel_block = None
+    allotment_status = "NONE"
+    fee_unlocked = False
+
+    if db:
+        req = db.query(models.AllotmentRequest).filter(
+            models.AllotmentRequest.student_id == user.id,
+            models.AllotmentRequest.status == "APPROVED"
+        ).order_by(models.AllotmentRequest.applied_at.desc()).first()
+        if req and req.room:
+            room_number = req.room.room_number
+            bed_code = req.bed.bed_code if req.bed else "A"
+            hostel_block = req.room.wing
+            allotment_status = "APPROVED"
+            fee_unlocked = True
+        else:
+            occupied_bed = db.query(models.Bed).filter(models.Bed.current_student_id == user.id).first()
+            if occupied_bed and occupied_bed.room:
+                room_number = occupied_bed.room.room_number
+                bed_code = occupied_bed.bed_code
+                hostel_block = occupied_bed.room.wing
+                allotment_status = "APPROVED"
+                fee_unlocked = True
+
     return {
         "id": user.id,
         "full_name": user.full_name,
@@ -308,7 +344,12 @@ def serialize_user_dict(user: models.User) -> dict:
         "home_district": user.home_district,
         "home_state": user.home_state or "Bihar",
         "distance_km": user.distance_km,
-        "distance_verified": user.distance_verified or False
+        "distance_verified": user.distance_verified or False,
+        "room_number": room_number,
+        "bed_code": bed_code,
+        "hostel_block": hostel_block,
+        "allotment_status": allotment_status,
+        "fee_unlocked": fee_unlocked
     }
 
 @app.get("/api/auth/qr/generate", response_model=schemas.QRGenerateResponse, tags=["QR Authentication"])
@@ -403,7 +444,7 @@ def verify_qr_session(
 
     # Generate session access token for the web client
     token = f"gpbarh_qr_{secrets.token_urlsafe(32)}_{db_user.id}"
-    serialized_user = serialize_user_dict(db_user)
+    serialized_user = serialize_user_dict(db_user, db)
 
     # Update session in memory
     qr_sessions[session_id]["status"] = "AUTHENTICATED"
@@ -817,10 +858,30 @@ def seed_hostel_data(db: Session):
                 )
                 db.add(new_room)
                 db.commit()
-                db.refresh(new_room)
-                for bed_code in ['A', 'B', 'C']:
-                    db.add(models.Bed(room_id=new_room.id, bed_code=bed_code, is_occupied=False))
-                db.commit()
+    # Clean up any non-student or warden occupied beds
+    non_student_users = db.query(models.User).filter(models.User.role.in_(["warden", "WARDEN", "admin", "ADMIN", "staff", "STAFF"])).all()
+    non_student_ids = [u.id for u in non_student_users]
+    if non_student_ids:
+        db.query(models.Bed).filter(models.Bed.current_student_id.in_(non_student_ids)).update(
+            {"is_occupied": False, "current_student_id": None}, synchronize_session=False
+        )
+        db.query(models.AllotmentRequest).filter(models.AllotmentRequest.student_id.in_(non_student_ids)).delete(synchronize_session=False)
+
+    # Enforce strictly maximum 1 bed per student across the entire hostel system
+    students = db.query(models.User).filter(models.User.role.in_(["student", "STUDENT"])).all()
+    for s in students:
+        s_beds = db.query(models.Bed).filter(models.Bed.current_student_id == s.id).order_by(models.Bed.id.desc()).all()
+        if len(s_beds) > 1:
+            for extra_bed in s_beds[1:]:
+                extra_bed.is_occupied = False
+                extra_bed.current_student_id = None
+
+    # Sync room occupied counts
+    all_rooms = db.query(models.Room).all()
+    for r in all_rooms:
+        active_cnt = db.query(models.Bed).filter(models.Bed.room_id == r.id, models.Bed.is_occupied == True).count()
+        r.occupied_count = min(r.capacity, active_cnt)
+    db.commit()
 
 
 @app.get("/hostel-layout", response_model=schemas.HostelLayoutSchema, tags=["Hostel Allocation"])
@@ -1049,13 +1110,28 @@ def action_allotment_request(request_id: int, action_data: schemas.AllotmentActi
         req.status = "APPROVED"
         req.remarks = action_data.remarks or "Approved by Warden"
         
-        # Mark Bed as occupied
+        # 1. Free any previous beds occupied by this student across the entire hostel
+        prev_beds = db.query(models.Bed).filter(models.Bed.current_student_id == req.student_id).all()
+        for pb in prev_beds:
+            pb.is_occupied = False
+            pb.current_student_id = None
+            if pb.room:
+                prev_occ = db.query(models.Bed).filter(models.Bed.room_id == pb.room_id, models.Bed.is_occupied == True).count()
+                pb.room.occupied_count = min(pb.room.capacity, prev_occ)
+
+        # 2. Mark Bed as occupied
         bed = req.bed
         if bed:
             bed.is_occupied = True
             bed.current_student_id = req.student_id
         
-        # Update Room occupied count
+        # 3. Update student user record
+        if req.student and req.room:
+            req.student.room_number = req.room.room_number
+            req.student.bed_code = bed.bed_code if bed else "A"
+            req.student.hostel_block = req.room.wing
+
+        # 4. Update Room occupied count
         room = req.room
         if room:
             active_occupied = db.query(models.Bed).filter(models.Bed.room_id == room.id, models.Bed.is_occupied == True).count()
@@ -1656,11 +1732,12 @@ def get_today_mess_stats(target_date: Optional[str] = Query(None), db: Session =
     )
 
 @app.get("/api/warden/mess/analytics", response_model=schemas.WardenMessAnalyticsResponse, tags=["Mess Attendance & QR Token"])
-def get_warden_mess_analytics(timeframe: str = Query("1M"), db: Session = Depends(get_db)):
-    """Returns long-term mess dining volume analytics (1M, 6M, 1Y) with segregated Boys vs Girls reports."""
+def get_warden_mess_analytics(timeframe: str = Query("DAILY"), db: Session = Depends(get_db)):
+    """Returns long-term mess dining volume analytics (DAILY, MONTHLY, YEARLY) with segregated Boys vs Girls reports."""
     today = date.today()
+    tf_upper = (timeframe or "DAILY").upper()
     
-    if timeframe == "1Y":
+    if tf_upper in ["1Y", "YEARLY", "YEAR"]:
         # 12 Months aggregated data
         months_labels = ["Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug"]
         boys_chart = []
