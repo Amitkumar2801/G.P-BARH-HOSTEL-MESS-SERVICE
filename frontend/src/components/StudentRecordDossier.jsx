@@ -402,7 +402,8 @@ function StudentRecordDossier({
     }
 
     return { daysInMonth, rows };
-  }, [activeMonth, activeYear, dailyAttendanceMap, attendanceHistoryList, studentLeavesList]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeMonth, activeYear, dailyAttendanceMap, attendanceHistoryList, studentLeavesList, currentRealYear, currentRealMonth, currentRealDay]);
 
   const handlePrevMonth = () => {
     if (activeMonth === 0) {
@@ -1206,7 +1207,7 @@ function StudentRecordDossier({
       <div className="no-print srd-shell" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
         
         {/* 📊 ANNUAL MESS ATTENDANCE & MEAL DIETS GRAPH (2026 - 2027 - 2028) 📊 */}
-        <div className="srd-analytics-chart-card">
+        <div id="annual-mess-graph" className="srd-analytics-chart-card" style={{ scrollMarginTop: '90px' }}>
 
           {/* TOP HEADER & MULTI-YEAR SELECTOR */}
           <div className="srd-chart-top-bar">
