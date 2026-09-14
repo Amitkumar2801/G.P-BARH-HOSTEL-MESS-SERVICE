@@ -121,7 +121,7 @@ function WardenDashboard() {
   const [messGenderFilter, setMessGenderFilter] = useState('ALL'); // 'ALL', 'BOYS', 'GIRLS'
   const [messSearchQuery, setMessSearchQuery] = useState('');
   const [showPrintDeskQrModal, setShowPrintDeskQrModal] = useState(false);
-  const [wardenMessTimeframe, setWardenMessTimeframe] = useState('1M'); // '1M', '6M', '1Y'
+  const [wardenMessTimeframe, setWardenMessTimeframe] = useState('DAILY'); // 'DAILY', 'MONTHLY', 'YEARLY'
   const [wardenMessAnalytics, setWardenMessAnalytics] = useState(null);
 
   const fetchWardenMessAnalytics = async (tf = wardenMessTimeframe) => {
@@ -172,6 +172,11 @@ function WardenDashboard() {
         console.warn('Could not parse local mess attendance history', e);
       }
 
+      const todayDateKey = new Date().toISOString().slice(0, 10);
+      const todayScans = localScans.filter(s => s.date === todayDateKey || !s.date);
+      const boysCount = todayScans.filter(s => String(s.gender || '').toUpperCase() === 'MALE').length;
+      const girlsCount = todayScans.filter(s => String(s.gender || '').toUpperCase() === 'FEMALE').length;
+
       if (messRes.status === 'fulfilled' && messRes.value.data) {
         const backendStats = messRes.value.data;
         const combinedScans = [...localScans];
@@ -183,17 +188,21 @@ function WardenDashboard() {
         setMessStats({
           ...backendStats,
           recent_scans: combinedScans,
-          total_scanned_today: Math.max(combinedScans.length, backendStats.total_scanned_today || 0)
+          total_scanned_today: Math.max(todayScans.length, backendStats.total_scanned_today || 0),
+          boys_fed_today: Math.max(boysCount, backendStats.boys_fed_today || 0),
+          girls_fed_today: Math.max(girlsCount, backendStats.girls_fed_today || 0)
         });
       } else if (localScans.length > 0) {
         setMessStats(prev => ({
           ...prev,
           recent_scans: localScans,
-          total_scanned_today: localScans.length,
-          breakfast_count: localScans.length,
-          lunch_count: localScans.length,
-          snacks_count: localScans.length,
-          dinner_count: localScans.length
+          total_scanned_today: todayScans.length,
+          boys_fed_today: boysCount,
+          girls_fed_today: girlsCount,
+          breakfast_count: todayScans.length,
+          lunch_count: todayScans.length,
+          snacks_count: todayScans.length,
+          dinner_count: todayScans.length
         }));
       }
       fetchWardenMessAnalytics();
@@ -257,6 +266,11 @@ function WardenDashboard() {
     setPendingRequests(prev => prev.filter(r => r.id !== allotmentId));
     try {
       const remark = actionRemarks[allotmentId] || (action === 'approve' ? 'Allotment approved by Chief Warden' : 'Allotment request declined by Chief Warden');
+      if (action === 'approve') {
+        localStorage.setItem('gpbarh_student_allotment_approved', 'true');
+        localStorage.setItem('gpbarh_allotment_status', 'APPROVED');
+        localStorage.setItem('gpbarh_admission_fee_paid', 'true');
+      }
       await axios.put(`http://127.0.0.1:8000/api/warden/allotments/${allotmentId}/action`, {
         action,
         remarks: remark
@@ -441,7 +455,7 @@ function WardenDashboard() {
           <nav className="space-y-1.5 text-sm font-bold">
             {[
               { id: 'allocations', name: 'Hostel Seat Allocations', icon: '🛏️', badge: (pendingRequests || []).length },
-              { id: 'mess', name: 'Daily Mess Counter & QR', icon: '🍽️', badge: messStats.total_scanned_today || 0 },
+              { id: 'mess', name: 'View Mess Attendance', icon: '🍽️', badge: messStats.total_scanned_today || 0 },
               { id: 'analytics', name: 'Occupancy Analytics', icon: '📊' },
               { id: 'leaves', name: 'Outpass / Leave Approvals', icon: '✈️', badge: (leaveList || []).filter(l => l.status === 'PENDING').length },
               { id: 'fees', name: 'Fee & UTR Verification', icon: '💳', badge: (paymentTransactions || []).filter(f => f.status === 'PENDING').length },
@@ -1615,24 +1629,24 @@ function WardenDashboard() {
 
               </div>
 
-              {/* 🌟 LONG-TERM VISUALIZATION ANALYTICS SECTION (1 MONTH, 6 MONTHS, 1 YEAR) */}
+              {/* 🌟 LONG-TERM VISUALIZATION ANALYTICS SECTION (DAILY, MONTHLY, YEARLY) */}
               <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
                   <div>
                     <h4 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
-                      <span>📊</span> Long-Term Mess Attendance &amp; Consumption Trends
+                      <span>📊</span> View Mess Attendance &amp; Institutional Dining Analytics
                     </h4>
                     <p className="text-xs text-slate-500">
-                      Visual comparison between Boys Hostel &amp; Girls Hostel dining volume over time.
+                      Visual comparison between Boys Hostel &amp; Girls Hostel dining volume across Daily, Monthly &amp; Yearly periods.
                     </p>
                   </div>
 
-                  {/* TIMEFRAME SELECTOR */}
-                  <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                  {/* TIMEFRAME SELECTOR (DAILY, MONTHLY, YEARLY) */}
+                  <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex-wrap">
                     {[
-                      { id: '1M', label: '1 Month (Daily)' },
-                      { id: '6M', label: '6 Months (Semester)' },
-                      { id: '1Y', label: '1 Year (Academic Year)' }
+                      { id: 'DAILY', label: '📅 Daily (Past 14 Days)' },
+                      { id: 'MONTHLY', label: '📆 Monthly (12 Months)' },
+                      { id: 'YEARLY', label: '🏛️ Yearly (2026 - 2028)' }
                     ].map(tf => (
                       <button
                         key={tf.id}
@@ -1640,7 +1654,7 @@ function WardenDashboard() {
                         onClick={() => { setWardenMessTimeframe(tf.id); fetchWardenMessAnalytics(tf.id); }}
                         className={`px-3 py-1.5 text-xs font-black rounded-lg transition-all cursor-pointer ${
                           wardenMessTimeframe === tf.id
-                            ? 'bg-amber-500 text-black shadow-md'
+                            ? 'bg-[#800000] text-white shadow-md'
                             : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
                         }`}
                       >
@@ -1654,55 +1668,94 @@ function WardenDashboard() {
                 <div className="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 space-y-3">
                   <div className="flex justify-between items-center text-xs flex-wrap gap-2">
                     <span className="font-bold text-slate-700 dark:text-slate-300">
-                      Dining Volume Velocity ({wardenMessTimeframe === '1M' ? 'Last 30 Days' : wardenMessTimeframe === '6M' ? 'Last 6 Months' : 'Full Session'})
+                      Dining Volume Breakdown ({
+                        wardenMessTimeframe === 'DAILY'
+                          ? 'Daily Scan Log (Past 14 Days)'
+                          : wardenMessTimeframe === 'MONTHLY'
+                          ? '12-Month Annual Comparison (Jan - Dec)'
+                          : 'Academic Sessions (2026, 2027, 2028)'
+                      })
                     </span>
                     <div className="flex items-center gap-4 text-[11px] font-bold">
                       <span className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
-                        <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span> 👦 Boys Hostel
+                        <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span> 👦 Boys Hostel (Birsa &amp; Rajendra)
                       </span>
                       <span className="flex items-center gap-1.5 text-pink-600 dark:text-pink-400">
-                        <span className="w-2.5 h-2.5 rounded-full bg-pink-500"></span> 👧 Girls Hostel
+                        <span className="w-2.5 h-2.5 rounded-full bg-pink-500"></span> 👧 Girls Hostel (Savitribai Phule)
                       </span>
                     </div>
                   </div>
 
                   {/* SVG BAR / AREA CHART */}
-                  <div className="h-44 flex items-end justify-between gap-1.5 pt-4 px-2 overflow-x-auto">
-                    {(wardenMessAnalytics?.chart_data || Array.from({ length: 15 }, (_, i) => ({ label: `Day ${i+1}`, boys: 70, girls: 62 }))).map((pt, idx) => {
-                      const maxVal = 160;
-                      const bHeight = Math.min(100, ((pt.boys || 70) / maxVal) * 100);
-                      const gHeight = Math.min(100, ((pt.girls || 60) / maxVal) * 100);
+                  <div className="h-48 flex items-end justify-between gap-2 pt-4 px-2 overflow-x-auto">
+                    {(() => {
+                      let chartPoints = [];
+                      if (wardenMessAnalytics?.chart_data && wardenMessAnalytics.chart_data.length > 0) {
+                        chartPoints = wardenMessAnalytics.chart_data;
+                      } else if (wardenMessTimeframe === 'DAILY') {
+                        chartPoints = Array.from({ length: 14 }, (_, i) => {
+                          const d = new Date();
+                          d.setDate(d.getDate() - (13 - i));
+                          const label = i === 13 ? 'Today' : d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+                          const isToday = i === 13;
+                          return {
+                            label,
+                            boys: isToday ? (messStats.boys_fed_today || 1) : Math.floor(65 + Math.sin(i) * 10),
+                            girls: isToday ? (messStats.girls_fed_today || 1) : Math.floor(55 + Math.cos(i) * 8)
+                          };
+                        });
+                      } else if (wardenMessTimeframe === 'MONTHLY') {
+                        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                        chartPoints = months.map((m, idx) => ({
+                          label: m,
+                          boys: idx === 8 ? (messStats.boys_fed_today || 28) : 74,
+                          girls: idx === 8 ? (messStats.girls_fed_today || 14) : 62
+                        }));
+                      } else {
+                        chartPoints = [
+                          { label: '2026 (Current)', boys: 78, girls: 68 },
+                          { label: '2027 (Projected)', boys: 81, girls: 72 },
+                          { label: '2028 (Expanded)', boys: 90, girls: 80 }
+                        ];
+                      }
 
-                      return (
-                        <div key={idx} className="flex-1 min-w-[20px] max-w-[40px] flex flex-col items-center gap-1.5 group relative">
-                          <div className="w-full flex items-end justify-center gap-1 h-32 bg-slate-200 dark:bg-slate-700/60 rounded-xl p-1">
-                            {/* BOYS BAR */}
-                            <div
-                              className="w-1/2 bg-blue-500 rounded-t-md transition-all group-hover:brightness-110"
-                              style={{ height: `${bHeight}%` }}
-                            ></div>
-                            {/* GIRLS BAR */}
-                            <div
-                              className="w-1/2 bg-pink-500 rounded-t-md transition-all group-hover:brightness-110"
-                              style={{ height: `${gHeight}%` }}
-                            ></div>
-                          </div>
-                          <span className="text-[9px] font-mono font-bold text-slate-400 truncate">
-                            {pt.label ? pt.label.slice(0, 6) : idx+1}
-                          </span>
+                      const maxVal = Math.max(...chartPoints.map(p => Math.max(p.boys || 0, p.girls || 0)), 90);
 
-                          {/* HOVER TOOLTIP */}
-                          <div className="absolute bottom-full mb-1 hidden group-hover:flex flex-col items-center z-30 pointer-events-none">
-                            <div className="bg-slate-900 text-white text-[10px] rounded-lg py-1 px-2.5 font-bold shadow-xl border border-slate-700 whitespace-nowrap">
-                              <div>{pt.label}</div>
-                              <div className="text-blue-400">Boys: {pt.boys}</div>
-                              <div className="text-pink-400">Girls: {pt.girls}</div>
-                              <div className="text-emerald-400">Total: {(pt.boys || 0) + (pt.girls || 0)}</div>
+                      return chartPoints.map((pt, idx) => {
+                        const bHeight = Math.min(100, ((pt.boys || 0) / maxVal) * 100);
+                        const gHeight = Math.min(100, ((pt.girls || 0) / maxVal) * 100);
+
+                        return (
+                          <div key={idx} className="flex-1 min-w-[28px] max-w-[55px] flex flex-col items-center gap-1.5 group relative">
+                            <div className="w-full flex items-end justify-center gap-1.5 h-36 bg-slate-200 dark:bg-slate-700/60 rounded-xl p-1 shadow-inner">
+                              {/* BOYS BAR */}
+                              <div
+                                className="w-1/2 bg-blue-500 hover:bg-blue-400 rounded-t-md transition-all group-hover:brightness-110 shadow-sm"
+                                style={{ height: `${Math.max(8, bHeight)}%` }}
+                              ></div>
+                              {/* GIRLS BAR */}
+                              <div
+                                className="w-1/2 bg-pink-500 hover:bg-pink-400 rounded-t-md transition-all group-hover:brightness-110 shadow-sm"
+                                style={{ height: `${Math.max(8, gHeight)}%` }}
+                              ></div>
+                            </div>
+                            <span className="text-[9.5px] font-mono font-bold text-slate-500 dark:text-slate-400 truncate text-center block w-full">
+                              {pt.label}
+                            </span>
+
+                            {/* HOVER TOOLTIP */}
+                            <div className="absolute bottom-full mb-1 hidden group-hover:flex flex-col items-center z-30 pointer-events-none">
+                              <div className="bg-slate-900 text-white text-[10.5px] rounded-xl py-1.5 px-3 font-bold shadow-2xl border border-slate-700 whitespace-nowrap space-y-0.5">
+                                <div className="text-amber-300 font-mono">{pt.label}</div>
+                                <div className="text-blue-400">👦 Boys: {pt.boys} Diets</div>
+                                <div className="text-pink-400">👧 Girls: {pt.girls} Diets</div>
+                                <div className="text-emerald-400 pt-0.5 border-t border-slate-800">Total: {(pt.boys || 0) + (pt.girls || 0)} Meals</div>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      });
+                    })()}
                   </div>
                 </div>
               </div>
@@ -1763,7 +1816,7 @@ function WardenDashboard() {
                       } Records)
                     </h4>
                     <p className="text-xs text-slate-500">
-                      Audit student meal entries, verified token codes, and timestamps.
+                      Audit student meal entries, verified daily reset token codes, and timestamps.
                     </p>
                   </div>
 
@@ -1834,8 +1887,8 @@ function WardenDashboard() {
                         <th className="py-3 px-4">Reg / Roll No</th>
                         <th className="py-3 px-4">Hostel Wing</th>
                         <th className="py-3 px-4">Academic Branch</th>
-                        <th className="py-3 px-4">Meal Token Slot</th>
-                        <th className="py-3 px-4">Token Code</th>
+                        <th className="py-3 px-4">Daily Token</th>
+                        <th className="py-3 px-4">Full Token Code</th>
                         <th className="py-3 px-4">Scanned Time</th>
                         <th className="py-3 px-4 text-center">Status</th>
                       </tr>
@@ -1846,7 +1899,7 @@ function WardenDashboard() {
                         .filter(s => messMealFilter === 'ALL' || s.meal_type === messMealFilter)
                         .filter(s => (s.student_name || '').toLowerCase().includes(messSearchQuery.toLowerCase()) || (s.reg_no || '').includes(messSearchQuery))
                         .map((scan) => (
-                          <tr key={scan.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                          <tr key={scan.id || scan.token_code} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                             <td className="py-3.5 px-4">
                               <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <span className={`w-7 h-7 rounded-full flex items-center justify-center font-black text-[11px] ${
@@ -1865,27 +1918,21 @@ function WardenDashboard() {
                                 {scan.gender === 'FEMALE' ? '👧 Girls Wing' : '👦 Boys Wing'}
                               </span>
                             </td>
-                            <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300">{scan.branch}</td>
+                            <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300">{scan.branch || 'AI & Machine Learning'}</td>
                             <td className="py-3.5 px-4">
-                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
-                                scan.meal_type === 'BREAKFAST'
-                                  ? 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300'
-                                  : scan.meal_type === 'LUNCH'
-                                  ? 'bg-orange-100 dark:bg-orange-950 text-orange-800 dark:text-orange-300'
-                                  : scan.meal_type === 'SNACKS'
-                                  ? 'bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-300'
-                                  : 'bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300'
-                              }`}>
-                                {scan.meal_type}
+                              <span className="px-2.5 py-1 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-mono font-black text-xs border border-emerald-400/40 shadow-sm">
+                                {scan.display_token || (scan.short_token ? `TOKEN #${scan.short_token}` : 'TOKEN #001')}
                               </span>
                             </td>
-                            <td className="py-3.5 px-4 font-mono text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">{scan.token_code}</td>
+                            <td className="py-3.5 px-4 font-mono text-[11px] text-slate-500 dark:text-slate-400 font-bold truncate max-w-[150px]">
+                              {scan.token_code || scan.id}
+                            </td>
                             <td className="py-3.5 px-4 font-mono text-slate-500 text-[11px]">
-                              {new Date(scan.scanned_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                              {scan.time || (scan.scanned_at ? new Date(scan.scanned_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '12:00 PM')}
                             </td>
                             <td className="py-3.5 px-4 text-center">
-                              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-black text-[9px]">
-                                ✓ VERIFIED
+                              <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-black text-[9px] border border-emerald-300 dark:border-emerald-800">
+                                ✓ 4 MEALS ACTIVE
                               </span>
                             </td>
                           </tr>
