@@ -261,7 +261,7 @@ class PaymentTransactionSchema(BaseModel):
     receipt_number: Optional[str] = None
     remarks: Optional[str] = None
     payment_period: Optional[str] = None
-    created_at: datetime
+    created_at: Optional[datetime] = None
     verified_at: Optional[datetime] = None
 
     class Config:
