@@ -2,3 +2,15 @@ venv/
 .venv/
 .env
 __pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+node_modules/
+dist/
+dist-ssr/
+*.local
+.vscode/
+.idea/
+/hostel.db
