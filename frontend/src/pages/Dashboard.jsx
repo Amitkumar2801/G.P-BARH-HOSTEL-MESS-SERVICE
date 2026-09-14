@@ -6,15 +6,11 @@ function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // 🌟 NAYA: Login page se aaya hua data pakdo. Agar data nahi hai, toh default 'boy' (student) dikhao.
-  const [currentRole, setCurrentRole] = useState(location.state?.userRole || 'boy');
+  // 🌟 Login page se aaya hua data pakdo. Agar data nahi hai, toh default 'boy' (student) dikhao.
+  const [currentRole, setCurrentRole] = useState(
+    location.state?.userRole === 'warden' ? 'warden' : 'boy'
+  );
   const userName = location.state?.userName || 'Student';
-
-  // Taki agar 'student' role aaye, toh hum usko apne UI ke hisaab se 'boy' me map kar dein
-  useEffect(() => {
-    if (location.state?.userRole === 'student') setCurrentRole('boy');
-    else if (location.state?.userRole === 'warden') setCurrentRole('warden');
-  }, [location.state]);
 
   // Payment Simulation States
   const [showPaymentModal, setShowPaymentModal] = useState(false);
