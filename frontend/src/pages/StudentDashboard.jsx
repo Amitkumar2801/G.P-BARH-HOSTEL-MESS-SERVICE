@@ -1,6 +1,6 @@
 // src/pages/StudentDashboard.jsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import logo from '../assets/logo.png.png';
 import toast, { Toaster } from 'react-hot-toast';
@@ -548,8 +548,26 @@ function StudentDashboard() {
   const [activeTab, setActiveTab] = useState('profile');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [isRegistered, setIsRegistered] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Handle URL Query Params / Navigation State (e.g. ?tab=student-record&scroll=annual-mess-graph)
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const targetTab = searchParams.get('tab') || location.state?.activeTab;
+    if (targetTab) {
+      setActiveTab(targetTab);
+    }
+    const targetScroll = searchParams.get('scroll') || location.state?.scrollTo;
+    if (targetScroll) {
+      setTimeout(() => {
+        const targetEl = document.getElementById(targetScroll);
+        if (targetEl) {
+          targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 350);
+    }
+  }, [location]);
 
   const [currentUser, setCurrentUser] = useState(() => {
     try {
@@ -819,24 +837,63 @@ function StudentDashboard() {
   const [activeRegReceiptModal, setActiveRegReceiptModal] = useState(null);
   const [regFeeStatus, setRegFeeStatus] = useState("APPROVED");
   const [isAdmissionFeePaid, setIsAdmissionFeePaid] = useState(() => {
-    return localStorage.getItem('gpbarh_admission_fee_paid') === 'true';
+    const saved = localStorage.getItem('gpbarh_admission_fee_paid');
+    if (saved === 'false') return false;
+    return true;
   });
 
   // 📱 CONNECT APP MODAL STATE (WHATSAPP-STYLE QR SCANNER)
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
 
   // 🛏️ ALLOTMENT & WARDEN APPROVAL AUTHORIZATION STATE
-  const [allotmentInfo, setAllotmentInfo] = useState({
-    has_request: false,
-    status: 'NONE', // 'NONE', 'PENDING', 'APPROVED', 'REJECTED'
-    room_number: '',
-    floor_number: 0,
-    wing: '',
-    bed_code: '',
-    hostel_name: '',
-    applied_at: null,
-    remarks: '',
-    fee_unlocked: false
+  const [allotmentInfo, setAllotmentInfo] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem('user');
+      let parsedUser = null;
+      if (savedUser && savedUser !== 'null' && savedUser !== 'undefined') {
+        parsedUser = JSON.parse(savedUser);
+      }
+      const hasRoom = Boolean(parsedUser?.room_number || parsedUser?.roomNumber);
+      if (hasRoom) {
+        return {
+          has_request: true,
+          status: 'APPROVED',
+          room_number: parsedUser?.room_number || parsedUser?.roomNumber,
+          floor_number: parsedUser?.floor_number || 1,
+          wing: parsedUser?.wing || (parsedUser?.gender === 'FEMALE' ? 'Girls Wing' : 'Boys Wing'),
+          bed_code: parsedUser?.bed_code || parsedUser?.bedCode || 'A',
+          hostel_name: parsedUser?.hostel_block || (parsedUser?.gender === 'FEMALE' ? 'Savitribai Phule Girls Hostel' : 'Dr. Rajendra Prasad Boys Hostel'),
+          applied_at: new Date().toISOString(),
+          remarks: 'Approved by Chief Warden',
+          fee_unlocked: true
+        };
+      }
+      return {
+        has_request: false,
+        status: 'NONE',
+        room_number: '',
+        floor_number: 0,
+        wing: '',
+        bed_code: '',
+        hostel_name: '',
+        applied_at: null,
+        remarks: '',
+        fee_unlocked: false
+      };
+    } catch {
+      return {
+        has_request: false,
+        status: 'NONE',
+        room_number: '',
+        floor_number: 0,
+        wing: '',
+        bed_code: '',
+        hostel_name: '',
+        applied_at: null,
+        remarks: '',
+        fee_unlocked: false
+      };
+    }
   });
 
   const fetchStudentAllotment = async () => {
@@ -846,6 +903,16 @@ function StudentDashboard() {
       const res = await axios.get(`http://127.0.0.1:8000/api/student/allotment-status/${studentIdentifier}`);
       if (res.data) {
         setAllotmentInfo(res.data);
+        if (res.data.status === 'APPROVED') {
+          localStorage.setItem('gpbarh_student_allotment_approved', 'true');
+          localStorage.setItem('gpbarh_allotment_status', 'APPROVED');
+        } else if (res.data.status === 'PENDING') {
+          localStorage.setItem('gpbarh_student_allotment_approved', 'false');
+          localStorage.setItem('gpbarh_allotment_status', 'PENDING');
+        } else {
+          localStorage.setItem('gpbarh_student_allotment_approved', 'false');
+          localStorage.setItem('gpbarh_allotment_status', res.data.status || 'NONE');
+        }
       }
     } catch (err) {
       console.warn("Could not fetch student allotment status:", err);
@@ -858,18 +925,24 @@ function StudentDashboard() {
     return () => clearInterval(interval);
   }, [currentUser, profileData]);
 
-  const isAllotmentApproved = allotmentInfo?.status === 'APPROVED' || allotmentInfo?.fee_unlocked === true;
+  const isAllotmentApproved = Boolean(
+    allotmentInfo?.status === 'APPROVED' ||
+    allotmentInfo?.fee_unlocked === true ||
+    (allotmentInfo?.room_number && allotmentInfo?.room_number !== '') ||
+    (currentUser?.room_number && currentUser?.room_number !== '') ||
+    (currentUser?.roomNumber && currentUser?.roomNumber !== '')
+  );
 
   const handleNavClick = (tab) => {
-    // 1. TIER 1: Seat Allotment not approved by Warden yet
+    // If seat allotment is not approved by Warden yet, only permit Profile, Seat Allocation, Security, and Connect App
     if (!isAllotmentApproved) {
-      if (tab.id !== 'profile' && tab.id !== 'seat-allocation' && tab.id !== 'security') {
+      if (tab.id !== 'profile' && tab.id !== 'seat-allocation' && tab.id !== 'security' && tab.id !== 'appscan') {
         if (allotmentInfo?.status === 'PENDING') {
           toast((t) => (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '18px' }}>⏳</span>
               <span>
-                <strong>Allotment Pending Approval:</strong> Your request for Room {allotmentInfo.room_number || ''} ({allotmentInfo.bed_code || ''}) is awaiting Warden review. Once approved, the Registration tab will unlock.
+                <strong>Allotment Pending Approval:</strong> Your request for {allotmentInfo.hostel_name || 'Hostel'} (Room {allotmentInfo.room_number || ''} {allotmentInfo.bed_code || ''}) is awaiting Warden review. Once approved, all tabs will automatically unlock.
               </span>
             </div>
           ), {
@@ -878,33 +951,12 @@ function StudentDashboard() {
             style: { borderRadius: '12px', background: '#0f172a', color: '#facc15', border: '1px solid #eab308' }
           });
         } else {
-          toast.error("🔒 Please choose and request your seat in 'Seat & Room Allocation' first. Registration will unlock once approved by Warden.", {
+          toast.error("🔒 Please choose and request your seat in 'Seat & Room Allocation' first. All tabs will unlock once approved by Warden.", {
             id: 'locked-none-toast',
             duration: 4500,
             style: { borderRadius: '12px', background: '#0f172a', color: '#f87171', border: '1px solid #ef4444' }
           });
         }
-        return;
-      }
-    }
-
-    // 2. TIER 2: Seat is approved, but ₹2,000 Admission & Registration fee not paid yet
-    if (isAllotmentApproved && !isAdmissionFeePaid) {
-      if (tab.id !== 'profile' && tab.id !== 'seat-allocation' && tab.id !== 'registration-fee' && tab.id !== 'security') {
-        toast((t) => (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '18px' }}>💳</span>
-            <span>
-              <strong>Registration Payment Required:</strong> Your seat is approved! Please complete the ₹2,000 Registration &amp; Caution fee in the <strong>Registration</strong> tab to unlock your Official Profile, Dossier &amp; Student Records.
-            </span>
-          </div>
-        ), {
-          id: 'locked-reg-fee-toast',
-          duration: 5000,
-          style: { borderRadius: '12px', background: '#0f172a', color: '#38bdf8', border: '1px solid #0284c7' }
-        });
-        setActiveTab('registration-fee');
-        setIsSidebarOpen(false);
         return;
       }
     }
@@ -1539,13 +1591,11 @@ function StudentDashboard() {
               { id: 'security', name: 'Security & Password', icon: <><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></> },
               { id: 'appscan', name: 'Connect App', className: 'mobile-only-nav', icon: <><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></> }
             ].map(tab => {
-              const isSeatLocked = !isAllotmentApproved && (tab.id !== 'profile' && tab.id !== 'seat-allocation' && tab.id !== 'security');
-              const isFeeLocked = isAllotmentApproved && !isAdmissionFeePaid && (tab.id !== 'profile' && tab.id !== 'seat-allocation' && tab.id !== 'registration-fee' && tab.id !== 'security');
-              const isLocked = isSeatLocked || isFeeLocked;
-              const lockTooltip = isSeatLocked 
-                ? '🔒 Locked: Requires Approved Seat Allotment' 
-                : isFeeLocked 
-                ? '🔒 Locked: Requires ₹2,000 Registration Fee Payment' 
+              const isLocked = !isAllotmentApproved && (tab.id !== 'profile' && tab.id !== 'seat-allocation' && tab.id !== 'security' && tab.id !== 'appscan');
+              const lockTooltip = isLocked 
+                ? (allotmentInfo?.status === 'PENDING' 
+                    ? '⏳ Awaiting Warden Allotment Approval' 
+                    : '🔒 Locked: Requires Approved Seat Allotment') 
                 : tab.name;
 
               return (
