@@ -1076,6 +1076,7 @@ function StudentDashboard() {
         await axios.put('http://127.0.0.1:8000/api/student/profile', {
           user_id: currentUser.id,
           full_name: profileData.fullName,
+          email: profileData.email || (genderVal === 'FEMALE' ? 'sanasharma.gpb.ai@gmail.com' : 'amitkumar.gpb.ai@gmail.com'),
           gender: genderVal,
           branch: profileData.branch,
           semester: sessionVal,

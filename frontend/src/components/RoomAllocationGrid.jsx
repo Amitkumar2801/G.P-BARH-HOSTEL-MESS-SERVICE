@@ -232,16 +232,25 @@ function RoomAllocationGrid({
       return;
     }
 
-    const availableBed = room.beds.find((b) => !b.is_occupied);
+    const roomBeds = (room.beds && room.beds.length > 0)
+      ? room.beds
+      : [
+          { id: `${room.id}-A`, bed_code: 'A', is_occupied: false },
+          { id: `${room.id}-B`, bed_code: 'B', is_occupied: false },
+          { id: `${room.id}-C`, bed_code: 'C', is_occupied: false },
+        ];
+    const safeRoom = { ...room, beds: roomBeds };
+
+    const availableBed = roomBeds.find((b) => !b.is_occupied);
     if (!availableBed) {
       toast.error(`Room ${room.room_number} is fully occupied!`);
       return;
     }
 
     // Open Interior Room View Modal
-    setActiveRoomModal(room);
+    setActiveRoomModal(safeRoom);
     setSelectedBedLetter(availableBed.bed_code || 'A');
-    setSelectedBed({ room, bed: availableBed });
+    setSelectedBed({ room: safeRoom, bed: availableBed });
     setRequestSentInfo(null);
   };
 

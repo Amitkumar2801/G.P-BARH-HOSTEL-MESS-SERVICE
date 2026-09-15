@@ -10,6 +10,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     full_name = Column(String, index=True)
     reg_no_email = Column(String, unique=True, index=True)
+    email = Column(String, nullable=True, index=True)
     password = Column(String)
     role = Column(String, default="student") # Roles: student, warden
 

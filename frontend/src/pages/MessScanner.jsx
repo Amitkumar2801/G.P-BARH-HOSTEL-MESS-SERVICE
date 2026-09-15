@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Html5Qrcode } from 'html5-qrcode';
+import { QRCodeSVG } from 'qrcode.react';
 import confetti from 'canvas-confetti';
 import toast, { Toaster } from 'react-hot-toast';
 import logo from '../assets/logo.png.png';
@@ -10,20 +11,45 @@ import logo from '../assets/logo.png.png';
 const cleanScannerStyles = `
   @keyframes scanLaserGlow {
     0% {
-      top: 6%;
+      top: 4%;
       opacity: 0.8;
-      filter: drop-shadow(0 0 8px #10b981) drop-shadow(0 0 16px #059669);
+      filter: drop-shadow(0 0 10px #10b981) drop-shadow(0 0 20px #059669);
     }
     50% {
-      top: 92%;
+      top: 94%;
       opacity: 1;
-      filter: drop-shadow(0 0 14px #34d399) drop-shadow(0 0 24px #10b981);
+      filter: drop-shadow(0 0 18px #34d399) drop-shadow(0 0 30px #10b981);
     }
     100% {
-      top: 6%;
+      top: 4%;
       opacity: 0.8;
-      filter: drop-shadow(0 0 8px #10b981) drop-shadow(0 0 16px #059669);
+      filter: drop-shadow(0 0 10px #10b981) drop-shadow(0 0 20px #059669);
     }
+  }
+
+  @keyframes cyberLaserSweep {
+    0% {
+      top: 2%;
+      opacity: 0.9;
+    }
+    50% {
+      top: 96%;
+      opacity: 1;
+    }
+    100% {
+      top: 2%;
+      opacity: 0.9;
+    }
+  }
+
+  @keyframes cyberRotateCW {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  @keyframes cyberRotateCCW {
+    0% { transform: rotate(360deg); }
+    100% { transform: rotate(0deg); }
   }
 
   @keyframes pulseRadar {
@@ -32,21 +58,70 @@ const cleanScannerStyles = `
     100% { transform: scale(0.95); opacity: 0.8; }
   }
 
+  @keyframes radarWave {
+    0% {
+      transform: scale(0.6);
+      opacity: 0.9;
+    }
+    100% {
+      transform: scale(1.6);
+      opacity: 0;
+    }
+  }
+
   @keyframes floatBadge {
     0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-3px); }
+    50% { transform: translateY(-4px); }
+  }
+
+  @keyframes cornerBlink {
+    0%, 100% { opacity: 1; filter: drop-shadow(0 0 4px #10b981); }
+    50% { opacity: 0.4; filter: drop-shadow(0 0 1px #059669); }
+  }
+
+  @keyframes hologramGrid {
+    0% { background-position: 0 0; }
+    100% { background-position: 30px 30px; }
   }
 
   .scanner-laser-beam {
-    animation: scanLaserGlow 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    animation: scanLaserGlow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .cyber-laser-beam {
+    animation: cyberLaserSweep 2.2s ease-in-out infinite;
+  }
+
+  .cyber-rotate-cw {
+    animation: cyberRotateCW 12s linear infinite;
+  }
+
+  .cyber-rotate-ccw {
+    animation: cyberRotateCCW 16s linear infinite;
   }
 
   .pulse-radar-dot {
     animation: pulseRadar 2s ease-in-out infinite;
   }
 
+  .radar-ring-wave {
+    animation: radarWave 2.4s cubic-bezier(0.2, 0.8, 0.4, 1) infinite;
+  }
+
   .floating-badge {
     animation: floatBadge 3s ease-in-out infinite;
+  }
+
+  .corner-blinking {
+    animation: cornerBlink 1.8s ease-in-out infinite;
+  }
+
+  .hologram-grid-bg {
+    background-size: 20px 20px;
+    background-image: 
+      linear-gradient(to right, rgba(16, 185, 129, 0.07) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(16, 185, 129, 0.07) 1px, transparent 1px);
+    animation: hologramGrid 20s linear infinite;
   }
 
   #gpbarh-camera-target video {
@@ -132,6 +207,9 @@ function MessScanner() {
   const studentBed = currentUser?.bed_code || currentUser?.bedCode || currentUser?.bed || 'Bed B';
   const roomBedDisplay = `Room ${studentRoom} • ${studentBed.startsWith('Bed') ? studentBed : 'Bed ' + studentBed}`;
 
+  // Active View Mode: 'SCANNER' or 'COUNTER_QR'
+  const [activeViewMode, setActiveViewMode] = useState('SCANNER');
+
   // Scanner state
   const [isScanning, setIsScanning] = useState(false);
   const [cameraError, setCameraError] = useState(null);
@@ -206,6 +284,7 @@ function MessScanner() {
   const startRearCamera = async () => {
     setCameraError(null);
     setIsScanning(true);
+    setActiveViewMode('SCANNER');
 
     try {
       await new Promise(r => setTimeout(r, 200));
@@ -386,7 +465,10 @@ function MessScanner() {
     };
 
     try {
-      const updatedHist = [historyItem, ...existingHist.filter(h => !(h.date === liveDateKey && String(h.reg_no) === String(studentRegNo)))];
+      const updatedHist = [
+        historyItem,
+        ...existingHist.filter(h => !(h.date === liveDateKey && String(h.reg_no) === String(studentRegNo)))
+      ];
       localStorage.setItem('gpbarh_mess_attendance_history', JSON.stringify(updatedHist));
     } catch {
       // ignore
@@ -408,15 +490,16 @@ function MessScanner() {
     setIsProcessing(false);
   };
 
+  const officialQrPayload = `GPB-MESS-COUNTER-CENTRAL-HALL-DATE-${liveDateKey}-GPBARH-OFFICIAL-AUTH`;
+
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 font-sans flex flex-col justify-between selection:bg-red-600 selection:text-white">
       <Toaster position="top-center" />
       <style dangerouslySetInnerHTML={{ __html: cleanScannerStyles }} />
 
-      {/* 🌟 1. PREMIUM INSTITUTIONAL APP HEADER (MOBILE-FIRST APK BAR) */}
+      {/* 🌟 1. INSTITUTIONAL APP HEADER */}
       <header className="bg-gradient-to-r from-[#700000] via-[#8B0000] to-[#5a0000] text-white px-3.5 sm:px-6 py-3 shadow-xl sticky top-0 z-30 border-b border-red-900/60 backdrop-blur-md">
         <div className="max-w-md mx-auto flex items-center justify-between gap-2.5">
-          
           {/* BACK BUTTON & INSTITUTIONAL TITLE */}
           <div className="flex items-center gap-2.5 min-w-0">
             <button
@@ -455,13 +538,11 @@ function MessScanner() {
               </span>
             </div>
           </div>
-
         </div>
       </header>
 
       {/* 🌟 2. MAIN APPLICATION CONTENT (MOBILE APK CONTAINER) */}
       <main className="flex-1 max-w-md w-full mx-auto p-3 sm:p-4 space-y-3.5">
-
         {/* 🎓 STUDENT PROFILE IDENTITY CARD */}
         <div className="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-3.5 shadow-lg backdrop-blur-sm">
           <div className="flex items-center justify-between gap-3">
@@ -508,15 +589,51 @@ function MessScanner() {
           </div>
         </div>
 
-        {/* 📷 HIGH-TECH SCANNER VIEWFINDER CARD */}
-        <div className="bg-gradient-to-b from-slate-900 to-[#070b14] rounded-3xl p-3.5 border border-slate-700/80 shadow-2xl space-y-3 relative overflow-hidden">
+        {/* 🌟 2.5. FUTURISTIC MODE SELECTOR TABS 🌟 */}
+        <div className="grid grid-cols-2 gap-2 bg-slate-950/80 p-1.5 rounded-2xl border border-slate-800">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveViewMode('SCANNER');
+            }}
+            className={`py-2 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              activeViewMode === 'SCANNER'
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-600/30 border border-emerald-400/50'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+            }`}
+          >
+            <span>📷</span>
+            <span>Camera Scanner</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              stopRearCamera();
+              setActiveViewMode('COUNTER_QR');
+            }}
+            className={`py-2 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              activeViewMode === 'COUNTER_QR'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/30 border border-blue-400/50'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+            }`}
+          >
+            <span>✨</span>
+            <span>Animated Counter QR</span>
+          </button>
+        </div>
+
+        {/* 📷 HIGH-TECH SCANNER & ANIMATED QR CONTAINER */}
+        <div className="bg-gradient-to-b from-slate-900 via-slate-950 to-[#070b14] rounded-3xl p-3.5 border border-slate-700/80 shadow-2xl space-y-3 relative overflow-hidden">
           
           {/* TOP CONTROLS & CAMERA STATUS */}
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-1.5">
-              <span className={`w-2 h-2 rounded-full ${isScanning ? 'bg-emerald-400 pulse-radar-dot' : 'bg-slate-500'}`}></span>
+              <span className={`w-2.5 h-2.5 rounded-full ${isScanning ? 'bg-emerald-400 pulse-radar-dot' : 'bg-cyan-400'}`}></span>
               <span className="text-[10px] font-black uppercase tracking-wider text-slate-300">
-                {isScanning ? 'Live Viewfinder' : 'Universal Scanner'}
+                {activeViewMode === 'SCANNER'
+                  ? isScanning ? 'Live Cyber Viewfinder' : 'Ready to Scan'
+                  : 'Holographic Central QR Counter'}
               </span>
             </div>
 
@@ -549,52 +666,137 @@ function MessScanner() {
           {/* VIEWFINDER SCREEN (PERFECT 1:1 SQUARE) */}
           <div className="relative w-full aspect-square max-h-[300px] sm:max-h-[320px] bg-slate-950 rounded-2xl overflow-hidden flex flex-col items-center justify-center border border-slate-800 mx-auto shadow-inner">
             
-            {/* HTML5-QRCODE TARGET */}
-            <div id={scannerElementId} className="absolute inset-0 w-full h-full flex items-center justify-center"></div>
+            {/* 1. CAMERA MODE (LIVE SCANNER) */}
+            {activeViewMode === 'SCANNER' && (
+              <>
+                {/* HTML5-QRCODE TARGET */}
+                <div id={scannerElementId} className="absolute inset-0 w-full h-full flex items-center justify-center"></div>
 
-            {/* ACTIVE SCANNING HUD & LASER */}
-            {isScanning && (
-              <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-3 z-10">
-                {/* HUD TARGET BRACKETS */}
-                <div className="w-48 h-48 sm:w-52 sm:h-52 border border-emerald-500/40 rounded-2xl relative shadow-[0_0_30px_rgba(16,185,129,0.25)]">
-                  {/* Glowing Corners */}
-                  <div className="absolute top-0 left-0 w-6 h-6 border-t-3 border-l-3 border-emerald-400 rounded-tl-xl"></div>
-                  <div className="absolute top-0 right-0 w-6 h-6 border-t-3 border-r-3 border-emerald-400 rounded-tr-xl"></div>
-                  <div className="absolute bottom-0 left-0 w-6 h-6 border-b-3 border-l-3 border-emerald-400 rounded-bl-xl"></div>
-                  <div className="absolute bottom-0 right-0 w-6 h-6 border-b-3 border-r-3 border-emerald-400 rounded-br-xl"></div>
-                  
-                  {/* Center Aim Crosshairs */}
-                  <div className="absolute inset-0 m-auto w-4 h-4 border-t border-l border-emerald-400/40"></div>
-                  <div className="absolute inset-0 m-auto w-4 h-4 border-b border-r border-emerald-400/40"></div>
+                {/* ACTIVE SCANNING HUD & HIGH-TECH LASER */}
+                {isScanning && (
+                  <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-3 z-10">
+                    {/* HUD ROTATING CYBER RETICLE */}
+                    <div className="absolute w-44 h-44 rounded-full border border-dashed border-emerald-400/30 cyber-rotate-cw pointer-events-none"></div>
+                    <div className="absolute w-36 h-36 rounded-full border border-dotted border-teal-400/25 cyber-rotate-ccw pointer-events-none"></div>
+                    <div className="absolute w-48 h-48 rounded-full border border-emerald-500/20 radar-ring-wave pointer-events-none"></div>
 
-                  {/* Animated Laser Beam */}
-                  <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_12px_#10b981] absolute scanner-laser-beam"></div>
-                </div>
+                    {/* HUD TARGET BRACKETS */}
+                    <div className="w-48 h-48 sm:w-52 sm:h-52 border border-emerald-500/40 rounded-2xl relative shadow-[0_0_30px_rgba(16,185,129,0.25)] bg-emerald-950/10 backdrop-blur-[1px]">
+                      {/* Glowing Corners */}
+                      <div className="absolute -top-1 -left-1 w-6 h-6 border-t-3 border-l-3 border-emerald-400 rounded-tl-xl corner-blinking"></div>
+                      <div className="absolute -top-1 -right-1 w-6 h-6 border-t-3 border-r-3 border-emerald-400 rounded-tr-xl corner-blinking"></div>
+                      <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-3 border-l-3 border-emerald-400 rounded-bl-xl corner-blinking"></div>
+                      <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-3 border-r-3 border-emerald-400 rounded-br-xl corner-blinking"></div>
+                      
+                      {/* Center Aim Crosshairs */}
+                      <div className="absolute inset-0 m-auto w-5 h-5 flex items-center justify-center">
+                        <div className="w-full h-0.5 bg-emerald-400/60"></div>
+                        <div className="h-full w-0.5 bg-emerald-400/60 absolute"></div>
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-300 shadow-sm shadow-emerald-400"></div>
+                      </div>
 
-                {/* 1-LINE CLEAN CAMERA STATUS BADGE */}
-                <div className="mt-3 max-w-[94%] overflow-hidden">
-                  <span className="text-[9px] sm:text-[9.5px] font-black text-emerald-300 bg-slate-950/95 px-3 py-1 rounded-full uppercase tracking-wider border border-emerald-500/40 shadow-lg whitespace-nowrap block text-center truncate">
-                    📷 BACK CAMERA ACTIVE • FOCUS COUNTER QR
-                  </span>
-                </div>
-              </div>
+                      {/* Animated Laser Beam */}
+                      <div className="w-full h-1 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_16px_#10b981] absolute scanner-laser-beam"></div>
+                    </div>
+
+                    {/* 1-LINE CLEAN CAMERA STATUS BADGE */}
+                    <div className="mt-3 max-w-[94%] overflow-hidden">
+                      <span className="text-[9px] sm:text-[9.5px] font-black text-emerald-300 bg-slate-950/95 px-3.5 py-1.5 rounded-full uppercase tracking-wider border border-emerald-500/40 shadow-lg whitespace-nowrap block text-center truncate">
+                        ⚡ BACK CAMERA ACTIVE • SCANNING MESS QR...
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* IDLE / INACTIVE STATE PREVIEW WITH EMBEDDED ANIMATED MINI QR */}
+                {!isScanning && (
+                  <div className="w-full h-full flex flex-col items-center justify-center text-center p-4 space-y-2.5 z-0 bg-radial from-slate-900 to-slate-950 hologram-grid-bg relative">
+                    
+                    {/* Glowing Animated QR Visual Container */}
+                    <div className="relative group cursor-pointer" onClick={startRearCamera}>
+                      {/* Radar Rings */}
+                      <div className="absolute -inset-2 rounded-2xl bg-emerald-500/20 blur-md group-hover:bg-emerald-500/30 transition-all"></div>
+                      <div className="absolute -inset-4 rounded-full border border-emerald-500/30 radar-ring-wave pointer-events-none"></div>
+
+                      <div className="relative w-28 h-28 bg-white p-2 rounded-2xl shadow-2xl border-2 border-emerald-400/80 overflow-hidden flex items-center justify-center">
+                        <QRCodeSVG
+                          value={officialQrPayload}
+                          size={96}
+                          level="M"
+                          includeMargin={false}
+                          fgColor="#0f172a"
+                        />
+                        {/* High-tech sweeping laser line over QR */}
+                        <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-emerald-500 to-transparent shadow-[0_0_12px_#10b981] cyber-laser-beam pointer-events-none"></div>
+                        <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/10 via-transparent to-emerald-500/10 pointer-events-none"></div>
+                      </div>
+
+                      <span className="absolute -bottom-2 -right-2 px-2 py-0.5 bg-emerald-500 text-slate-950 rounded-full text-[9px] font-black shadow-lg border border-emerald-300">
+                        TAP TO SCAN
+                      </span>
+                    </div>
+
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-black text-white">Smart Mess Counter Scanner</h3>
+                      <p className="text-[10.5px] text-slate-400 max-w-[240px] leading-tight mt-1">
+                        Point camera at the Mess Counter QR or tap below to activate all 4 meals.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
-            {/* IDLE / INACTIVE STATE PREVIEW */}
-            {!isScanning && (
-              <div className="w-full h-full flex flex-col items-center justify-center text-center p-5 space-y-3 z-0 bg-radial from-slate-900 to-slate-950">
-                <div className="relative">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 flex items-center justify-center text-3xl shadow-xl floating-badge">
-                    📷
+            {/* 2. DEDICATED ANIMATED OFFICIAL COUNTER QR MODE */}
+            {activeViewMode === 'COUNTER_QR' && (
+              <div className="w-full h-full flex flex-col items-center justify-center text-center p-3 relative overflow-hidden bg-gradient-to-b from-slate-950 via-[#030712] to-slate-950 hologram-grid-bg">
+                
+                {/* Holographic Concentric Circles */}
+                <div className="absolute w-56 h-56 rounded-full border border-cyan-500/20 cyber-rotate-cw pointer-events-none"></div>
+                <div className="absolute w-44 h-44 rounded-full border border-dashed border-emerald-500/30 cyber-rotate-ccw pointer-events-none"></div>
+                <div className="absolute w-64 h-64 rounded-full border border-emerald-500/20 radar-ring-wave pointer-events-none"></div>
+
+                {/* Cyber Holographic QR Box with Corner HUD */}
+                <div className="relative p-2.5 bg-slate-900/90 rounded-2xl border-2 border-emerald-400/80 shadow-[0_0_25px_rgba(16,185,129,0.3)]">
+                  {/* Corner Targets */}
+                  <div className="absolute -top-1.5 -left-1.5 w-5 h-5 border-t-3 border-l-3 border-emerald-400 rounded-tl-lg corner-blinking"></div>
+                  <div className="absolute -top-1.5 -right-1.5 w-5 h-5 border-t-3 border-r-3 border-emerald-400 rounded-tr-lg corner-blinking"></div>
+                  <div className="absolute -bottom-1.5 -left-1.5 w-5 h-5 border-b-3 border-l-3 border-emerald-400 rounded-bl-lg corner-blinking"></div>
+                  <div className="absolute -bottom-1.5 -right-1.5 w-5 h-5 border-b-3 border-r-3 border-emerald-400 rounded-br-lg corner-blinking"></div>
+
+                  {/* QR SVG Inside Clean White Canvas */}
+                  <div className="bg-white p-2.5 rounded-xl relative overflow-hidden flex items-center justify-center">
+                    <QRCodeSVG
+                      value={officialQrPayload}
+                      size={140}
+                      level="H"
+                      includeMargin={false}
+                      imageSettings={{
+                        src: logo,
+                        x: undefined,
+                        y: undefined,
+                        height: 28,
+                        width: 28,
+                        excavate: true,
+                      }}
+                    />
+                    
+                    {/* Continuous Futuristic Laser Beam Sweep */}
+                    <div className="w-full h-1 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_14px_#10b981] absolute scanner-laser-beam pointer-events-none"></div>
+                    <div className="absolute inset-0 bg-emerald-500/5 pointer-events-none"></div>
                   </div>
-                  <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 text-slate-950 rounded-full flex items-center justify-center text-[10px] font-black shadow-md">
-                    ✓
-                  </span>
                 </div>
-                <div>
-                  <h3 className="text-xs sm:text-sm font-black text-white">Universal Mess Counter Scanner</h3>
-                  <p className="text-[11px] text-slate-400 max-w-[240px] leading-relaxed mt-1">
-                    Point camera at the official Mess Counter QR code to activate all 4 meals for today.
+
+                {/* Info Text */}
+                <div className="mt-2.5 space-y-0.5">
+                  <div className="flex items-center justify-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 pulse-radar-dot"></span>
+                    <span className="text-[10px] font-mono font-bold text-emerald-300 uppercase tracking-wider">
+                      GP BARH • CENTRAL MESS COUNTER
+                    </span>
+                  </div>
+                  <p className="text-[9.5px] text-slate-400">
+                    Live Verified Institutional Token Channel
                   </p>
                 </div>
               </div>
@@ -631,8 +833,8 @@ function MessScanner() {
               </span>
             </button>
 
-            {/* FAST 1-TAP INSTANT CONFIRMATION IF NOT SCANNING */}
-            {!isScanning && !isTodayDone && (
+            {/* FAST 1-TAP INSTANT CONFIRMATION BUTTON */}
+            {!isTodayDone && (
               <button
                 type="button"
                 onClick={processAttendanceSubmission}
@@ -664,7 +866,7 @@ function MessScanner() {
               </span>
             </div>
 
-            {/* BIG HIGH-CONTRAST TOKEN DISPLAY (FOR MESS COUNTER DISTANT VIEWING) */}
+            {/* BIG HIGH-CONTRAST TOKEN DISPLAY */}
             <div className="bg-black/70 rounded-2xl p-4 border border-emerald-500/40 text-center space-y-1.5 shadow-inner">
               <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">
                 Official Daily Reset Token
@@ -794,7 +996,7 @@ function MessScanner() {
           </div>
         </div>
 
-        {/* 🌟 5. REDESIGNED ULTRA-ATTRACTIVE ANNUAL MESS ATTENDANCE GRAPH BANNER CARD 🌟 */}
+        {/* 🌟 5. ANNUAL MESS ATTENDANCE GRAPH BANNER CARD */}
         <div
           onClick={redirectToStudentRecordGraph}
           className="bg-gradient-to-br from-[#1e1b4b] via-[#172554] to-slate-900 border-2 border-indigo-500/50 hover:border-indigo-400 rounded-3xl p-4 shadow-2xl shadow-indigo-950/60 cursor-pointer transition-all active:scale-98 group relative overflow-hidden"
@@ -824,7 +1026,6 @@ function MessScanner() {
             </div>
           </div>
         </div>
-
       </main>
 
       {/* 🌟 6. OFFICIAL FOOTER (APK SAFE-BOTTOM BAR) */}
@@ -844,7 +1045,7 @@ function MessScanner() {
         </div>
       </footer>
 
-      {/* 🌟 7. BIG HIGH-VISIBILITY TOKEN PASS MODAL (FOR COUNTER DISTANT VIEWING) 🌟 */}
+      {/* 🌟 7. BIG HIGH-VISIBILITY TOKEN PASS MODAL WITH ANIMATED DIGITAL PASS 🌟 */}
       {verifiedModal && (
         <div className="fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-3.5 backdrop-blur-md">
           <div className="bg-slate-900 rounded-3xl p-5 max-w-sm w-full border-2 border-emerald-400 shadow-2xl shadow-emerald-500/20 text-center space-y-3.5 animate-in fade-in zoom-in-95 duration-150 relative overflow-hidden">
@@ -866,7 +1067,7 @@ function MessScanner() {
               </div>
             </div>
 
-            {/* VERIFICATION CHECK */}
+            {/* VERIFICATION CHECK WITH ANIMATED LASER BADGE */}
             <div className="flex items-center justify-center gap-1.5 text-emerald-400 font-black text-xs uppercase tracking-wider">
               <span className="text-base">✅</span>
               <span>4 Meals Verified for Today</span>
@@ -922,9 +1123,9 @@ function MessScanner() {
           </div>
         </div>
       )}
-
     </div>
   );
 }
 
 export default MessScanner;
+

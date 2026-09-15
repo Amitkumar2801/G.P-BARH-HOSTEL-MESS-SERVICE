@@ -25,6 +25,7 @@ class Transaction(TransactionBase):
 class UserBase(BaseModel):
     full_name: str
     reg_no_email: str
+    email: Optional[str] = None
     role: str = "student"
     gender: Optional[str] = "MALE"
     branch: Optional[str] = None
@@ -34,14 +35,16 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
     reg_no: Optional[str] = None
+    email: Optional[str] = None
 
 class UserLogin(BaseModel):
-    reg_no_email: str
+    reg_no_email: str # Accepts either Registration Number (e.g. 1554424049) OR Email Address
     password: str
 
 class ProfileUpdate(BaseModel):
     user_id: int
     full_name: str
+    email: Optional[str] = None
     gender: Optional[str] = "MALE" # 'MALE' or 'FEMALE'
     branch: Optional[str] = None
     semester: Optional[str] = None
@@ -64,6 +67,7 @@ class UserProfileResponse(BaseModel):
     id: int
     full_name: str
     reg_no_email: str
+    email: Optional[str] = None
     role: str
     gender: str
     branch: Optional[str] = None

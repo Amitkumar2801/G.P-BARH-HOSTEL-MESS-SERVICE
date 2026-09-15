@@ -26,6 +26,7 @@ def run_sqlite_migrations():
         # Check and add columns to users table if missing
         cursor = db.connection()
         columns_to_add = [
+            ("users", "email", "VARCHAR"),
             ("users", "gender", "VARCHAR DEFAULT 'MALE'"),
             ("users", "branch", "VARCHAR"),
             ("users", "semester", "VARCHAR"),
@@ -73,12 +74,20 @@ def seed_default_users():
     """Ensure standard student and warden credentials exist in database."""
     db = SessionLocal()
     try:
-        # 1. Girl Student Account
-        girl = db.query(models.User).filter(models.User.reg_no_email == "1554424000").first()
+        # 0. Clean up any invalid registration numbers accidentally mapped to warden
+        db.query(models.User).filter(models.User.reg_no_email == "1554424001").delete()
+
+        # 1. Girl Student Account (SANA SHARMA) - Log in with 1554424000 OR sanasharma.gpb.ai@gmail.com
+        girl = db.query(models.User).filter(
+            (models.User.reg_no_email == "1554424000") | 
+            (models.User.email == "sanasharma.gpb.ai@gmail.com") |
+            (models.User.email == "sana.sharma@gpbarh.ac.in")
+        ).first()
         if not girl:
             girl = models.User(
                 full_name="SANA SHARMA",
                 reg_no_email="1554424000",
+                email="sanasharma.gpb.ai@gmail.com",
                 password="SANAMIT",
                 role="student",
                 gender="FEMALE",
@@ -100,7 +109,10 @@ def seed_default_users():
         else:
             girl.password = "SANAMIT"
             girl.gender = "FEMALE"
+            girl.role = "student"
             girl.full_name = "SANA SHARMA"
+            girl.reg_no = "1554424000"
+            girl.email = "sanasharma.gpb.ai@gmail.com"
             if not girl.pincode:
                 girl.pincode = "845401"
                 girl.home_district = "East Champaran (Motihari)"
@@ -108,12 +120,17 @@ def seed_default_users():
                 girl.distance_km = 188.0
                 girl.distance_verified = True
 
-        # 2. Boy Student Account
-        boy = db.query(models.User).filter(models.User.reg_no_email == "1554424049").first()
+        # 2. Boy Student Account (AMIT KUMAR SHARMA) - Log in with 1554424049 OR amitkumar.gpb.ai@gmail.com
+        boy = db.query(models.User).filter(
+            (models.User.reg_no_email == "1554424049") | 
+            (models.User.email == "amitkumar.gpb.ai@gmail.com") |
+            (models.User.email == "amit.sharma@gpbarh.ac.in")
+        ).first()
         if not boy:
             boy = models.User(
                 full_name="AMIT KUMAR SHARMA",
                 reg_no_email="1554424049",
+                email="amitkumar.gpb.ai@gmail.com",
                 password="SANAMIT",
                 role="student",
                 gender="MALE",
@@ -135,6 +152,10 @@ def seed_default_users():
         else:
             boy.password = "SANAMIT"
             boy.gender = "MALE"
+            boy.role = "student"
+            boy.full_name = "AMIT KUMAR SHARMA"
+            boy.reg_no = "1554424049"
+            boy.email = "amitkumar.gpb.ai@gmail.com"
             if not boy.pincode:
                 boy.pincode = "804401"
                 boy.home_district = "Arwal"
@@ -142,14 +163,15 @@ def seed_default_users():
                 boy.distance_km = 145.0
                 boy.distance_verified = True
 
-        # 3. Chief Warden Accounts (Supports both 'warden' and 'warden@gpbarh.ac.in')
-        warden_emails = ["warden", "warden@gpbarh.ac.in", "1554424001"]
+        # 3. Chief Warden Official Accounts ONLY: warden@gpbarh.ac.in & warden (Password: SANAMIT)
+        warden_emails = ["warden@gpbarh.ac.in", "warden"]
         for w_email in warden_emails:
             w_user = db.query(models.User).filter(models.User.reg_no_email == w_email).first()
             if not w_user:
                 w_user = models.User(
                     full_name="Chief Warden (Hostel Admin)",
                     reg_no_email=w_email,
+                    email="warden@gpbarh.ac.in",
                     password="SANAMIT",
                     role="warden",
                     gender="MALE",
@@ -161,6 +183,8 @@ def seed_default_users():
             else:
                 w_user.password = "SANAMIT"
                 w_user.role = "warden"
+                w_user.email = "warden@gpbarh.ac.in"
+                w_user.full_name = "Chief Warden (Hostel Admin)"
 
         db.commit()
     except Exception as e:
@@ -217,9 +241,14 @@ def resolve_student_user(student_identifier, db: Session) -> Optional[models.Use
     if not s_str or s_str.lower() in ["null", "undefined", "none"]:
         return None
     
-    # 1. Primary Priority: Match by registration number or email
+    # 1. Primary Priority: Match by registration number or email (case-insensitive)
+    from sqlalchemy import or_, func
     user = db.query(models.User).filter(
-        (models.User.reg_no == s_str) | (models.User.reg_no_email == s_str)
+        or_(
+            func.lower(models.User.reg_no) == s_str.lower(),
+            func.lower(models.User.reg_no_email) == s_str.lower(),
+            func.lower(models.User.email) == s_str.lower()
+        )
     ).first()
     if user:
         return user
@@ -245,8 +274,14 @@ def read_root():
 
 @app.post("/signup", status_code=status.HTTP_201_CREATED, tags=["Authentication"])
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    ident = user.reg_no_email.strip().lower()
+    from sqlalchemy import or_, func
     existing_user = db.query(models.User).filter(
-        models.User.reg_no_email == user.reg_no_email
+        or_(
+            func.lower(models.User.reg_no_email) == ident,
+            func.lower(models.User.email) == ident,
+            func.lower(models.User.reg_no) == ident
+        )
     ).first()
 
     if existing_user:
@@ -256,14 +291,17 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
         )
 
     norm_gender = normalize_gender(user.gender)
+    clean_email = user.email or (user.reg_no_email if "@" in str(user.reg_no_email) else None)
+    clean_reg_no = user.reg_no or (user.reg_no_email if "@" not in str(user.reg_no_email) else None)
 
     new_user = models.User(
         full_name=user.full_name,
         reg_no_email=user.reg_no_email,
+        email=clean_email,
         password=user.password,
         role=user.role.lower(),
         gender=norm_gender,
-        reg_no=user.reg_no or user.reg_no_email,
+        reg_no=clean_reg_no or user.reg_no_email,
         branch=user.branch if user.branch else None,
         semester=user.session or user.semester or "2024-27",
         profile_completed=False
@@ -281,8 +319,16 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
 @app.post("/login", tags=["Authentication"])
 def login_user(user: schemas.UserLogin, db: Session = Depends(get_db)):
+    ident = str(user.reg_no_email).strip().lower()
+
+    # Query by Registration Number OR Email Address OR reg_no_email (case-insensitive)
+    from sqlalchemy import or_, func
     db_user = db.query(models.User).filter(
-        models.User.reg_no_email == user.reg_no_email
+        or_(
+            func.lower(models.User.reg_no_email) == ident,
+            func.lower(models.User.reg_no) == ident,
+            func.lower(models.User.email) == ident
+        )
     ).first()
 
     if not db_user or db_user.password != user.password:
@@ -350,6 +396,7 @@ def serialize_user_dict(user: models.User, db: Session = None) -> dict:
         "id": user.id,
         "full_name": user.full_name,
         "reg_no_email": user.reg_no_email,
+        "email": user.email or (user.reg_no_email if "@" in str(user.reg_no_email) else f"{user.reg_no or user.id}@gpbarh.ac.in"),
         "role": user.role,
         "gender": normalize_gender(user.gender),
         "branch": user.branch,
@@ -710,6 +757,8 @@ def update_user_profile(profile: schemas.ProfileUpdate, db: Session = Depends(ge
         raise HTTPException(status_code=404, detail="User not found")
 
     user.full_name = profile.full_name
+    if profile.email:
+        user.email = profile.email
     user.gender = normalize_gender(profile.gender or user.gender)
     user.branch = profile.branch
     user.semester = profile.session or profile.semester or user.semester or "2024-27"
@@ -881,6 +930,20 @@ def seed_hostel_data(db: Session):
                 )
                 db.add(new_room)
                 db.commit()
+                db.refresh(new_room)
+                for bed_code in ['A', 'B', 'C']:
+                    db.add(models.Bed(room_id=new_room.id, bed_code=bed_code, is_occupied=False))
+                db.commit()
+
+    # Ensure EVERY single room in DB across Boys & Girls hostels has beds 'A', 'B', 'C'
+    all_rooms_check = db.query(models.Room).all()
+    for r in all_rooms_check:
+        existing_codes = {b.bed_code for b in r.beds}
+        for code in ['A', 'B', 'C']:
+            if code not in existing_codes:
+                db.add(models.Bed(room_id=r.id, bed_code=code, is_occupied=False))
+    db.commit()
+
     # Clean up any non-student or warden occupied beds
     non_student_users = db.query(models.User).filter(models.User.role.in_(["warden", "WARDEN", "admin", "ADMIN", "staff", "STAFF"])).all()
     non_student_ids = [u.id for u in non_student_users]
@@ -1548,20 +1611,13 @@ def reset_database():
         db = SessionLocal()
         try:
             seed_hostel_data(db)
-            default_fee = models.FeeStructure(
-                id=1,
-                mess_fee_per_month=3600.0,
-                hostel_maintenance_per_month=750.0,
-                caution_money=1500.0,
-                registration_fee=500.0
-            )
-            db.add(default_fee)
-            db.commit()
         except Exception as e:
             db.rollback()
             print(f"Warning during post-reset seed: {e}")
         finally:
             db.close()
+
+        seed_default_users()
 
         return {
             "status": "success",
