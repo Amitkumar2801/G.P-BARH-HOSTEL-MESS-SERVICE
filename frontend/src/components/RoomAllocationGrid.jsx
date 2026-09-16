@@ -192,22 +192,10 @@ function RoomAllocationGrid({
   const fetchLayout = useCallback(async () => {
     try {
       const g = activeHostelGender === 'FEMALE' ? 'FEMALE' : 'MALE';
-      const endpoints = [
-        `http://127.0.0.1:8000/api/hostels/grid?gender=${g}${studentId ? `&student_id=${studentId}` : ''}`,
-        `http://localhost:8000/api/hostels/grid?gender=${g}${studentId ? `&student_id=${studentId}` : ''}`,
-        `/api/hostels/grid?gender=${g}${studentId ? `&student_id=${studentId}` : ''}`
-      ];
-
-      for (const url of endpoints) {
-        try {
-          const response = await axios.get(url, { timeout: 3500 });
-          if (response?.data && response.data.rooms && response.data.rooms.length > 0) {
-            setLayoutData(response.data);
-            break;
-          }
-        } catch (err) {
-          // Attempt next endpoint
-        }
+      const url = `http://127.0.0.1:8000/api/hostels/grid?gender=${g}${studentId ? `&student_id=${studentId}` : ''}`;
+      const response = await axios.get(url, { timeout: 4000 });
+      if (response?.data && response.data.rooms && response.data.rooms.length > 0) {
+        setLayoutData(response.data);
       }
     } catch (error) {
       console.error('Error fetching layout:', error);
@@ -216,10 +204,10 @@ function RoomAllocationGrid({
 
   useEffect(() => {
     fetchLayout();
-    // Real-time polling to keep bed occupancy and approval reflection synchronized
-    const interval = setInterval(fetchLayout, 5000);
+    const interval = setInterval(fetchLayout, 10000);
     return () => clearInterval(interval);
   }, [fetchLayout]);
+
 
   const handleRoomClick = (room) => {
     if (wardenMode) return;

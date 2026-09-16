@@ -148,6 +148,10 @@ class AllotmentActionRequest(BaseModel):
     action: str # 'approve' or 'reject'
     remarks: Optional[str] = ""
 
+class RevokeAllotmentRequest(BaseModel):
+    remarks: Optional[str] = "Allotment revoked by Chief Warden"
+
+
 class AllotmentRequestResponse(BaseModel):
     id: int
     student_id: int
@@ -368,3 +372,42 @@ class QRPollResponse(BaseModel):
     status: str # "PENDING", "AUTHENTICATED", "EXPIRED", "NOT_FOUND"
     token: Optional[str] = None
     user: Optional[dict] = None
+
+# ==========================================
+# PUBLIC NOTICES & HOMEPAGE DOCUMENTS SCHEMAS
+# ==========================================
+class PublicDocumentCreate(BaseModel):
+    category: str # 'RULES', 'MESS_MENU', 'CONTACT_WARDEN', 'NOTICE', 'CIRCULAR'
+    title: str
+    description: Optional[str] = ""
+    file_name: Optional[str] = ""
+    file_url: Optional[str] = ""
+    file_type: Optional[str] = "pdf"
+    file_size: Optional[str] = ""
+    is_active: Optional[bool] = True
+
+class PublicDocumentUpdate(BaseModel):
+    category: Optional[str] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    file_name: Optional[str] = None
+    file_url: Optional[str] = None
+    file_type: Optional[str] = None
+    file_size: Optional[str] = None
+    is_active: Optional[bool] = None
+
+class PublicDocumentResponse(BaseModel):
+    id: int
+    category: str
+    title: str
+    description: Optional[str] = ""
+    file_name: Optional[str] = ""
+    file_url: Optional[str] = ""
+    file_type: Optional[str] = "pdf"
+    file_size: Optional[str] = ""
+    uploaded_by: Optional[str] = "Chief Warden"
+    is_active: bool = True
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True

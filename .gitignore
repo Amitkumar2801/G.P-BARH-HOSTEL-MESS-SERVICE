@@ -13,4 +13,9 @@ dist-ssr/
 *.local
 .vscode/
 .idea/
-/hostel.db
+/hostel.db
+*.db-shm
+*.db-wal
+*.sqlite-shm
+*.sqlite-wal
+

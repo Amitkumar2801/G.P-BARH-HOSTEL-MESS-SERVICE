@@ -125,6 +125,176 @@ function WardenDashboard() {
   const [wardenMessAnalytics, setWardenMessAnalytics] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // Homepage Notices & Public Documents State
+  const [publicDocs, setPublicDocs] = useState([]);
+  const [loadingPublicDocs, setLoadingPublicDocs] = useState(false);
+  const [editingDocModal, setEditingDocModal] = useState(false);
+  const [previewDocModal, setPreviewDocModal] = useState(null);
+  const [docFormData, setDocFormData] = useState({
+    id: null,
+    category: 'RULES',
+    title: '',
+    description: '',
+    file_name: '',
+    file_url: '',
+    file_type: 'pdf',
+    file_size: '',
+    is_active: true
+  });
+  const [isSavingDoc, setIsSavingDoc] = useState(false);
+
+  const fetchPublicDocs = async () => {
+    setLoadingPublicDocs(true);
+    try {
+      const res = await axios.get('http://127.0.0.1:8000/api/warden/documents');
+      if (Array.isArray(res.data)) {
+        setPublicDocs(res.data);
+      }
+    } catch (err) {
+      console.warn('Failed to load public docs:', err);
+    } finally {
+      setLoadingPublicDocs(false);
+    }
+  };
+
+  const handleDocFileUpload = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 12 * 1024 * 1024) {
+      toast.error('File size exceeds 12 MB limit! Please choose a smaller file.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64Url = event.target.result;
+      const sizeStr = file.size > 1024 * 1024 
+        ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` 
+        : `${Math.round(file.size / 1024)} KB`;
+
+      const typeStr = file.type.includes('pdf') ? 'pdf' : (file.type || 'image/png');
+
+      setDocFormData(prev => ({
+        ...prev,
+        file_url: base64Url,
+        file_name: file.name,
+        file_type: typeStr,
+        file_size: sizeStr,
+        title: prev.title || file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ')
+      }));
+
+      toast.success(`Attached "${file.name}" successfully! 📎`, {
+        duration: 2500,
+        style: { borderRadius: '12px', background: '#0f172a', color: '#38bdf8' }
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSavePublicDoc = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!docFormData.title.trim()) {
+      toast.error('Please provide a document title!');
+      return;
+    }
+
+    setIsSavingDoc(true);
+    try {
+      await axios.post('http://127.0.0.1:8000/api/warden/documents/upload', {
+        category: docFormData.category,
+        title: docFormData.title,
+        description: docFormData.description,
+        file_name: docFormData.file_name || `${docFormData.category}_document.pdf`,
+        file_url: docFormData.file_url,
+        file_type: docFormData.file_type || 'pdf',
+        file_size: docFormData.file_size || '450 KB',
+        is_active: docFormData.is_active
+      });
+
+      toast.success(`🎉 "${docFormData.title}" published live to Homepage!`, {
+        duration: 4000,
+        style: { borderRadius: '12px', background: '#166534', color: '#fff', fontWeight: 800 }
+      });
+      setEditingDocModal(false);
+      fetchPublicDocs();
+    } catch (err) {
+      console.error('Save doc error:', err);
+      toast.error('Failed to publish document. Please check connection.');
+    } finally {
+      setIsSavingDoc(false);
+    }
+  };
+
+  const handleDeletePublicDoc = async (docId, docTitle) => {
+    if (!window.confirm(`Are you sure you want to delete "${docTitle || 'this document'}" from Homepage?`)) return;
+    try {
+      await axios.delete(`http://127.0.0.1:8000/api/warden/documents/${docId}`);
+      toast.success('Document deleted from Homepage.', {
+        style: { borderRadius: '12px', background: '#991b1b', color: '#fff' }
+      });
+      fetchPublicDocs();
+    } catch (err) {
+      toast.error('Failed to delete document.');
+    }
+  };
+
+  const openNewDocModal = (defaultCategory = 'RULES') => {
+    const existing = publicDocs.find(d => d.category === defaultCategory);
+    if (existing) {
+      setDocFormData({
+        id: existing.id,
+        category: existing.category,
+        title: existing.title,
+        description: existing.description || '',
+        file_name: existing.file_name || '',
+        file_url: existing.file_url || '',
+        file_type: existing.file_type || 'pdf',
+        file_size: existing.file_size || '',
+        is_active: existing.is_active
+      });
+    } else {
+      setDocFormData({
+        id: null,
+        category: defaultCategory,
+        title: defaultCategory === 'RULES' ? 'Government Polytechnic Barh - Hostel Rules & Code of Conduct' : defaultCategory === 'MESS_MENU' ? 'GP Barh Central Mess - Weekly Food Menu & Meal Timings' : defaultCategory === 'CONTACT_WARDEN' ? 'Warden Administration Office & Emergency Contact Directory' : 'Hostel Admission & Seat Allotment Circular 2026',
+        description: '',
+        file_name: '',
+        file_url: '',
+        file_type: 'pdf',
+        file_size: '',
+        is_active: true
+      });
+    }
+    setEditingDocModal(true);
+  };
+
+  const handleDownloadDoc = (doc) => {
+    if (!doc) return;
+    if (doc.file_url && doc.file_url.startsWith('data:')) {
+      const link = document.createElement('a');
+      link.href = doc.file_url;
+      link.download = doc.file_name || `GP_Barh_${doc.category}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success(`Downloading ${doc.file_name || 'Document'}... 📥`);
+      return;
+    }
+
+    const content = `${doc.title}\n\nGovernment Polytechnic Barh - Hostel & Mess Management\nPublished By: ${doc.uploaded_by || 'Chief Warden'}\n\n${'='.repeat(60)}\n\n${doc.description || ''}\n\n${'='.repeat(60)}\nOfficial Institutional Copy`;
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = doc.file_name ? doc.file_name.replace('.pdf', '.txt') : `GP_Barh_${doc.category}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success(`Downloaded ${doc.title}... 📥`);
+  };
+
   const fetchWardenMessAnalytics = async (tf = wardenMessTimeframe) => {
     try {
       const res = await axios.get(`http://127.0.0.1:8000/api/warden/mess/analytics?timeframe=${tf}`);
@@ -138,6 +308,9 @@ function WardenDashboard() {
     setIsRefreshing(true);
     try {
       await fetchWardenData();
+      await fetchWardenMessAnalytics(wardenMessTimeframe);
+      await fetchPublicDocs();
+
       await fetchWardenMessAnalytics(wardenMessTimeframe);
       toast.success("Live data refreshed successfully! 🔄", {
         id: "warden-refresh-toast",
@@ -233,7 +406,6 @@ function WardenDashboard() {
           dinner_count: todayScans.length
         }));
       }
-      fetchWardenMessAnalytics();
     } catch (error) {
       console.error('Warden data load error:', error);
     }
@@ -241,7 +413,9 @@ function WardenDashboard() {
 
   useEffect(() => {
     fetchWardenData();
-    const interval = setInterval(fetchWardenData, 4000);
+    fetchWardenMessAnalytics();
+    fetchPublicDocs();
+    const interval = setInterval(fetchWardenData, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -259,12 +433,14 @@ function WardenDashboard() {
         registration_fee: Number(feeConfig.registration_fee)
       });
       if (res.data) setFeeConfig(res.data);
-      toast.success(`⚡ Fee Rates & Multipliers Broadcasted! Hostel: ₹${totalHostelTerm} (${hostelMonthsMultiplier}mo) | Mess: ₹${totalMessTerm} (${messMonthsMultiplier}mo). Applied live across all student portals!`, {
-        duration: 5000,
+      toast.success(`⚡ Fee Rates Broadcasted! Applied live across all student portals!`, {
+        id: 'fee-config-toast',
+        duration: 4000,
         style: { borderRadius: '12px', background: '#166534', color: '#fff', fontWeight: 800 }
       });
     } catch (err) {
       toast.success(`⚡ Fee Rates & Multipliers Broadcasted! Live Sync Active.`, {
+        id: 'fee-config-toast',
         duration: 4000,
         style: { borderRadius: '12px', background: '#166534', color: '#fff' }
       });
@@ -274,44 +450,91 @@ function WardenDashboard() {
   };
 
   const handleVerifyPayment = async (txnId, action, customRemarks) => {
+    const previousPayments = [...paymentTransactions];
+    // Optimistic Update
+    setPaymentTransactions(prev => prev.map(p => p.id === txnId ? { ...p, status: action === 'approve' ? 'APPROVED' : 'REJECTED' } : p));
+    toast.success(action === 'approve' ? 'Payment approved! Receipt generated. ✅' : 'Payment rejected.', {
+      id: `payment-verify-${txnId}`,
+      duration: 3500,
+      style: { borderRadius: '12px', background: action === 'approve' ? '#166534' : '#991b1b', color: '#fff' }
+    });
+
     try {
       const remarks = customRemarks || (action === 'approve' ? 'Verified & Digitally Approved by Chief Warden' : 'Rejected by Chief Warden');
-      const res = await axios.put(`http://127.0.0.1:8000/api/admin/payments/${txnId}/verify`, {
+      await axios.put(`http://127.0.0.1:8000/api/admin/payments/${txnId}/verify`, {
         action,
         remarks
       });
-      toast.success(action === 'approve' ? `Payment approved! Receipt ${res.data.receipt_number} generated. ✅` : 'Payment rejected.', {
-        duration: 4000,
-        style: { borderRadius: '12px', background: action === 'approve' ? '#166534' : '#991b1b', color: '#fff' }
-      });
-      fetchWardenData();
+      setTimeout(() => {
+        fetchWardenData();
+      }, 500);
     } catch (err) {
-      toast.error('Failed to update payment status.');
+      setPaymentTransactions(previousPayments);
+      toast.error('Failed to update payment status on server.', { id: `payment-verify-err-${txnId}` });
     }
   };
 
   const handleAllotmentAction = async (allotmentId, action) => {
-    setProcessingId(allotmentId);
+    // 1. Snapshot previous state for rollback if network fails
+    const previousPending = [...pendingRequests];
+    const previousDirectory = [...studentDirectory];
+    const previousAnalytics = { ...analytics };
+    const targetReq = pendingRequests.find(r => r.id === allotmentId);
+
+    // 2. Instant Optimistic UI Update (0ms delay)
+    setPendingRequests(prev => prev.filter(r => r.id !== allotmentId));
+    setAnalytics(prev => ({
+      ...prev,
+      pending_requests_count: Math.max(0, (prev.pending_requests_count || 1) - 1),
+      total_occupied: action === 'approve' ? (prev.total_occupied || 0) + 1 : prev.total_occupied
+    }));
+
+    if (action === 'approve' && targetReq) {
+      setStudentDirectory(prev => prev.map(s => {
+        if (s.id === targetReq.student_id || s.reg_no === targetReq.student_reg) {
+          return {
+            ...s,
+            room_number: targetReq.room_number || s.room_number,
+            bed_code: targetReq.bed_code || s.bed_code,
+            status: 'Allotted'
+          };
+        }
+        return s;
+      }));
+      localStorage.setItem('gpbarh_student_allotment_approved', 'true');
+      localStorage.setItem('gpbarh_allotment_status', 'APPROVED');
+    }
+
+    if (auditStudentModal && auditStudentModal.id === allotmentId) {
+      setAuditStudentModal(null);
+    }
+
+    // 3. Instant feedback Toast
+    toast.success(action === 'approve' ? 'Bed allocation approved! Student portal features unlocked. ✅' : 'Allotment request rejected.', {
+      id: `allotment-action-${allotmentId}`,
+      duration: 3500,
+      style: { borderRadius: '12px', background: action === 'approve' ? '#166534' : '#991b1b', color: '#fff', fontWeight: 700 }
+    });
+
+    // 4. Send background asynchronous server update
     try {
       const remark = actionRemarks[allotmentId] || (action === 'approve' ? 'Allotment approved by Chief Warden' : 'Allotment request declined by Chief Warden');
-      if (action === 'approve') {
-        localStorage.setItem('gpbarh_student_allotment_approved', 'true');
-        localStorage.setItem('gpbarh_allotment_status', 'APPROVED');
-      }
       await axios.put(`http://127.0.0.1:8000/api/warden/allotments/${allotmentId}/action`, {
         action,
         remarks: remark
       });
-      toast.success(action === 'approve' ? 'Bed allocation approved! Student portal features unlocked. ✅' : 'Allotment request rejected.', {
-        duration: 4500,
-        style: { borderRadius: '12px', background: action === 'approve' ? '#166534' : '#991b1b', color: '#fff', fontWeight: 700 }
-      });
-      fetchWardenData();
+      // Soft background sync after 500ms to ensure database state alignment
+      setTimeout(() => {
+        fetchWardenData();
+      }, 500);
     } catch (err) {
-      toast.error('Failed to process allotment action on server.');
-      fetchWardenData();
-    } finally {
-      setProcessingId(null);
+      // Rollback optimistic updates on error
+      setPendingRequests(previousPending);
+      setStudentDirectory(previousDirectory);
+      setAnalytics(previousAnalytics);
+      toast.error('Failed to process allotment action on server. Changes reverted.', {
+        id: `allotment-action-err-${allotmentId}`
+      });
     }
   };
 
@@ -322,24 +545,42 @@ function WardenDashboard() {
   const confirmRevokeAllotment = async () => {
     if (!cancelModalData) return;
     const { studentId, studentName } = cancelModalData;
-    setProcessingId(studentId);
     setCancelModalData(null);
+
+    const previousDirectory = [...studentDirectory];
+    const previousAnalytics = { ...analytics };
+
+    // 1. Instant Optimistic UI Update (0ms delay)
+    setStudentDirectory(prev => prev.map(s => s.id === studentId ? { ...s, room_number: 'Unassigned', bed_code: '-', status: 'Pending / None' } : s));
+    setAnalytics(prev => ({
+      ...prev,
+      total_occupied: Math.max(0, (prev.total_occupied || 1) - 1)
+    }));
+
+    localStorage.removeItem('gpbarh_student_allotment_approved');
+    localStorage.setItem('gpbarh_allotment_status', 'CANCELLED');
+
+    toast.success(`Allotment for ${studentName || 'Student'} revoked! Bed freed immediately.`, {
+      id: `revoke-${studentId}`,
+      duration: 3500,
+      style: { borderRadius: '12px', background: '#991b1b', color: '#fff', fontWeight: 700 }
+    });
+
     try {
       await axios.post(`http://127.0.0.1:8000/api/warden/allotments/revoke-by-student/${studentId}`, {
         remarks: 'Allotment cancelled/revoked by Chief Warden'
       });
-      toast.success(`Allotment for ${studentName || 'Student'} revoked! Bed freed immediately.`, {
-        duration: 4500,
-        style: { borderRadius: '12px', background: '#991b1b', color: '#fff', fontWeight: 700 }
-      });
-      fetchWardenData();
+      setTimeout(() => {
+        fetchWardenData();
+      }, 500);
     } catch (err) {
-      toast.error('Failed to revoke allotment on server.');
-      fetchWardenData();
-    } finally {
-      setProcessingId(null);
+      setStudentDirectory(previousDirectory);
+      setAnalytics(previousAnalytics);
+      toast.error('Failed to revoke allotment on server. Changes reverted.', { id: `revoke-err-${studentId}` });
     }
   };
+
+
 
   const handleLeaveAction = (leaveId, newStatus) => {
     setLeaveList(prev => prev.map(l => l.id === leaveId ? { ...l, status: newStatus } : l));
@@ -487,6 +728,7 @@ function WardenDashboard() {
               { id: 'leaves', name: 'Outpass / Leave Approvals', icon: '✈️', badge: (leaveList || []).filter(l => l.status === 'PENDING').length },
               { id: 'fees', name: 'Fee & UTR Verification', icon: '💳', badge: (paymentTransactions || []).filter(f => f.status === 'PENDING').length },
               { id: 'directory', name: 'Student Master Directory', icon: '🧑‍🎓' },
+              { id: 'public_docs', name: 'Homepage Notices & Docs', icon: '📑', badge: (publicDocs || []).length > 0 ? `${publicDocs.length} Live` : undefined, badgeColor: 'bg-emerald-500 text-white' },
               { id: 'settings', name: 'Warden Settings & Ops', icon: '⚙️' },
               { id: 'appscan', name: 'Connect App', icon: '📱', className: 'mobile-only-nav' }
             ].map(tab => (
@@ -494,6 +736,9 @@ function WardenDashboard() {
                 key={tab.id}
                 onClick={() => {
                   setActiveNavTab(tab.id);
+                  if (tab.id === 'public_docs') {
+                    fetchPublicDocs();
+                  }
                   if (tab.id === 'appscan') {
                     setIsConnectModalOpen(true);
                   }
@@ -507,10 +752,10 @@ function WardenDashboard() {
               >
                 <div className="flex items-center gap-3">
                   <span className="text-lg">{tab.icon}</span>
-                  <span className="text-xs md:text-sm">{tab.name}</span>
+                  <span className="text-xs md:text-sm font-semibold">{tab.name}</span>
                 </div>
-                {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-yellow-500 text-black">
+                {tab.badge !== undefined && (
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${tab.badgeColor || 'bg-yellow-500 text-black'}`}>
                     {tab.badge}
                   </span>
                 )}
@@ -2008,6 +2253,320 @@ function WardenDashboard() {
           )}
 
           {/* ========================================================================= */}
+          {/* 🌟 5.5. HOMEPAGE NOTICES & PUBLIC DOCUMENTS MANAGER */}
+          {/* ========================================================================= */}
+          {activeNavTab === 'public_docs' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              {/* TOP BANNER */}
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-5">
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-red-100 dark:bg-red-950/60 text-[#720e0e] dark:text-red-300 border border-red-200 dark:border-red-900 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
+                      Public Homepage Sync Active
+                    </span>
+                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                      <span>✓</span> Direct Student Download Portal
+                    </span>
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+                    <span className="text-2xl">📑</span>
+                    <span>Homepage Notices, Rules &amp; Mess Menu Manager</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
+                    Yahan se Warden bina kisi coding ke seedhe PDF ya Image upload kar sakte hain. Aapka upload kiya hua document automatically Homepage ke <strong>Rules</strong>, <strong>Mess Menu</strong>, <strong>Contact Warden</strong> aur Notice Board par live ho jayega jise student 1-click me download kar sakte hain.
+                  </p>
+                </div>
+
+                <div className="shrink-0 flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => openNewDocModal('NOTICE')}
+                    className="px-5 py-3 rounded-2xl bg-[#720e0e] hover:bg-[#851414] text-white font-black text-xs uppercase tracking-wider shadow-lg hover:shadow-xl transition-all flex items-center gap-2 cursor-pointer active:scale-95 border-none"
+                  >
+                    <span>➕</span>
+                    <span>Upload Custom Notice / Circular</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* QUICK LINKAGE GUIDE */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-2xl p-3 text-[11px] text-amber-900 dark:text-amber-200 flex items-center gap-2.5">
+                  <span className="text-lg">📜</span>
+                  <div>
+                    <span className="font-extrabold block">Card 1: Hostel Rules</span>
+                    <span className="opacity-80">Homepage Header ➔ 'Rules' link se connect hota hai</span>
+                  </div>
+                </div>
+                <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 rounded-2xl p-3 text-[11px] text-emerald-900 dark:text-emerald-200 flex items-center gap-2.5">
+                  <span className="text-lg">🍲</span>
+                  <div>
+                    <span className="font-extrabold block">Card 2: Mess Menu</span>
+                    <span className="opacity-80">Homepage Header ➔ 'Mess Menu' link se connect hota hai</span>
+                  </div>
+                </div>
+                <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/60 rounded-2xl p-3 text-[11px] text-blue-900 dark:text-blue-200 flex items-center gap-2.5">
+                  <span className="text-lg">📞</span>
+                  <div>
+                    <span className="font-extrabold block">Card 3: Warden Contacts</span>
+                    <span className="opacity-80">Homepage Header ➔ 'Contact Warden' link se connect hota hai</span>
+                  </div>
+                </div>
+                <div className="bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/60 rounded-2xl p-3 text-[11px] text-purple-900 dark:text-purple-200 flex items-center gap-2.5">
+                  <span className="text-lg">📌</span>
+                  <div>
+                    <span className="font-extrabold block">Card 4: Circulars / New</span>
+                    <span className="opacity-80">Homepage Footer Quick Portals Notice Board me show hota hai</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 4 CORE HOMEPAGE CATEGORIES QUICK ACTION CARDS */}
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                {[
+                  {
+                    category: 'RULES',
+                    name: 'Hostel Rules & Regulations',
+                    icon: '📜',
+                    targetLink: 'Homepage Header ➔ "Rules"',
+                    badgeColor: 'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300',
+                    defaultDesc: 'Official Hostel Discipline, 08:00 PM in-time, and safety guidelines.'
+                  },
+                  {
+                    category: 'MESS_MENU',
+                    name: 'Weekly Mess Food Chart',
+                    icon: '🍲',
+                    targetLink: 'Homepage Header ➔ "Mess Menu"',
+                    badgeColor: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-300',
+                    defaultDesc: 'Breakfast, Lunch, Evening Snacks & Dinner 7-day rotation chart.'
+                  },
+                  {
+                    category: 'CONTACT_WARDEN',
+                    name: 'Warden Office Contacts',
+                    icon: '📞',
+                    targetLink: 'Homepage Header ➔ "Contact Warden"',
+                    badgeColor: 'bg-blue-100 text-blue-900 dark:bg-blue-950 dark:text-blue-300',
+                    defaultDesc: 'Chief Warden, Superintendent & Emergency helpline directory.'
+                  },
+                  {
+                    category: 'NOTICE',
+                    name: 'Admission & Circulars',
+                    icon: '📌',
+                    targetLink: 'Homepage Notice Board',
+                    badgeColor: 'bg-purple-100 text-purple-900 dark:bg-purple-950 dark:text-purple-300',
+                    defaultDesc: 'Hostel seat allotment guidelines, notices, and official circulars.'
+                  }
+                ].map(cat => {
+                  const doc = publicDocs.find(d => d.category === cat.category);
+                  return (
+                    <div
+                      key={cat.category}
+                      className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/90 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-4 hover:border-slate-300 dark:hover:border-slate-700 transition-all"
+                    >
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-2xl shadow-inner">
+                            {cat.icon}
+                          </div>
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${cat.badgeColor}`}>
+                            {doc ? '● Live on Homepage' : 'Default Preset'}
+                          </span>
+                        </div>
+
+                        <div>
+                          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5 flex items-center gap-1">
+                            <span>🔗</span> {cat.targetLink}
+                          </div>
+                          <h4 className="font-extrabold text-sm text-slate-900 dark:text-white leading-snug">
+                            {cat.name}
+                          </h4>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+                            {doc ? (doc.description || doc.title) : cat.defaultDesc}
+                          </p>
+                        </div>
+
+                        {doc && (
+                          <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-[10.5px] font-medium space-y-1">
+                            <div className="flex justify-between items-center text-slate-600 dark:text-slate-300 truncate">
+                              <span className="truncate font-semibold">📎 {doc.file_name || 'Document File'}</span>
+                              <span className="font-bold shrink-0 ml-1 text-slate-400 text-[10px]">{doc.file_size || 'PDF'}</span>
+                            </div>
+                            <p className="text-[9.5px] text-slate-400">
+                              Updated: {new Date(doc.updated_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => openNewDocModal(cat.category)}
+                          className="flex-1 py-2 px-2.5 rounded-xl bg-[#720e0e] hover:bg-[#851414] text-white font-bold text-xs flex items-center justify-center gap-1 cursor-pointer transition-colors shadow-xs"
+                          title="Upload new PDF or Image"
+                        >
+                          <span>📤</span>
+                          <span>{doc?.file_url ? 'Replace File' : 'Upload PDF/Img'}</span>
+                        </button>
+
+                        {doc && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => setPreviewDocModal(doc)}
+                              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-colors cursor-pointer"
+                              title="Preview Document"
+                            >
+                              👁️
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadDoc(doc)}
+                              className="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 text-xs font-bold transition-colors cursor-pointer border border-emerald-200 dark:border-emerald-800"
+                              title="Download File"
+                            >
+                              📥
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* COMPLETE HOMEPAGE DOCUMENTS MASTER DIRECTORY */}
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+                  <div>
+                    <h4 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                      <span>📑</span> Published Homepage Documents &amp; Notice Board
+                    </h4>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      All files currently accessible by students and parents on the public portal.
+                    </p>
+                  </div>
+
+                  <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs self-start sm:self-auto">
+                    {publicDocs.length} Total Documents
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <table className="w-full text-left text-xs border-collapse min-w-[700px]">
+                    <thead>
+                      <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 font-bold uppercase text-[10px] tracking-wider">
+                        <th className="py-3 px-4">Category</th>
+                        <th className="py-3 px-4">Document Title</th>
+                        <th className="py-3 px-4">File Attachment</th>
+                        <th className="py-3 px-4">Last Updated</th>
+                        <th className="py-3 px-4 text-center">Status</th>
+                        <th className="py-3 px-4 text-center">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                      {loadingPublicDocs ? (
+                        <tr>
+                          <td colSpan="6" className="py-10 text-center text-slate-500">
+                            Loading published documents...
+                          </td>
+                        </tr>
+                      ) : publicDocs.length === 0 ? (
+                        <tr>
+                          <td colSpan="6" className="py-10 text-center text-slate-500">
+                            No documents published yet. Click "Upload New Notice / PDF" to publish your first document.
+                          </td>
+                        </tr>
+                      ) : (
+                        publicDocs.map(doc => (
+                          <tr key={doc.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                            <td className="py-3.5 px-4">
+                              <span className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                {doc.category}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 max-w-[240px]">
+                              <p className="font-bold text-slate-900 dark:text-white truncate">{doc.title}</p>
+                              {doc.description && (
+                                <p className="text-[10.5px] text-slate-500 truncate mt-0.5">{doc.description}</p>
+                              )}
+                            </td>
+                            <td className="py-3.5 px-4 font-mono text-[11px]">
+                              <div className="flex items-center gap-1.5">
+                                <span>{doc.file_type === 'pdf' ? '📄' : '🖼️'}</span>
+                                <span className="font-semibold truncate max-w-[140px]">{doc.file_name || 'Attached File'}</span>
+                                <span className="text-[9.5px] text-slate-400">({doc.file_size || 'N/A'})</span>
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-4 text-slate-500 text-[11px]">
+                              {new Date(doc.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            </td>
+                            <td className="py-3.5 px-4 text-center">
+                              <span className="px-2 py-0.5 rounded-full text-[9.5px] font-black uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                ✓ Published
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 text-center">
+                              <div className="flex items-center justify-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => setPreviewDocModal(doc)}
+                                  className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold transition-colors cursor-pointer"
+                                  title="Preview"
+                                >
+                                  👁️
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDownloadDoc(doc)}
+                                  className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 text-xs font-bold transition-colors cursor-pointer border border-emerald-200 dark:border-emerald-800"
+                                  title="Download"
+                                >
+                                  📥
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setDocFormData({
+                                      id: doc.id,
+                                      category: doc.category,
+                                      title: doc.title,
+                                      description: doc.description || '',
+                                      file_name: doc.file_name || '',
+                                      file_url: doc.file_url || '',
+                                      file_type: doc.file_type || 'pdf',
+                                      file_size: doc.file_size || '',
+                                      is_active: doc.is_active
+                                    });
+                                    setEditingDocModal(true);
+                                  }}
+                                  className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 text-xs font-bold transition-colors cursor-pointer border border-blue-200 dark:border-blue-800"
+                                  title="Edit"
+                                >
+                                  ✏️
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeletePublicDoc(doc.id, doc.title)}
+                                  className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 text-xs font-bold transition-colors cursor-pointer border border-rose-200 dark:border-rose-800"
+                                  title="Delete"
+                                >
+                                  🗑️
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
           {/* 🌟 6. WARDEN SETTINGS & SYSTEM OPERATIONS (DEV CONTROLS) */}
           {/* ========================================================================= */}
           {activeNavTab === 'settings' && (
@@ -2591,6 +3150,235 @@ function WardenDashboard() {
               </div>
             </div>
           )}
+
+      {/* 📢 NON-CODING VISUAL DOCUMENT UPLOAD & EDIT MODAL */}
+      {editingDocModal && (
+        <div
+          className="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto"
+          onClick={() => !isSavingDoc && setEditingDocModal(false)}
+        >
+          <div
+            className="bg-white dark:bg-slate-900 rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-5 max-h-[92vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* MODAL HEADER */}
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-2xl">
+                  📢
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                    {docFormData.id ? 'Edit Published Document' : 'Upload & Publish to Homepage'}
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Non-coding upload: attach a PDF or Image to update public bulletins.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setEditingDocModal(false)}
+                className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center justify-center text-sm font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePublicDoc} className="space-y-4">
+              {/* CATEGORY SELECTOR */}
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+                  Document Category
+                </label>
+                <select
+                  value={docFormData.category}
+                  onChange={e => setDocFormData(prev => ({ ...prev, category: e.target.value }))}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-bold outline-none focus:ring-2 focus:ring-[#720e0e]"
+                >
+                  <option value="RULES">📜 Hostel Rules &amp; Code of Conduct</option>
+                  <option value="MESS_MENU">🍲 Mess Weekly Food Menu &amp; Timings</option>
+                  <option value="CONTACT_WARDEN">📞 Warden Office &amp; Emergency Directory</option>
+                  <option value="NOTICE">📌 General Circular / Admission Notice</option>
+                </select>
+              </div>
+
+              {/* TITLE */}
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+                  Document Title <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={docFormData.title}
+                  onChange={e => setDocFormData(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="e.g. Official Hostel Rules & Discipline 2026"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-semibold outline-none focus:ring-2 focus:ring-[#720e0e]"
+                />
+              </div>
+
+              {/* SUMMARY / DESCRIPTION */}
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+                  Guidelines / Summary Text (Optional)
+                </label>
+                <textarea
+                  rows="3"
+                  value={docFormData.description}
+                  onChange={e => setDocFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Enter key points, meal schedule, or guidelines for students..."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-medium outline-none focus:ring-2 focus:ring-[#720e0e]"
+                ></textarea>
+              </div>
+
+              {/* VISUAL FILE UPLOAD DROPZONE */}
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
+                  Upload Official File (PDF / Image)
+                </label>
+                <div className="p-4 sm:p-5 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-[#720e0e] dark:hover:border-yellow-500 bg-slate-50/70 dark:bg-slate-800/40 text-center transition-colors relative">
+                  <input
+                    type="file"
+                    accept=".pdf,image/png,image/jpeg,image/jpg,image/webp"
+                    onChange={handleDocFileUpload}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  />
+                  
+                  {docFormData.file_url ? (
+                    <div className="space-y-2">
+                      <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center text-2xl shadow-xs">
+                        {docFormData.file_type === 'pdf' ? '📄' : '🖼️'}
+                      </div>
+                      <div>
+                        <p className="font-extrabold text-xs text-slate-900 dark:text-white truncate max-w-sm mx-auto">
+                          {docFormData.file_name || 'Attached_Document.pdf'}
+                        </p>
+                        <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-0.5">
+                          ✓ File Ready for Homepage ({docFormData.file_size || 'Attached'}) • Click to change
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 mx-auto flex items-center justify-center text-xl">
+                        📁
+                      </div>
+                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                        Click or Drag &amp; Drop file here
+                      </p>
+                      <p className="text-[10px] text-slate-400">
+                        Supports PDF, PNG, JPG, WEBP (Max 12 MB)
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* MODAL ACTIONS */}
+              <div className="flex items-center gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingDocModal(false)}
+                  disabled={isSavingDoc}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingDoc}
+                  className="flex-1 py-2.5 rounded-xl bg-[#720e0e] hover:bg-[#851414] text-white text-xs font-black uppercase tracking-wider shadow-md hover:shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isSavingDoc ? (
+                    <>
+                      <span className="animate-spin">⏳</span>
+                      <span>Publishing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>🚀</span>
+                      <span>Publish to Homepage</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 👁️ DOCUMENT FULL PREVIEW MODAL */}
+      {previewDocModal && (
+        <div
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-3 sm:p-4 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => setPreviewDocModal(null)}
+        >
+          <div
+            className="bg-white dark:bg-slate-900 rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 max-h-[92vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300">
+                  {previewDocModal.category}
+                </span>
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-white mt-1">
+                  {previewDocModal.title}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewDocModal(null)}
+                className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center justify-center text-sm font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {previewDocModal.file_url && previewDocModal.file_url.startsWith('data:image') ? (
+              <div className="p-2 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 text-center">
+                <img
+                  src={previewDocModal.file_url}
+                  alt={previewDocModal.title}
+                  className="max-h-[500px] w-auto mx-auto rounded-xl object-contain shadow-sm"
+                />
+              </div>
+            ) : previewDocModal.file_url && previewDocModal.file_url.startsWith('data:application/pdf') ? (
+              <div className="p-8 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 text-center space-y-3">
+                <span className="text-5xl">📄</span>
+                <p className="font-bold text-sm text-slate-900 dark:text-white">{previewDocModal.file_name || 'Document.pdf'}</p>
+                <p className="text-xs text-slate-500">{previewDocModal.file_size || 'Portable Document Format'}</p>
+                <button
+                  type="button"
+                  onClick={() => handleDownloadDoc(previewDocModal)}
+                  className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold cursor-pointer inline-flex items-center gap-2"
+                >
+                  <span>Download &amp; Open PDF</span>
+                  <span>📥</span>
+                </button>
+              </div>
+            ) : null}
+
+            {previewDocModal.description && (
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 whitespace-pre-line leading-relaxed">
+                {previewDocModal.description}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => handleDownloadDoc(previewDocModal)}
+                className="px-4 py-2 rounded-xl bg-[#720e0e] text-white text-xs font-bold cursor-pointer flex items-center gap-1.5"
+              >
+                <span>📥</span> Download Copy
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
         </main>
       </div>

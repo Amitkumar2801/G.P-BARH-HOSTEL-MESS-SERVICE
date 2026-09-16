@@ -147,3 +147,18 @@ class MessAttendance(Base):
     status = Column(String, default="VERIFIED") # 'VERIFIED', 'MANUAL_OVERRIDE'
 
     student = relationship("User", foreign_keys=[student_id])
+
+class PublicDocument(Base):
+    __tablename__ = "public_documents"
+
+    id = Column(Integer, primary_key=True, index=True)
+    category = Column(String, index=True) # 'RULES', 'MESS_MENU', 'CONTACT_WARDEN', 'NOTICE', 'CIRCULAR'
+    title = Column(String, index=True)
+    description = Column(Text, nullable=True)
+    file_name = Column(String, nullable=True)
+    file_url = Column(Text, nullable=True) # Data URL (base64) or static URL
+    file_type = Column(String, default="pdf") # 'pdf', 'image/png', 'image/jpeg', etc.
+    file_size = Column(String, nullable=True) # e.g. '1.2 MB'
+    uploaded_by = Column(String, default="Chief Warden")
+    is_active = Column(Boolean, default=True)
+    updated_at = Column(DateTime, default=datetime.utcnow)

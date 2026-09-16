@@ -2,9 +2,10 @@
 from typing import List, Optional
 from fastapi import FastAPI, Depends, HTTPException, status, Query, Header
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import text
 from datetime import datetime, date, timedelta
+
 import json
 import secrets
 import uuid
@@ -196,7 +197,9 @@ def seed_default_users():
 seed_default_users()
 
 # ---------------------------------------------------------
+
 # FASTAPI APP INSTANCE SETUP
+
 # ---------------------------------------------------------
 app = FastAPI(
     title="GP Barh Hostel Management API - Pro Version",
@@ -799,8 +802,13 @@ def update_user_profile(profile: schemas.ProfileUpdate, db: Session = Depends(ge
 # ---------------------------------------------------------
 # HOSTEL LAYOUT & ALLOCATION SEEDING / ENDPOINTS
 # ---------------------------------------------------------
-def seed_hostel_data(db: Session):
+def seed_hostel_data(db: Session, force: bool = False):
     """Seed Boys (Birsa Munda & Dr. Rajendra Prasad) and Girls (Savitribai Phule) Hostels, Rooms & Beds matching Blueprints."""
+    if not force:
+        existing_rooms_count = db.query(models.Room).count()
+        if existing_rooms_count >= 50:
+            return
+
     # 1. BOYS HOSTEL (BIRSA MUNDA & DR. RAJENDRA PRASAD)
     boys_hostel = db.query(models.Hostel).filter(models.Hostel.gender_type.in_(["BOYS", "MALE"])).first()
     if not boys_hostel:
@@ -814,6 +822,7 @@ def seed_hostel_data(db: Session):
         if boys_hostel.gender_type != "MALE":
             boys_hostel.gender_type = "MALE"
         db.commit()
+
 
     # Define Blueprint Rooms for Boys Hostel
     boys_room_configs = [
@@ -968,6 +977,17 @@ def seed_hostel_data(db: Session):
         active_cnt = db.query(models.Bed).filter(models.Bed.room_id == r.id, models.Bed.is_occupied == True).count()
         r.occupied_count = min(r.capacity, active_cnt)
     db.commit()
+
+def seed_initial_hostel_structure():
+    db = SessionLocal()
+    try:
+        seed_hostel_data(db, force=False)
+    except Exception as e:
+        print("Initial hostel seed error:", e)
+    finally:
+        db.close()
+
+seed_initial_hostel_structure()
 
 
 @app.get("/hostel-layout", response_model=schemas.HostelLayoutSchema, tags=["Hostel Allocation"])
@@ -1137,9 +1157,14 @@ def request_bed(payload: schemas.BedRequestCreate, db: Session = Depends(get_db)
 @app.get("/api/warden/allotments/pending", response_model=List[schemas.AllotmentRequestResponse], tags=["Warden Workflow"])
 def get_pending_allotment_requests(db: Session = Depends(get_db)):
     check_and_expire_allotment_requests(db)
-    reqs = db.query(models.AllotmentRequest).filter(models.AllotmentRequest.status == "PENDING").order_by(models.AllotmentRequest.applied_at.desc()).all()
+    reqs = db.query(models.AllotmentRequest).options(
+        joinedload(models.AllotmentRequest.student),
+        joinedload(models.AllotmentRequest.room),
+        joinedload(models.AllotmentRequest.bed)
+    ).filter(models.AllotmentRequest.status == "PENDING").order_by(models.AllotmentRequest.applied_at.desc()).all()
     results = []
     now = datetime.utcnow()
+
     for r in reqs:
         # Calculate time remaining out of 24 hours
         elapsed_sec = (now - r.applied_at).total_seconds()
@@ -1244,6 +1269,12 @@ def action_allotment_request(request_id: int, action_data: schemas.AllotmentActi
         req.status = "CANCELLED" if action in ["cancel", "revoke"] else "REJECTED"
         req.remarks = action_data.remarks or ("Allotment cancelled/revoked by Chief Warden." if action in ["cancel", "revoke"] else "Request rejected by Warden. You may re-apply for another available bed.")
         
+        # Clear student user room assignment
+        if req.student:
+            req.student.room_number = None
+            req.student.bed_code = None
+            req.student.hostel_block = None
+
         # Free all beds occupied by this student
         occupied_beds = db.query(models.Bed).filter(models.Bed.current_student_id == req.student_id).all()
         for b in occupied_beds:
@@ -1269,11 +1300,19 @@ def action_allotment_request(request_id: int, action_data: schemas.AllotmentActi
 
 @app.post("/api/warden/allotments/revoke-by-student/{student_id}", tags=["Warden Workflow"])
 @app.put("/api/warden/allotments/revoke-by-student/{student_id}", tags=["Warden Workflow"])
-def revoke_student_allotment(student_id: int, remarks: Optional[str] = "Allotment revoked by Chief Warden", db: Session = Depends(get_db)):
+def revoke_student_allotment(student_id: int, payload: Optional[schemas.RevokeAllotmentRequest] = None, db: Session = Depends(get_db)):
+    remarks_text = payload.remarks if (payload and payload.remarks) else "Allotment revoked by Chief Warden."
     reqs = db.query(models.AllotmentRequest).filter(models.AllotmentRequest.student_id == student_id).all()
     for r in reqs:
         r.status = "CANCELLED"
-        r.remarks = remarks or "Allotment revoked by Chief Warden."
+        r.remarks = remarks_text
+
+    # Clear room & bed on student user profile
+    user = db.query(models.User).filter(models.User.id == student_id).first()
+    if user:
+        user.room_number = None
+        user.bed_code = None
+        user.hostel_block = None
 
     # Free all beds occupied by this student
     occupied_beds = db.query(models.Bed).filter(models.Bed.current_student_id == student_id).all()
@@ -1291,6 +1330,7 @@ def revoke_student_allotment(student_id: int, remarks: Optional[str] = "Allotmen
         "message": f"Allotment successfully cancelled/revoked. Freed: {', '.join(freed_info) if freed_info else 'Bed reservation'}.",
         "status": "CANCELLED"
     }
+
 
 @app.get("/student/allotment-status/{student_id}", tags=["Hostel Allocation"])
 @app.get("/api/student/allotment-status/{student_id}", tags=["Hostel Allocation"])
@@ -1366,8 +1406,6 @@ def get_student_allotment_status(student_id: str, db: Session = Depends(get_db))
 
 @app.get("/api/warden/analytics", response_model=schemas.WardenAnalyticsResponse, tags=["Warden Workflow"])
 def get_warden_analytics(db: Session = Depends(get_db)):
-    seed_hostel_data(db)
-    
     # Boys hostel
     boys_hostel = db.query(models.Hostel).filter(models.Hostel.gender_type.in_(["BOYS", "MALE"])).first()
     boys_total = sum(r.capacity for r in boys_hostel.rooms) if boys_hostel else 81
@@ -1406,13 +1444,17 @@ def get_warden_analytics(db: Session = Depends(get_db)):
 @app.get("/api/warden/students", response_model=List[schemas.StudentDirectoryItem], tags=["Warden Workflow"])
 def get_warden_students(db: Session = Depends(get_db)):
     students = db.query(models.User).filter(models.User.role == "student").all()
+    # Batch fetch approved allotments for all students to avoid N+1 queries
+    approved_allotments = db.query(models.AllotmentRequest).options(
+        joinedload(models.AllotmentRequest.room),
+        joinedload(models.AllotmentRequest.bed)
+    ).filter(models.AllotmentRequest.status == "APPROVED").all()
+
+    allotment_map = {a.student_id: a for a in approved_allotments}
+
     results = []
     for s in students:
-        # Find active allotment
-        allotment = db.query(models.AllotmentRequest).filter(
-            models.AllotmentRequest.student_id == s.id,
-            models.AllotmentRequest.status == "APPROVED"
-        ).first()
+        allotment = allotment_map.get(s.id)
 
         results.append(schemas.StudentDirectoryItem(
             id=s.id,
@@ -1423,12 +1465,14 @@ def get_warden_students(db: Session = Depends(get_db)):
             semester=s.semester or "2024-27",
             gender=normalize_gender(s.gender),
             mobile=s.mobile or s.guardian_contact or "N/A",
-            room_number=allotment.room.room_number if allotment else "Unassigned",
-            bed_code=allotment.bed.bed_code if allotment else "-",
+            room_number=allotment.room.room_number if (allotment and allotment.room) else "Unassigned",
+            bed_code=allotment.bed.bed_code if (allotment and allotment.bed) else "-",
             status="Allotted" if allotment else "Pending / None",
             profile_completed=s.profile_completed or False
         ))
     return results
+
+
 
 # ==========================================
 # 💳 DYNAMIC FEE CONFIGURATION & PAYMENTS HUB ENDPOINTS
@@ -1610,9 +1654,10 @@ def reset_database():
         # Run fresh seed using a new database session
         db = SessionLocal()
         try:
-            seed_hostel_data(db)
+            seed_hostel_data(db, force=True)
         except Exception as e:
             db.rollback()
+
             print(f"Warning during post-reset seed: {e}")
         finally:
             db.close()
@@ -2159,6 +2204,167 @@ def get_student_records_analytics(student_id: int, timeframe: str = Query("1M"),
         financial_progress=financial_progress,
         activity_timeline=activity_timeline
     )
+
+
+# ==========================================
+# 📢 PUBLIC NOTICES & HOMEPAGE DOCUMENTS ENDPOINTS
+# ==========================================
+
+def seed_default_public_documents():
+    db = SessionLocal()
+    try:
+        count = db.query(models.PublicDocument).count()
+        if count == 0:
+            defaults = [
+                models.PublicDocument(
+                    category="RULES",
+                    title="Government Polytechnic Barh - Hostel Rules & Code of Conduct",
+                    description="1. Hostel In-Time strictly 08:00 PM for all residents.\n2. Ragging is strictly prohibited and punishable under law.\n3. Keep allocated rooms clean and switch off fans/lights when leaving.\n4. Prior outpass approval is mandatory for leaving campus.\n5. Non-residents/guests are not allowed overnight without Warden permission.",
+                    file_name="GP_Barh_Hostel_Rules_2026.pdf",
+                    file_type="pdf",
+                    file_size="520 KB",
+                    uploaded_by="Chief Warden",
+                    is_active=True,
+                    updated_at=datetime.utcnow()
+                ),
+                models.PublicDocument(
+                    category="MESS_MENU",
+                    title="GP Barh Central Mess - Weekly Food Menu & Meal Timings",
+                    description="Breakfast (07:30 AM - 09:30 AM): Puri Sabzi, Idli Sambhar, Aloo Paratha, Poha + Milk/Tea.\nLunch (12:00 PM - 03:00 PM): Rice, Dal, Seasonal Vegetable, Roti, Salad & Curd.\nEvening Snacks (05:00 PM - 06:30 PM): Tea, Biscuits, Pakoda / Samosa.\nDinner (08:00 PM - 10:00 PM): Roti, Dal Tadka, Paneer / Chicken / Egg Curry, Rice, Dessert (Sunday Feast).",
+                    file_name="GP_Barh_Mess_Weekly_Menu.pdf",
+                    file_type="pdf",
+                    file_size="780 KB",
+                    uploaded_by="Chief Warden",
+                    is_active=True,
+                    updated_at=datetime.utcnow()
+                ),
+                models.PublicDocument(
+                    category="CONTACT_WARDEN",
+                    title="Warden Administration Office & Emergency Contact Directory",
+                    description="Chief Warden Office: +91 94310 00001 (warden@gpbarh.ac.in)\nBoys Hostel Superintendent: +91 88731 42022\nGirls Hostel Caretaker / Matron: +91 98765 43210\nCampus Security Gate Desk: +91 98765 00000\nMedical Emergency / Ambulance: 102 | Anti-Ragging Helpline: 1800-180-5522",
+                    file_name="GP_Barh_Warden_Directory.pdf",
+                    file_type="pdf",
+                    file_size="340 KB",
+                    uploaded_by="Chief Warden",
+                    is_active=True,
+                    updated_at=datetime.utcnow()
+                ),
+                models.PublicDocument(
+                    category="NOTICE",
+                    title="Hostel Admission & Visual Seat Allotment Guidelines 2026",
+                    description="Eligible students from Semester 1 to 6 can apply for Birsa Munda, Dr. Rajendra Prasad (Boys), and Savitribai Phule (Girls) hostels online. Distance >80 KM candidates receive top priority. Pay semester dues upon Warden digital approval.",
+                    file_name="Hostel_Seat_Allotment_Circular_2026.pdf",
+                    file_type="pdf",
+                    file_size="410 KB",
+                    uploaded_by="Chief Warden",
+                    is_active=True,
+                    updated_at=datetime.utcnow()
+                )
+            ]
+            db.add_all(defaults)
+            db.commit()
+    except Exception as e:
+        print("Default documents seed error:", e)
+        db.rollback()
+    finally:
+        db.close()
+
+seed_default_public_documents()
+
+@app.get("/api/public/documents", response_model=List[schemas.PublicDocumentResponse], tags=["Public Documents"])
+def get_public_documents(category: Optional[str] = None, db: Session = Depends(get_db)):
+    """Fetch active public documents for Home Page and student downloads."""
+    query = db.query(models.PublicDocument).filter(models.PublicDocument.is_active == True)
+    if category:
+        query = query.filter(models.PublicDocument.category == category.upper())
+    return query.order_by(models.PublicDocument.updated_at.desc()).all()
+
+@app.get("/api/warden/documents", response_model=List[schemas.PublicDocumentResponse], tags=["Warden Documents"])
+def get_warden_documents(db: Session = Depends(get_db)):
+    """Warden manager view for all documents (active & inactive)."""
+    return db.query(models.PublicDocument).order_by(models.PublicDocument.updated_at.desc()).all()
+
+@app.post("/api/warden/documents/upload", response_model=schemas.PublicDocumentResponse, tags=["Warden Documents"])
+def upload_or_create_document(payload: schemas.PublicDocumentCreate, db: Session = Depends(get_db)):
+    """Upload or create a new public document/notice."""
+    cat = payload.category.upper()
+    
+    # If category is one of standard singletons (RULES, MESS_MENU, CONTACT_WARDEN), update existing or create new
+    if cat in ["RULES", "MESS_MENU", "CONTACT_WARDEN"]:
+        existing = db.query(models.PublicDocument).filter(models.PublicDocument.category == cat).first()
+        if existing:
+            existing.title = payload.title
+            existing.description = payload.description
+            if payload.file_url:
+                existing.file_url = payload.file_url
+            if payload.file_name:
+                existing.file_name = payload.file_name
+            if payload.file_type:
+                existing.file_type = payload.file_type
+            if payload.file_size:
+                existing.file_size = payload.file_size
+            existing.is_active = payload.is_active if payload.is_active is not None else True
+            existing.updated_at = datetime.utcnow()
+            db.commit()
+            db.refresh(existing)
+            return existing
+
+    new_doc = models.PublicDocument(
+        category=cat,
+        title=payload.title,
+        description=payload.description,
+        file_name=payload.file_name or f"GP_Barh_{cat}_{int(time.time())}.pdf",
+        file_url=payload.file_url,
+        file_type=payload.file_type or "pdf",
+        file_size=payload.file_size or "450 KB",
+        uploaded_by="Chief Warden",
+        is_active=payload.is_active if payload.is_active is not None else True,
+        updated_at=datetime.utcnow()
+    )
+    db.add(new_doc)
+    db.commit()
+    db.refresh(new_doc)
+    return new_doc
+
+@app.put("/api/warden/documents/{doc_id}", response_model=schemas.PublicDocumentResponse, tags=["Warden Documents"])
+def update_document(doc_id: int, payload: schemas.PublicDocumentUpdate, db: Session = Depends(get_db)):
+    """Update an existing public document/notice."""
+    doc = db.query(models.PublicDocument).filter(models.PublicDocument.id == doc_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    if payload.category is not None:
+        doc.category = payload.category.upper()
+    if payload.title is not None:
+        doc.title = payload.title
+    if payload.description is not None:
+        doc.description = payload.description
+    if payload.file_url is not None:
+        doc.file_url = payload.file_url
+    if payload.file_name is not None:
+        doc.file_name = payload.file_name
+    if payload.file_type is not None:
+        doc.file_type = payload.file_type
+    if payload.file_size is not None:
+        doc.file_size = payload.file_size
+    if payload.is_active is not None:
+        doc.is_active = payload.is_active
+
+    doc.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(doc)
+    return doc
+
+@app.delete("/api/warden/documents/{doc_id}", tags=["Warden Documents"])
+def delete_document(doc_id: int, db: Session = Depends(get_db)):
+    """Delete a document."""
+    doc = db.query(models.PublicDocument).filter(models.PublicDocument.id == doc_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    db.delete(doc)
+    db.commit()
+    return {"message": "Document deleted successfully", "id": doc_id}
+
 
 
 

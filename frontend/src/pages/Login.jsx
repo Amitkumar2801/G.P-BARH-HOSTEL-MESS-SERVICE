@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { QRCodeSVG } from 'qrcode.react';
 import toast from 'react-hot-toast';
+import PublicNoticeModal from '../components/PublicNoticeModal';
 import '../App.css';
 
 // 🌟 ASSETS IMPORT (Fixed as per your exact file paths)
@@ -13,6 +14,8 @@ import myPic from '../assets/profile.jpg.jpg';
 function Login() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showIdCard, setShowIdCard] = useState(false);
+  const [publicNoticeModal, setPublicNoticeModal] = useState({ isOpen: false, category: 'RULES' });
+
 
   // FORM STATES
   const [userId, setUserId] = useState("");
@@ -406,11 +409,26 @@ function Login() {
       <header className="w-full z-20 shadow-lg shrink-0">
         <div className="bg-black text-gray-300 text-[10px] md:text-[11px] lg:text-xs py-1.5 md:py-2 px-4 md:px-6 flex justify-between items-center">
           <div className="flex space-x-4 items-center font-medium tracking-wide">
-            <a href="#" className="hover:text-white transition-colors py-1 hidden md:block">Rules</a>
-            <span className="hidden md:inline text-gray-600">|</span>
-            <a href="#" className="hover:text-white transition-colors py-1">Mess Menu</a>
+            <button
+              onClick={() => setPublicNoticeModal({ isOpen: true, category: 'RULES' })}
+              className="hover:text-white text-gray-300 transition-colors py-1 cursor-pointer bg-transparent border-none text-[10px] md:text-[11px] lg:text-xs font-semibold"
+            >
+              Rules
+            </button>
             <span className="text-gray-600">|</span>
-            <a href="#" className="hover:text-white transition-colors py-1">Contact Warden</a>
+            <button
+              onClick={() => setPublicNoticeModal({ isOpen: true, category: 'MESS_MENU' })}
+              className="hover:text-white text-gray-300 transition-colors py-1 cursor-pointer bg-transparent border-none text-[10px] md:text-[11px] lg:text-xs font-semibold"
+            >
+              Mess Menu
+            </button>
+            <span className="text-gray-600">|</span>
+            <button
+              onClick={() => setPublicNoticeModal({ isOpen: true, category: 'CONTACT_WARDEN' })}
+              className="hover:text-white text-gray-300 transition-colors py-1 cursor-pointer bg-transparent border-none text-[10px] md:text-[11px] lg:text-xs font-semibold"
+            >
+              Contact Warden
+            </button>
           </div>
 
           <div className="flex items-center space-x-3">
@@ -752,28 +770,31 @@ function Login() {
                   </a>
                 </li>
                 <li>
-                  <a
-                    href="#"
-                    className="hover:text-yellow-300 font-medium transition-colors flex items-center gap-1.5 py-0.5 rounded hover:bg-white/5"
+                  <button
+                    type="button"
+                    onClick={() => setPublicNoticeModal({ isOpen: true, category: 'NOTICE' })}
+                    className="w-full text-left hover:text-yellow-300 text-gray-300 font-medium transition-colors flex items-center gap-1.5 py-0.5 rounded hover:bg-white/5 cursor-pointer bg-transparent border-none"
                   >
-                    <span className="text-yellow-500 font-bold">›</span> Hostel & Mess Notice Board
-                  </a>
+                    <span className="text-yellow-500 font-bold">›</span> Hostel &amp; Mess Notice Board
+                  </button>
                 </li>
                 <li>
-                  <a
-                    href="#"
-                    className="hover:text-yellow-300 font-medium transition-colors flex items-center gap-1.5 py-0.5 rounded hover:bg-white/5"
+                  <button
+                    type="button"
+                    onClick={() => setPublicNoticeModal({ isOpen: true, category: 'RULES' })}
+                    className="w-full text-left hover:text-yellow-300 text-gray-300 font-medium transition-colors flex items-center gap-1.5 py-0.5 rounded hover:bg-white/5 cursor-pointer bg-transparent border-none"
                   >
                     <span className="text-yellow-500 font-bold">›</span> Student Grievance Redressal
-                  </a>
+                  </button>
                 </li>
                 <li>
-                  <a
-                    href="#"
-                    className="hover:text-yellow-300 font-medium transition-colors flex items-center gap-1.5 py-0.5 rounded hover:bg-white/5"
+                  <button
+                    type="button"
+                    onClick={() => setPublicNoticeModal({ isOpen: true, category: 'RULES' })}
+                    className="w-full text-left hover:text-yellow-300 text-gray-300 font-medium transition-colors flex items-center gap-1.5 py-0.5 rounded hover:bg-white/5 cursor-pointer bg-transparent border-none"
                   >
                     <span className="text-yellow-500 font-bold">›</span> Anti-Ragging Helpline
-                  </a>
+                  </button>
                 </li>
               </ul>
             </div>
@@ -1091,6 +1112,13 @@ function Login() {
         </div>
       )}
 
+      {/* 📢 PUBLIC NOTICE & OFFICIAL DOCUMENT VIEWER MODAL */}
+      <PublicNoticeModal
+        isOpen={publicNoticeModal.isOpen}
+        onClose={() => setPublicNoticeModal(prev => ({ ...prev, isOpen: false }))}
+        initialCategory={publicNoticeModal.category}
+        isDarkMode={isDarkMode}
+      />
     </div>
   );
 }
