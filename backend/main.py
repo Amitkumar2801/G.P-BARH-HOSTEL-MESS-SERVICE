@@ -244,9 +244,10 @@ def resolve_student_user(student_identifier, db: Session) -> Optional[models.Use
     if not s_str or s_str.lower() in ["null", "undefined", "none"]:
         return None
     
-    # 1. Primary Priority: Match by registration number or email (case-insensitive)
+    # 1. Primary Priority: Match by registration number or email (case-insensitive) - STUDENTS ONLY
     from sqlalchemy import or_, func
     user = db.query(models.User).filter(
+        models.User.role == "student",
         or_(
             func.lower(models.User.reg_no) == s_str.lower(),
             func.lower(models.User.reg_no_email) == s_str.lower(),
@@ -256,9 +257,12 @@ def resolve_student_user(student_identifier, db: Session) -> Optional[models.Use
     if user:
         return user
         
-    # 2. Secondary Priority: Match by database ID if numeric
+    # 2. Secondary Priority: Match by database ID if numeric - STUDENTS ONLY
     if s_str.isdigit():
-        user = db.query(models.User).filter(models.User.id == int(s_str)).first()
+        user = db.query(models.User).filter(
+            models.User.role == "student",
+            models.User.id == int(s_str)
+        ).first()
         if user:
             return user
             
@@ -1444,17 +1448,106 @@ def get_warden_analytics(db: Session = Depends(get_db)):
 @app.get("/api/warden/students", response_model=List[schemas.StudentDirectoryItem], tags=["Warden Workflow"])
 def get_warden_students(db: Session = Depends(get_db)):
     students = db.query(models.User).filter(models.User.role == "student").all()
-    # Batch fetch approved allotments for all students to avoid N+1 queries
-    approved_allotments = db.query(models.AllotmentRequest).options(
-        joinedload(models.AllotmentRequest.room),
+    
+    # 1. Fetch all allotment requests with room & bed
+    all_allotments = db.query(models.AllotmentRequest).options(
+        joinedload(models.AllotmentRequest.room).joinedload(models.Room.hostel),
         joinedload(models.AllotmentRequest.bed)
-    ).filter(models.AllotmentRequest.status == "APPROVED").all()
+    ).order_by(models.AllotmentRequest.applied_at.desc()).all()
 
-    allotment_map = {a.student_id: a for a in approved_allotments}
+    # Map student_id to their prioritized allotment (APPROVED takes highest precedence)
+    allotment_map = {}
+    for a in all_allotments:
+        if a.status == "APPROVED":
+            allotment_map[a.student_id] = a
+    for a in all_allotments:
+        if a.student_id not in allotment_map:
+            allotment_map[a.student_id] = a
+
+    # 2. Fetch all payment transactions
+    all_payments = db.query(models.PaymentTransaction).order_by(models.PaymentTransaction.created_at.desc()).all()
+    payment_map = {}
+    for p in all_payments:
+        key = p.student_id if p.student_id else p.reg_no
+        if key:
+            if key not in payment_map:
+                payment_map[key] = []
+            payment_map[key].append(p)
+        if p.reg_no and p.reg_no not in payment_map:
+            payment_map[p.reg_no] = [p]
+
+    def resolve_specific_hostel_name(room_obj, user_gender):
+        if not room_obj:
+            return "Birsa Munda Boys Hostel" if user_gender == "MALE" else "Savitribai Phule Girls Hostel"
+        wing_upper = str(room_obj.wing or "").upper()
+        if "RAJENDRA" in wing_upper or "RIGHT" in wing_upper:
+            return "Dr. Rajendra Prasad Boys Hostel"
+        elif "BIRSA" in wing_upper or "LEFT" in wing_upper:
+            return "Birsa Munda Boys Hostel"
+        elif room_obj.hostel and room_obj.hostel.gender_type in ["GIRLS", "FEMALE"]:
+            return "Savitribai Phule Girls Hostel"
+        elif room_obj.hostel and room_obj.hostel.name:
+            return room_obj.hostel.name
+        return "Birsa Munda Boys Hostel" if user_gender == "MALE" else "Savitribai Phule Girls Hostel"
 
     results = []
     for s in students:
+        norm_gender = normalize_gender(s.gender)
         allotment = allotment_map.get(s.id)
+        s_payments = payment_map.get(s.id) or payment_map.get(s.reg_no) or payment_map.get(s.reg_no_email) or []
+        
+        # Check payments
+        approved_payment = next((p for p in s_payments if p.status == "APPROVED"), None)
+        pending_payment = next((p for p in s_payments if p.status == "PENDING"), None)
+
+        pay_status = "UNPAID"
+        amt_paid = 0.0
+        utr_num = None
+        rcpt_num = None
+        pay_date = None
+        proof_url = None
+
+        if approved_payment:
+            pay_status = "PAID"
+            amt_paid = approved_payment.amount
+            utr_num = approved_payment.utr_number
+            rcpt_num = approved_payment.receipt_number
+            pay_date = approved_payment.verified_at.isoformat() if approved_payment.verified_at else (approved_payment.created_at.isoformat() if approved_payment.created_at else None)
+            proof_url = approved_payment.proof_url
+        elif pending_payment:
+            pay_status = "VERIFICATION_PENDING"
+            amt_paid = pending_payment.amount
+            utr_num = pending_payment.utr_number
+            pay_date = pending_payment.created_at.isoformat() if pending_payment.created_at else None
+            proof_url = pending_payment.proof_url
+
+        # Check allotment
+        has_direct_bed = bool(s.room_number and s.room_number != "Unassigned")
+        allot_status = "NONE"
+        room_no = s.room_number if has_direct_bed else "Unassigned"
+        bed_c = s.bed_code if has_direct_bed else "-"
+        hostel_n = s.hostel_block or ("Birsa Munda Boys Hostel" if norm_gender == "MALE" else "Savitribai Phule Girls Hostel")
+        allot_d = None
+
+        if allotment:
+            allot_status = allotment.status
+            if allotment.status == "APPROVED":
+                room_no = allotment.room.room_number if allotment.room else (s.room_number or room_no)
+                bed_c = allotment.bed.bed_code if allotment.bed else (s.bed_code or bed_c)
+                hostel_n = resolve_specific_hostel_name(allotment.room, norm_gender)
+                allot_d = allotment.applied_at.isoformat() if allotment.applied_at else None
+            elif allotment.status == "PENDING":
+                room_no = allotment.room.room_number if allotment.room else "Unassigned"
+                bed_c = allotment.bed.bed_code if allotment.bed else "-"
+                hostel_n = resolve_specific_hostel_name(allotment.room, norm_gender)
+                allot_d = allotment.applied_at.isoformat() if allotment.applied_at else None
+            elif allotment.status in ["REJECTED", "CANCELLED"]:
+                room_no = "Unassigned"
+                bed_c = "-"
+                allot_status = allotment.status
+                allot_d = allotment.applied_at.isoformat() if allotment.applied_at else None
+        elif has_direct_bed:
+            allot_status = "APPROVED"
 
         results.append(schemas.StudentDirectoryItem(
             id=s.id,
@@ -1463,12 +1556,21 @@ def get_warden_students(db: Session = Depends(get_db)):
             roll_no=s.roll_no or "N/A",
             branch=s.branch or "AI & ML",
             semester=s.semester or "2024-27",
-            gender=normalize_gender(s.gender),
+            gender=norm_gender,
             mobile=s.mobile or s.guardian_contact or "N/A",
-            room_number=allotment.room.room_number if (allotment and allotment.room) else "Unassigned",
-            bed_code=allotment.bed.bed_code if (allotment and allotment.bed) else "-",
-            status="Allotted" if allotment else "Pending / None",
-            profile_completed=s.profile_completed or False
+            room_number=room_no,
+            bed_code=bed_c,
+            status="Allotted" if allot_status == "APPROVED" else ("Pending / Under Review" if allot_status == "PENDING" else "Not Approved / Not Verified"),
+            profile_completed=s.profile_completed or False,
+            allotment_status=allot_status,
+            allotment_date=allot_d,
+            hostel_name=hostel_n,
+            payment_status=pay_status,
+            amount_paid=amt_paid,
+            utr_number=utr_num,
+            receipt_number=rcpt_num,
+            payment_date=pay_date,
+            payment_proof_url=proof_url
         ))
     return results
 

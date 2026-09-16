@@ -67,6 +67,31 @@ function WardenDashboard() {
   const [cancelModalData, setCancelModalData] = useState(null);
   const [allottedSearchQuery, setAllottedSearchQuery] = useState('');
 
+  // Payment Audit & Late Penalty Ledger State
+  const [paymentLedgerGenderFilter, setPaymentLedgerGenderFilter] = useState('ALL'); // 'ALL', 'BOYS', 'GIRLS'
+  const [paymentLedgerStatusFilter, setPaymentLedgerStatusFilter] = useState('ALL'); // 'ALL', 'PAID', 'APPROVED_UNPAID', 'OVERDUE', 'UNAPPROVED'
+  const [paymentLedgerSearch, setPaymentLedgerSearch] = useState('');
+  const [fixedPaymentDueDate, setFixedPaymentDueDate] = useState(() => {
+    try {
+      const saved = localStorage.getItem('gpbarh_warden_due_date');
+      if (saved) return saved;
+    } catch {}
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().slice(0, 10);
+  });
+  const [penaltyPerDay, setPenaltyPerDay] = useState(() => {
+    try {
+      const saved = localStorage.getItem('gpbarh_warden_penalty_rate');
+      if (saved) return Number(saved);
+    } catch {}
+    return 25; // ₹25 per day penalty default
+  });
+  const [isEditingDueDateModal, setIsEditingDueDateModal] = useState(false);
+  const [tempDueDate, setTempDueDate] = useState('');
+  const [tempPenaltyRate, setTempPenaltyRate] = useState(25);
+  const [feeNoticeModalStudent, setFeeNoticeModalStudent] = useState(null);
+
   // Student Directory State
   const [studentDirectory, setStudentDirectory] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -680,6 +705,186 @@ function WardenDashboard() {
     return matchSearch && matchBranch;
   });
 
+  // =========================================================================
+  // 🌟 PAYMENT AUDIT & LATE PENALTY (₹25/DAY) LEDGER CALCULATIONS
+  // =========================================================================
+  const baseHostelTerm = Number(feeConfig.hostel_maintenance_per_month || 750) * Number(hostelMonthsMultiplier || 5);
+  const baseCautionDeposit = Number(feeConfig.caution_money || 1500);
+  const baseRegistrationFee = Number(feeConfig.registration_fee || 500);
+  const standardSemesterAdmissionTotal = baseHostelTerm + baseCautionDeposit + baseRegistrationFee;
+
+  const enrichedStudentLedger = studentDirectory.map(st => {
+    const isAllotted = st.allotment_status === 'APPROVED' || (st.room_number && st.room_number !== 'Unassigned');
+    const isPendingAllot = st.allotment_status === 'PENDING';
+    const isUnapproved = !isAllotted && !isPendingAllot;
+
+    const isPaid = st.payment_status === 'PAID';
+    const isVerifPending = st.payment_status === 'VERIFICATION_PENDING';
+    const isUnpaid = !isPaid && !isVerifPending;
+
+    // Due Date Calculation
+    const dueDateObj = new Date(fixedPaymentDueDate);
+    const today = new Date();
+    const todayZero = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const dueZero = new Date(dueDateObj.getFullYear(), dueDateObj.getMonth(), dueDateObj.getDate());
+    const diffTime = todayZero.getTime() - dueZero.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    // Overdue is applicable ONLY if the student is Approved/Allotted and hasn't paid, and current date is past due date
+    const isOverdue = isAllotted && isUnpaid && diffDays > 0;
+    const overdueDays = isOverdue ? diffDays : 0;
+    const penaltyAmount = overdueDays * Number(penaltyPerDay || 25);
+    const totalPayable = isPaid ? Number(st.amount_paid || standardSemesterAdmissionTotal) : (standardSemesterAdmissionTotal + penaltyAmount);
+
+    return {
+      ...st,
+      isAllotted,
+      isPendingAllot,
+      isUnapproved,
+      isPaid,
+      isVerifPending,
+      isUnpaid,
+      isOverdue,
+      overdueDays,
+      penaltyAmount,
+      baseFee: standardSemesterAdmissionTotal,
+      totalPayable,
+      dueDateFormatted: !isNaN(dueDateObj.getTime()) ? dueDateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : fixedPaymentDueDate,
+      paymentDateFormatted: st.payment_date ? new Date(st.payment_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null,
+      allotmentDateFormatted: st.allotment_date ? new Date(st.allotment_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null
+    };
+  });
+
+  const filteredPaymentLedger = enrichedStudentLedger.filter(st => {
+    // 1. Gender / Hostel filter
+    if (paymentLedgerGenderFilter === 'BOYS' && st.gender !== 'MALE') return false;
+    if (paymentLedgerGenderFilter === 'GIRLS' && st.gender !== 'FEMALE') return false;
+
+    // 2. Status filter
+    if (paymentLedgerStatusFilter === 'PAID' && !st.isPaid) return false;
+    if (paymentLedgerStatusFilter === 'APPROVED_UNPAID' && !(st.isAllotted && st.isUnpaid)) return false;
+    if (paymentLedgerStatusFilter === 'OVERDUE' && !st.isOverdue) return false;
+    if (paymentLedgerStatusFilter === 'UNAPPROVED' && !st.isUnapproved) return false;
+
+    // 3. Search query
+    if (paymentLedgerSearch) {
+      const q = paymentLedgerSearch.toLowerCase();
+      const matchName = (st.full_name || '').toLowerCase().includes(q);
+      const matchReg = (st.reg_no || '').toLowerCase().includes(q);
+      const matchRoll = (st.roll_no || '').toLowerCase().includes(q);
+      const matchRoom = (st.room_number || '').toLowerCase().includes(q);
+      const matchBranch = (st.branch || '').toLowerCase().includes(q);
+      return matchName || matchReg || matchRoll || matchRoom || matchBranch;
+    }
+
+    return true;
+  });
+
+  // KPI Metrics for Audit Dashboard
+  const ledgerMetrics = {
+    totalStudents: enrichedStudentLedger.length,
+    paidCount: enrichedStudentLedger.filter(s => s.isPaid).length,
+    paidTotalAmount: enrichedStudentLedger.filter(s => s.isPaid).reduce((acc, s) => acc + (Number(s.amount_paid) || s.baseFee), 0),
+    approvedUnpaidCount: enrichedStudentLedger.filter(s => s.isAllotted && s.isUnpaid).length,
+    overdueCount: enrichedStudentLedger.filter(s => s.isOverdue).length,
+    totalPenaltyAccumulated: enrichedStudentLedger.filter(s => s.isOverdue).reduce((acc, s) => acc + s.penaltyAmount, 0),
+    unapprovedCount: enrichedStudentLedger.filter(s => s.isUnapproved).length
+  };
+
+  const handleSaveDueDateConfig = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!tempDueDate) {
+      toast.error('Please select a valid deadline date!');
+      return;
+    }
+    setFixedPaymentDueDate(tempDueDate);
+    setPenaltyPerDay(Number(tempPenaltyRate || 25));
+    try {
+      localStorage.setItem('gpbarh_warden_due_date', tempDueDate);
+      localStorage.setItem('gpbarh_warden_penalty_rate', String(tempPenaltyRate || 25));
+    } catch {}
+    toast.success(`⚡ Fee Deadline updated to ${new Date(tempDueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} with ₹${tempPenaltyRate}/day penalty rule!`, {
+      duration: 4000,
+      style: { borderRadius: '12px', background: '#166534', color: '#fff', fontWeight: 700 }
+    });
+    setIsEditingDueDateModal(false);
+  };
+
+  const handleCopyFeeNotice = (st) => {
+    const text = `*GOVERNMENT POLYTECHNIC BARH - CHIEF WARDEN OFFICE*\n*OFFICIAL HOSTEL FEE SUBMISSION REMINDER*\n\n` +
+      `👤 *Student Name:* ${st.full_name}\n` +
+      `🆔 *Reg No / Roll:* ${st.reg_no} (Roll #${st.roll_no})\n` +
+      `🏢 *Allotted Room:* Room ${st.room_number} (Bed ${st.bed_code}) - ${st.hostel_name || 'Hostel Block'}\n\n` +
+      `📌 *Allotment Status:* APPROVED & DIGITALLY VERIFIED\n` +
+      `💳 *Fee Payment Status:* PENDING / UNPAID\n` +
+      `📅 *Submission Deadline Date:* ${st.dueDateFormatted}\n` +
+      (st.isOverdue 
+        ? `⚠️ *Overdue Status:* ${st.overdueDays} Day(s) Delayed\n⚡ *Late Fine Rate:* ₹${penaltyPerDay}/day (Total Penalty: ₹${st.penaltyAmount.toLocaleString('en-IN')})\n` 
+        : `⚡ *Institutional Rule:* Late fee fine of ₹${penaltyPerDay}/day is automatically charged after deadline.\n`) +
+      `💰 *Total Amount Payable:* ₹${st.totalPayable.toLocaleString('en-IN')}\n\n` +
+      `Please login to your GP Barh Student Portal (https://gpbarh.in) and upload your UTR Payment Proof slip immediately to avoid seat revocation.\n\n` +
+      `— Chief Warden Administration, GP Barh (Patna)`;
+
+    navigator.clipboard.writeText(text);
+    toast.success(`Fee reminder notice copied for ${st.full_name}! 📋`, {
+      style: { borderRadius: '12px', background: '#0f172a', color: '#38bdf8', fontWeight: 700 }
+    });
+  };
+
+  const handleExportPaymentLedgerCSV = () => {
+    const headers = [
+      'Student Name',
+      'Registration No',
+      'Roll No',
+      'Branch',
+      'Gender',
+      'Hostel Name',
+      'Allocated Room',
+      'Bed Code',
+      'Allotment Status',
+      'Payment Status',
+      'Payment Date',
+      'UTR Ref',
+      'Receipt No',
+      'Fixed Due Date',
+      'Overdue Days',
+      'Late Penalty (INR)',
+      'Base Fee (INR)',
+      'Total Amount (INR)'
+    ];
+
+    const rows = filteredPaymentLedger.map(s => [
+      `"${s.full_name}"`,
+      `"${s.reg_no}"`,
+      `"${s.roll_no}"`,
+      `"${s.branch}"`,
+      s.gender,
+      `"${s.hostel_name || ''}"`,
+      `"${s.room_number}"`,
+      `"${s.bed_code}"`,
+      `"${s.isAllotted ? 'APPROVED & ALLOTTED' : (s.isPendingAllot ? 'PENDING APPROVAL' : 'NOT APPROVED / NOT VERIFIED')}"`,
+      `"${s.isPaid ? 'PAID & VERIFIED' : (s.isVerifPending ? 'VERIFICATION PENDING' : (s.isAllotted ? (s.isOverdue ? 'OVERDUE (PENALTY APPLIED)' : 'FEE PENDING') : 'NOT APPLICABLE'))}"`,
+      `"${s.paymentDateFormatted || 'N/A'}"`,
+      `"${s.utr_number || 'N/A'}"`,
+      `"${s.receipt_number || 'N/A'}"`,
+      `"${s.dueDateFormatted}"`,
+      s.overdueDays,
+      s.penaltyAmount,
+      s.baseFee,
+      s.totalPayable
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `GP_Barh_Hostel_Allotment_Payment_Ledger_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Allotment & Payment Audit Ledger CSV Exported! 📊');
+  };
+
   return (
     <div className={`h-screen flex font-sans overflow-hidden transition-colors duration-300 ${isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'}`}>
       <Toaster position="top-right" />
@@ -723,10 +928,10 @@ function WardenDashboard() {
           <nav className="space-y-1.5 text-sm font-bold">
             {[
               { id: 'allocations', name: 'Hostel Seat Allocations', icon: '🛏️', badge: (pendingRequests || []).length },
+              { id: 'fees', name: 'Fee & UTR Verification', icon: '💳', badge: (paymentTransactions || []).filter(f => f.status === 'PENDING').length },
               { id: 'mess', name: 'View Mess Attendance', icon: '🍽️', badge: messStats.total_scanned_today || 0 },
               { id: 'analytics', name: 'Occupancy Analytics', icon: '📊' },
               { id: 'leaves', name: 'Outpass / Leave Approvals', icon: '✈️', badge: (leaveList || []).filter(l => l.status === 'PENDING').length },
-              { id: 'fees', name: 'Fee & UTR Verification', icon: '💳', badge: (paymentTransactions || []).filter(f => f.status === 'PENDING').length },
               { id: 'directory', name: 'Student Master Directory', icon: '🧑‍🎓' },
               { id: 'public_docs', name: 'Homepage Notices & Docs', icon: '📑', badge: (publicDocs || []).length > 0 ? `${publicDocs.length} Live` : undefined, badgeColor: 'bg-emerald-500 text-white' },
               { id: 'settings', name: 'Warden Settings & Ops', icon: '⚙️' },
@@ -1223,9 +1428,15 @@ function WardenDashboard() {
                           .map(st => (
                             <div key={st.id} className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between gap-3">
                               <div className="min-w-0">
-                                <p className="font-bold text-xs text-slate-900 dark:text-white truncate">{st.full_name}</p>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <p className="font-bold text-xs text-slate-900 dark:text-white truncate">{st.full_name}</p>
+                                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${st.gender === 'MALE' ? 'bg-sky-100 text-sky-700 dark:bg-sky-950/70 dark:text-sky-300' : 'bg-pink-100 text-pink-700 dark:bg-pink-950/70 dark:text-pink-300'}`}>
+                                    {st.gender === 'MALE' ? 'Boys Hostel' : 'Girls Hostel'}
+                                  </span>
+                                </div>
                                 <p className="text-[11px] font-mono text-slate-600 dark:text-slate-400 mt-0.5">
                                   Room <span className="font-semibold text-slate-900 dark:text-white">{st.room_number}</span> (Bed {st.bed_code})
+                                  {st.hostel_name && <span className="text-[10px] text-slate-400 dark:text-slate-500 font-sans ml-1.5">• {st.hostel_name}</span>}
                                 </p>
                                 <span className="inline-block text-[10px] text-slate-500 font-medium">
                                   Reg: {st.reg_no}
@@ -1269,6 +1480,185 @@ function WardenDashboard() {
                   />
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* 🌟 2.8. OCCUPANCY ANALYTICS & CAPACITY OVERVIEW */}
+          {/* ========================================================================= */}
+          {activeNavTab === 'analytics' && (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              {/* TOP HEADER */}
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>📊</span> Hostel Occupancy Analytics &amp; Capacity Intelligence
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Real-time room occupancy metrics, capacity utilization, gender breakdown, and floor-wise statistics.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveNavTab('allocations')}
+                    className="px-4 py-2 bg-[#800000] hover:bg-[#600000] text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span>🛏️</span>
+                    <span>Manage Seat Allocations</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* OVERALL CAPACITY & OCCUPANCY METRICS CARDS */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* 1. TOTAL CAPACITY */}
+                <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Sanctioned Capacity</span>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-3xl font-black text-slate-900 dark:text-white font-mono">
+                      {analytics.total_capacity || 153}
+                    </span>
+                    <span className="text-xs font-bold text-slate-400">Total Beds</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">Boys H-Block (81) + Girls Block (72)</p>
+                </div>
+
+                {/* 2. ACTIVE OCCUPIED */}
+                <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Occupied Beds</span>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                      {analytics.total_occupied || 42}
+                    </span>
+                    <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full font-mono">
+                      {analytics.occupancy_pct || 27.5}% Full
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                    <div className="bg-emerald-500 h-full rounded-full transition-all" style={{ width: `${analytics.occupancy_pct || 27.5}%` }}></div>
+                  </div>
+                </div>
+
+                {/* 3. VACANT AVAILABLE */}
+                <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Vacant / Available Beds</span>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-3xl font-black text-blue-600 dark:text-blue-400 font-mono">
+                      {(analytics.total_capacity || 153) - (analytics.total_occupied || 42)}
+                    </span>
+                    <span className="text-xs font-bold text-blue-500 bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded-full">
+                      Ready to Allot
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">Available across all floors</p>
+                </div>
+
+                {/* 4. PENDING ALLOTMENT APPLICATIONS */}
+                <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Pending Allotment Queue</span>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-3xl font-black text-amber-500 font-mono">
+                      {pendingRequests.length}
+                    </span>
+                    <span className="text-xs font-bold text-amber-600 bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded-full">
+                      Awaiting Action
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">24-hour verification window active</p>
+                </div>
+              </div>
+
+              {/* BOYS VS GIRLS WING COMPARISON */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* BOYS HOSTEL BLOCK */}
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-2xl">👦</span>
+                      <div>
+                        <h4 className="text-base font-black text-slate-900 dark:text-white">
+                          Boys Hostel (Birsa Munda &amp; Rajendra Block)
+                        </h4>
+                        <p className="text-xs text-slate-400">H-Shape Wing (Ground, 1st &amp; 2nd Floors)</p>
+                      </div>
+                    </div>
+                    <span className="px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 font-black text-xs font-mono">
+                      {analytics.boys_occupied || 28} / {analytics.boys_total || 81}
+                    </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-xs font-bold">
+                      <span className="text-slate-600 dark:text-slate-300">Occupancy Rate:</span>
+                      <span className="text-blue-600 dark:text-blue-400 font-mono">{analytics.boys_occupancy_pct || 34.6}%</span>
+                    </div>
+                    <div className="w-full bg-slate-100 dark:bg-slate-800 h-3 rounded-full overflow-hidden">
+                      <div className="bg-blue-500 h-full rounded-full transition-all" style={{ width: `${analytics.boys_occupancy_pct || 34.6}%` }}></div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 pt-2 text-center text-xs">
+                      <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700">
+                        <span className="text-[10px] text-slate-400 block font-bold">Ground Floor</span>
+                        <strong className="text-slate-800 dark:text-slate-200 font-mono">10 / 27</strong>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700">
+                        <span className="text-[10px] text-slate-400 block font-bold">1st Floor</span>
+                        <strong className="text-slate-800 dark:text-slate-200 font-mono">12 / 27</strong>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700">
+                        <span className="text-[10px] text-slate-400 block font-bold">2nd Floor</span>
+                        <strong className="text-slate-800 dark:text-slate-200 font-mono">6 / 27</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* GIRLS HOSTEL BLOCK */}
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-2xl">👧</span>
+                      <div>
+                        <h4 className="text-base font-black text-slate-900 dark:text-white">
+                          Girls Hostel (Savitribai Phule Block)
+                        </h4>
+                        <p className="text-xs text-slate-400">Linear Wing (Ground, 1st &amp; 2nd Floors)</p>
+                      </div>
+                    </div>
+                    <span className="px-3 py-1 rounded-full bg-pink-50 dark:bg-pink-950/50 text-pink-700 dark:text-pink-300 font-black text-xs font-mono">
+                      {analytics.girls_occupied || 14} / {analytics.girls_total || 72}
+                    </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-xs font-bold">
+                      <span className="text-slate-600 dark:text-slate-300">Occupancy Rate:</span>
+                      <span className="text-pink-600 dark:text-pink-400 font-mono">{analytics.girls_occupancy_pct || 19.4}%</span>
+                    </div>
+                    <div className="w-full bg-slate-100 dark:bg-slate-800 h-3 rounded-full overflow-hidden">
+                      <div className="bg-pink-500 h-full rounded-full transition-all" style={{ width: `${analytics.girls_occupancy_pct || 19.4}%` }}></div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 pt-2 text-center text-xs">
+                      <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700">
+                        <span className="text-[10px] text-slate-400 block font-bold">Ground Floor</span>
+                        <strong className="text-slate-800 dark:text-slate-200 font-mono">6 / 24</strong>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700">
+                        <span className="text-[10px] text-slate-400 block font-bold">1st Floor</span>
+                        <strong className="text-slate-800 dark:text-slate-200 font-mono">5 / 24</strong>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700">
+                        <span className="text-[10px] text-slate-400 block font-bold">2nd Floor</span>
+                        <strong className="text-slate-800 dark:text-slate-200 font-mono">3 / 24</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
             </div>
           )}
 
@@ -1342,224 +1732,824 @@ function WardenDashboard() {
           )}
 
           {/* ========================================================================= */}
-          {/* 🌟 4. DYNAMIC FEE CONFIGURATION & MULTIPLIER CONTROLLER */}
+          {/* 🌟 4. FEE & UTR VERIFICATION — PROFESSIONAL REDESIGN */}
           {/* ========================================================================= */}
           {activeNavTab === 'fees' && (
-            <div className="space-y-6 animate-in fade-in duration-300">
-              
-              {/* PANEL 1: ⚙️ DYNAMIC FEE RATE & SEMESTER MULTIPLIER CONTROL PANEL */}
-              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
-                  <div>
-                    <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                      <span>⚙️</span> Dynamic Institutional Fee &amp; Multiplier Controller
-                    </h3>
-                    <p className="text-xs text-slate-500">
-                      Warden Master Control: Adjust base monthly rates and apply semester billing multipliers (e.g. 750 × 5, 750 × 6, 3600 × 5, 3600 × 6).
-                    </p>
+            <div className="space-y-8 animate-in fade-in duration-300">
+
+              {/* ── PAGE HEADER ── */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-[#800000] mb-1">Fee & UTR Verification Module</p>
+                  <h2 className="text-2xl font-black text-slate-900 dark:text-white leading-tight">
+                    Fee Administration Dashboard
+                  </h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-xl">
+                    Configure institutional fee rates, track student payment status, and verify UTR transactions — all from one place.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-bold text-xs border border-emerald-200 dark:border-emerald-800">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    System Live
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 font-bold text-xs border border-amber-200 dark:border-amber-800">
+                    ⚡ ₹{penaltyPerDay}/day penalty active
+                  </span>
+                </div>
+              </div>
+
+              {/* ── SECTION 1: FEE RATE CONTROLLER ── */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                {/* Section Header */}
+                <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-[#800000]/10 flex items-center justify-center text-[#800000]">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">Fee Rate Configuration</h3>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">Set base rates and semester billing multipliers</p>
+                    </div>
                   </div>
-                  <span className="px-3.5 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-extrabold text-xs border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5 self-start sm:self-auto">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    Live Sync Broadcasting
+                  <span className="self-start sm:self-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-semibold text-[11px] border border-emerald-200 dark:border-emerald-800">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Broadcasts to all students
                   </span>
                 </div>
 
-                <form onSubmit={handleSaveFeeConfig}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-5">
-                    
-                    {/* HOSTEL MAINTENANCE & MULTIPLIER CARD */}
-                    <div className="bg-slate-50 dark:bg-slate-800/60 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="text-[12px] font-black uppercase text-blue-600 dark:text-blue-400 tracking-wider flex items-center gap-1.5">
-                          <span>🏢</span> Hostel Maintenance Charge
+                <div className="p-6">
+                  <form onSubmit={handleSaveFeeConfig} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+                      {/* HOSTEL MAINTENANCE */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                            <span className="w-5 h-5 rounded bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center text-[10px]">🏢</span>
+                            Hostel Maintenance Charge
+                          </label>
+                          <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">per month</span>
                         </div>
-                        <span className="text-xs font-mono font-bold text-slate-400">Base / Month</span>
-                      </div>
-
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
-                        <input
-                          type="number"
-                          value={feeConfig.hostel_maintenance_per_month}
-                          onChange={(e) => setFeeConfig({ ...feeConfig, hostel_maintenance_per_month: Number(e.target.value) })}
-                          className="w-full pl-7 pr-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-base font-black text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          required
-                        />
-                      </div>
-
-                      {/* QUICK MULTIPLIER BUTTONS (750x5, 750x6) */}
-                      <div>
-                        <span className="text-[11px] font-bold text-slate-500 block mb-2">Select Semester Multiplier:</span>
-                        <div className="grid grid-cols-3 gap-2">
-                          {[
-                            { label: '1 Month', count: 1 },
-                            { label: '5 Months (750×5)', count: 5 },
-                            { label: '6 Months (750×6)', count: 6 }
-                          ].map(m => (
-                            <button
-                              key={m.count}
-                              type="button"
-                              onClick={() => setHostelMonthsMultiplier(m.count)}
-                              className={`py-2 px-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                                hostelMonthsMultiplier === m.count
-                                  ? 'bg-blue-600 text-white shadow-md'
-                                  : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100'
-                              }`}
-                            >
-                              {m.label}
-                            </button>
-                          ))}
+                        <div className="relative">
+                          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-black text-slate-500">₹</span>
+                          <input
+                            type="number"
+                            value={feeConfig.hostel_maintenance_per_month}
+                            onChange={(e) => setFeeConfig({ ...feeConfig, hostel_maintenance_per_month: Number(e.target.value) })}
+                            className="w-full pl-8 pr-4 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl text-base font-black text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                            required
+                          />
                         </div>
-                      </div>
-
-                      {/* CALCULATED TERM TOTAL */}
-                      <div className="p-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl flex items-center justify-between text-xs">
-                        <span className="font-bold text-blue-900 dark:text-blue-200">
-                          Total {hostelMonthsMultiplier} Months Hostel Fee:
-                        </span>
-                        <strong className="text-base font-black text-blue-700 dark:text-blue-300 font-mono">
-                          ₹{(Number(feeConfig.hostel_maintenance_per_month) * hostelMonthsMultiplier).toLocaleString('en-IN')}
-                        </strong>
-                      </div>
-                    </div>
-
-                    {/* MESS RATE & MULTIPLIER CARD */}
-                    <div className="bg-slate-50 dark:bg-slate-800/60 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="text-[12px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-wider flex items-center gap-1.5">
-                          <span>🍽️</span> Mess Dining Advance
+                        <div>
+                          <p className="text-[10px] font-semibold text-slate-400 mb-2 uppercase tracking-wider">Semester Duration</p>
+                          <div className="grid grid-cols-3 gap-2">
+                            {[
+                              { label: '1 Month', count: 1 },
+                              { label: '5 Months', count: 5 },
+                              { label: '6 Months', count: 6 }
+                            ].map(m => (
+                              <button
+                                key={m.count}
+                                type="button"
+                                onClick={() => setHostelMonthsMultiplier(m.count)}
+                                className={`py-2 px-1 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
+                                  hostelMonthsMultiplier === m.count
+                                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-blue-300'
+                                }`}
+                              >
+                                {m.label}
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                        <span className="text-xs font-mono font-bold text-slate-400">Base / Month</span>
-                      </div>
-
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
-                        <input
-                          type="number"
-                          value={feeConfig.mess_fee_per_month}
-                          onChange={(e) => setFeeConfig({ ...feeConfig, mess_fee_per_month: Number(e.target.value) })}
-                          className="w-full pl-7 pr-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-base font-black text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                          required
-                        />
-                      </div>
-
-                      {/* QUICK MULTIPLIER BUTTONS (3600x5, 3600x6) */}
-                      <div>
-                        <span className="text-[11px] font-bold text-slate-500 block mb-2">Select Semester Multiplier:</span>
-                        <div className="grid grid-cols-3 gap-2">
-                          {[
-                            { label: '1 Month', count: 1 },
-                            { label: '5 Months (3600×5)', count: 5 },
-                            { label: '6 Months (3600×6)', count: 6 }
-                          ].map(m => (
-                            <button
-                              key={m.count}
-                              type="button"
-                              onClick={() => setMessMonthsMultiplier(m.count)}
-                              className={`py-2 px-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                                messMonthsMultiplier === m.count
-                                  ? 'bg-emerald-600 text-white shadow-md'
-                                  : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100'
-                              }`}
-                            >
-                              {m.label}
-                            </button>
-                          ))}
+                        <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 rounded-xl">
+                          <span className="text-xs text-blue-700 dark:text-blue-300 font-semibold">{hostelMonthsMultiplier} Month Total</span>
+                          <span className="text-base font-black text-blue-700 dark:text-blue-300 font-mono">
+                            ₹{(Number(feeConfig.hostel_maintenance_per_month) * hostelMonthsMultiplier).toLocaleString('en-IN')}
+                          </span>
                         </div>
                       </div>
 
-                      {/* CALCULATED TERM TOTAL */}
-                      <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl flex items-center justify-between text-xs">
-                        <span className="font-bold text-emerald-900 dark:text-emerald-200">
-                          Total {messMonthsMultiplier} Months Mess Fee:
-                        </span>
-                        <strong className="text-base font-black text-emerald-700 dark:text-emerald-300 font-mono">
-                          ₹{(Number(feeConfig.mess_fee_per_month) * messMonthsMultiplier).toLocaleString('en-IN')}
-                        </strong>
+                      {/* MESS RATE */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                            <span className="w-5 h-5 rounded bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-[10px]">🍽️</span>
+                            Mess Dining Advance
+                          </label>
+                          <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">per month</span>
+                        </div>
+                        <div className="relative">
+                          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-black text-slate-500">₹</span>
+                          <input
+                            type="number"
+                            value={feeConfig.mess_fee_per_month}
+                            onChange={(e) => setFeeConfig({ ...feeConfig, mess_fee_per_month: Number(e.target.value) })}
+                            className="w-full pl-8 pr-4 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl text-base font-black text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-semibold text-slate-400 mb-2 uppercase tracking-wider">Semester Duration</p>
+                          <div className="grid grid-cols-3 gap-2">
+                            {[
+                              { label: '1 Month', count: 1 },
+                              { label: '5 Months', count: 5 },
+                              { label: '6 Months', count: 6 }
+                            ].map(m => (
+                              <button
+                                key={m.count}
+                                type="button"
+                                onClick={() => setMessMonthsMultiplier(m.count)}
+                                className={`py-2 px-1 rounded-lg text-xs font-bold transition-all cursor-pointer border ${
+                                  messMonthsMultiplier === m.count
+                                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-emerald-300'
+                                }`}
+                              >
+                                {m.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 rounded-xl">
+                          <span className="text-xs text-emerald-700 dark:text-emerald-300 font-semibold">{messMonthsMultiplier} Month Total</span>
+                          <span className="text-base font-black text-emerald-700 dark:text-emerald-300 font-mono">
+                            ₹{(Number(feeConfig.mess_fee_per_month) * messMonthsMultiplier).toLocaleString('en-IN')}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
-                  </div>
-
-                  {/* ONE-TIME ADMISSION & CAUTION DEPOSIT CONTROLS */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-                    <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200 dark:border-slate-700/60">
-                      <span className="text-[11px] font-bold text-amber-600 block mb-1">🛡️ Caution Deposit (100% Refundable)</span>
-                      <input
-                        type="number"
-                        value={feeConfig.caution_money}
-                        onChange={(e) => setFeeConfig({ ...feeConfig, caution_money: Number(e.target.value) })}
-                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-black text-slate-900 dark:text-white"
-                      />
+                    {/* ONE-TIME FEES */}
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">One-Time Charges</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+                            🛡️ Caution Deposit
+                            <span className="text-[10px] font-normal text-slate-400">(100% Refundable)</span>
+                          </label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">₹</span>
+                            <input
+                              type="number"
+                              value={feeConfig.caution_money}
+                              onChange={(e) => setFeeConfig({ ...feeConfig, caution_money: Number(e.target.value) })}
+                              className="w-full pl-7 pr-3 py-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-black text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 transition"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+                            📝 Registration Fee
+                            <span className="text-[10px] font-normal text-slate-400">(Non-Refundable)</span>
+                          </label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">₹</span>
+                            <input
+                              type="number"
+                              value={feeConfig.registration_fee}
+                              onChange={(e) => setFeeConfig({ ...feeConfig, registration_fee: Number(e.target.value) })}
+                              className="w-full pl-7 pr-3 py-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-black text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200 dark:border-slate-700/60">
-                      <span className="text-[11px] font-bold text-purple-600 block mb-1">📝 Registration Fee (Non-Refundable)</span>
-                      <input
-                        type="number"
-                        value={feeConfig.registration_fee}
-                        onChange={(e) => setFeeConfig({ ...feeConfig, registration_fee: Number(e.target.value) })}
-                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-black text-slate-900 dark:text-white"
-                      />
-                    </div>
-                  </div>
 
-                  {/* BROADCAST BUTTON */}
-                  <div className="flex justify-end">
-                    <button
-                      type="submit"
-                      disabled={isUpdatingFeeConfig}
-                      className="px-6 py-3 bg-[#800000] hover:bg-[#600000] text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 shadow-lg cursor-pointer disabled:opacity-50"
-                    >
-                      <span>⚡</span>
-                      <span>{isUpdatingFeeConfig ? 'Broadcasting Rates...' : 'BROADCAST & UPDATE STUDENT LEDGER'}</span>
-                    </button>
-                  </div>
-                </form>
+                    {/* SUBMIT */}
+                    <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
+                      <button
+                        type="submit"
+                        disabled={isUpdatingFeeConfig}
+                        className="px-6 py-2.5 bg-[#800000] hover:bg-[#6a0000] active:scale-95 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 shadow-sm cursor-pointer disabled:opacity-50"
+                      >
+                        {isUpdatingFeeConfig ? (
+                          <>
+                            <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                            <span>Saving Changes...</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                            <span>Save & Broadcast Rates</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                </div>
               </div>
 
-              {/* PANEL 2: 🧾 STUDENT FEE & UTR AUDIT QUEUE */}
-              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+              {/* ── SECTION 2: PAYMENT LEDGER ── */}
+              <div className="space-y-5">
+
+                {/* Section Header with Actions */}
+                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                   <div>
-                    <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                      <span>💳</span> Student Payment &amp; UTR Verification Queue
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-[#800000] mb-1">Payment Status Ledger</p>
+                    <h3 className="text-xl font-black text-slate-900 dark:text-white">
+                      Student Allotment & Fee Tracker
                     </h3>
-                    <p className="text-xs text-slate-500">
-                      Audit student UTR transactions, inspect attached payment proof slips, and issue official e-receipt numbers.
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                      Track paid, pending & overdue students — with automatic ₹{penaltyPerDay}/day late fine after deadline.
                     </p>
                   </div>
+                  <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTempDueDate(fixedPaymentDueDate);
+                        setTempPenaltyRate(penaltyPerDay);
+                        setIsEditingDueDateModal(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 font-bold text-xs hover:bg-amber-100 dark:hover:bg-amber-900/40 transition cursor-pointer"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                      Set Deadline & Fine
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleExportPaymentLedgerCSV}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300 font-bold text-xs hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition cursor-pointer"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                      Export CSV
+                    </button>
+                  </div>
+                </div>
 
-                  {/* STATUS FILTER PILLS */}
-                  <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-                    {['ALL', 'PENDING', 'APPROVED', 'REJECTED'].map((st) => (
+                {/* DEADLINE ALERT BAR */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/60 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-amber-900 dark:text-amber-200 flex items-center gap-2 flex-wrap">
+                        Fee Submission Deadline:
+                        <span className="font-black text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/60 px-2 py-0.5 rounded-md font-mono text-[11px]">
+                          {new Date(fixedPaymentDueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}
+                        </span>
+                      </p>
+                      <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5">
+                        Post-deadline: ₹{penaltyPerDay}/day late fine automatically applied to allotted-but-unpaid students.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTempDueDate(fixedPaymentDueDate);
+                      setTempPenaltyRate(penaltyPerDay);
+                      setIsEditingDueDateModal(true);
+                    }}
+                    className="text-xs font-bold text-amber-700 dark:text-amber-300 hover:underline cursor-pointer self-start sm:self-auto shrink-0"
+                  >
+                    Edit Deadline →
+                  </button>
+                </div>
+
+                {/* ── KPI SUMMARY CARDS ── */}
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                  {[
+                    {
+                      label: 'Total Students',
+                      value: ledgerMetrics.totalStudents,
+                      sub: 'All enrolled',
+                      color: 'slate',
+                      icon: (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                      )
+                    },
+                    {
+                      label: 'Paid & Verified',
+                      value: ledgerMetrics.paidCount,
+                      sub: `₹${ledgerMetrics.paidTotalAmount.toLocaleString('en-IN')} received`,
+                      color: 'emerald',
+                      icon: (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                      )
+                    },
+                    {
+                      label: 'Fee Pending',
+                      value: ledgerMetrics.approvedUnpaidCount,
+                      sub: 'Beds reserved',
+                      color: 'amber',
+                      icon: (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                      )
+                    },
+                    {
+                      label: 'Overdue',
+                      value: ledgerMetrics.overdueCount,
+                      sub: `+₹${ledgerMetrics.totalPenaltyAccumulated.toLocaleString('en-IN')} fine`,
+                      color: 'rose',
+                      icon: (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                      )
+                    },
+                    {
+                      label: 'Not Approved',
+                      value: ledgerMetrics.unapprovedCount,
+                      sub: 'No room allotted',
+                      color: 'slate',
+                      icon: (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                      )
+                    }
+                  ].map((card, i) => {
+                    const colorBg = {
+                      slate: 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700',
+                      emerald: 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800',
+                      amber: 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800',
+                      rose: 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800'
+                    };
+                    const iconBg = {
+                      slate: 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400',
+                      emerald: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400',
+                      amber: 'bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400',
+                      rose: 'bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400'
+                    };
+                    const valColor = {
+                      slate: 'text-slate-800 dark:text-slate-200',
+                      emerald: 'text-emerald-700 dark:text-emerald-300',
+                      amber: 'text-amber-700 dark:text-amber-300',
+                      rose: 'text-rose-700 dark:text-rose-300'
+                    };
+                    return (
+                      <div key={i} className={`p-4 rounded-xl border ${colorBg[card.color]} space-y-3`}>
+                        <div className="flex items-center justify-between">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{card.label}</p>
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${iconBg[card.color]}`}>
+                            {card.icon}
+                          </div>
+                        </div>
+                        <div>
+                          <p className={`text-3xl font-black font-mono leading-none ${valColor[card.color]}`}>{card.value}</p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1.5 font-medium">{card.sub}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* ── FILTERS ── */}
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 space-y-3">
+                  {/* Row 1: Hostel + Search */}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div className="flex items-center gap-2 flex-1 flex-wrap">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 shrink-0">Hostel:</span>
+                      {[
+                        { id: 'ALL', label: 'All Hostels', count: enrichedStudentLedger.length },
+                        { id: 'BOYS', label: '👦 Boys', count: enrichedStudentLedger.filter(s => s.gender === 'MALE').length },
+                        { id: 'GIRLS', label: '👧 Girls', count: enrichedStudentLedger.filter(s => s.gender === 'FEMALE').length }
+                      ].map(h => (
+                        <button
+                          key={h.id}
+                          type="button"
+                          onClick={() => setPaymentLedgerGenderFilter(h.id)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-all border ${
+                            paymentLedgerGenderFilter === h.id
+                              ? 'bg-[#800000] text-white border-[#800000] shadow-sm'
+                              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                          }`}
+                        >
+                          {h.label}
+                          <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md ${
+                            paymentLedgerGenderFilter === h.id ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
+                          }`}>{h.count}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="relative w-full sm:w-64">
+                      <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                      <input
+                        type="text"
+                        placeholder="Search name, reg no, room..."
+                        value={paymentLedgerSearch}
+                        onChange={e => setPaymentLedgerSearch(e.target.value)}
+                        className="w-full pl-8 pr-3 py-2 rounded-lg text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 font-medium outline-none focus:ring-2 focus:ring-[#800000] focus:border-transparent transition"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="border-t border-slate-100 dark:border-slate-800"></div>
+
+                  {/* Row 2: Status Filters */}
+                  <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5">
+                    {[
+                      { id: 'ALL', label: 'All', icon: '≡', count: filteredPaymentLedger.length },
+                      { id: 'PAID', label: 'Paid & Verified', icon: '✓', count: enrichedStudentLedger.filter(s => s.isPaid).length },
+                      { id: 'APPROVED_UNPAID', label: 'Fee Pending', icon: '⏳', count: enrichedStudentLedger.filter(s => s.isAllotted && s.isUnpaid).length },
+                      { id: 'OVERDUE', label: 'Overdue', icon: '⚠', count: enrichedStudentLedger.filter(s => s.isOverdue).length },
+                      { id: 'UNAPPROVED', label: 'Not Approved', icon: '✕', count: enrichedStudentLedger.filter(s => s.isUnapproved).length }
+                    ].map(tab => (
                       <button
-                        key={st}
-                        onClick={() => setPaymentStatusFilter(st)}
-                        className={`px-3 py-1 rounded-lg text-xs font-black transition-all ${
-                          paymentStatusFilter === st
-                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setPaymentLedgerStatusFilter(tab.id)}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 cursor-pointer transition-all border ${
+                          paymentLedgerStatusFilter === tab.id
+                            ? 'bg-slate-900 dark:bg-slate-700 text-white border-slate-900 dark:border-slate-700'
+                            : 'bg-white dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300'
                         }`}
                       >
-                        {st}
+                        <span className="font-black text-[11px]">{tab.icon}</span>
+                        {tab.label}
+                        <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md ${
+                          paymentLedgerStatusFilter === tab.id ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-700'
+                        }`}>{tab.count}</span>
                       </button>
                     ))}
                   </div>
                 </div>
 
+                {/* ── DATA ── */}
+                {filteredPaymentLedger.length === 0 ? (
+                  <div className="text-center py-16 px-6 bg-white dark:bg-slate-900 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+                    <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+                    </div>
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No students match the current filters</p>
+                    <p className="text-xs text-slate-400 mt-1">Try selecting a different hostel or status filter above</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* 📱 MOBILE CARDS */}
+                    <div className="md:hidden space-y-3">
+                      {filteredPaymentLedger.map(st => {
+                        const statusColor = st.isPaid
+                          ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800'
+                          : st.isOverdue
+                            ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800'
+                            : st.isAllotted
+                              ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800'
+                              : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700';
+
+                        return (
+                          <div key={st.id} className={`rounded-xl border ${statusColor} overflow-hidden`}>
+                            {/* Card Top: Student Info + Status Badge */}
+                            <div className="p-4 flex items-start justify-between gap-3">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0 ${
+                                  st.gender === 'FEMALE' ? 'bg-pink-100 dark:bg-pink-950 text-pink-700 dark:text-pink-300' : 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300'
+                                }`}>
+                                  {(st.full_name || '?')[0].toUpperCase()}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-bold text-sm text-slate-900 dark:text-white truncate leading-tight">{st.full_name}</p>
+                                  <p className="text-[10px] font-mono text-slate-500 mt-0.5">
+                                    Reg: <span className="font-semibold text-slate-700 dark:text-slate-300">{st.reg_no}</span> · Roll: <span className="font-semibold">{st.roll_no}</span>
+                                  </p>
+                                  <span className={`inline-block mt-1 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                                    st.gender === 'FEMALE' ? 'bg-pink-100 dark:bg-pink-950 text-pink-700 dark:text-pink-300' : 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300'
+                                  }`}>
+                                    {st.gender === 'FEMALE' ? 'Girls Hostel' : 'Boys Hostel'}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Status badge */}
+                              {st.isPaid ? (
+                                <span className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 text-[9px] font-black border border-emerald-300 dark:border-emerald-800 uppercase tracking-wider">
+                                  ✓ Paid
+                                </span>
+                              ) : st.isOverdue ? (
+                                <span className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-rose-100 dark:bg-rose-900/50 text-rose-800 dark:text-rose-300 text-[9px] font-black border border-rose-300 dark:border-rose-800 uppercase tracking-wider animate-pulse">
+                                  ⚠ Overdue
+                                </span>
+                              ) : st.isAllotted ? (
+                                <span className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300 text-[9px] font-black border border-amber-300 dark:border-amber-800 uppercase tracking-wider">
+                                  ⏳ Pending
+                                </span>
+                              ) : (
+                                <span className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[9px] font-black border border-slate-200 dark:border-slate-700 uppercase tracking-wider">
+                                  ✕ No Room
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Card Details */}
+                            <div className="px-4 pb-3 space-y-2">
+                              {/* Room Info */}
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-slate-500 dark:text-slate-400 font-medium">Room Allotment</span>
+                                <span className="font-bold text-slate-800 dark:text-slate-200">
+                                  {st.isAllotted
+                                    ? `Room ${st.room_number} · Bed ${st.bed_code}`
+                                    : st.isPendingAllot
+                                      ? <span className="text-amber-600">Approval Pending</span>
+                                      : <span className="text-slate-400">Not Allotted</span>
+                                  }
+                                </span>
+                              </div>
+
+                              {/* Payment Info */}
+                              {st.isPaid && (
+                                <>
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="text-slate-500 dark:text-slate-400 font-medium">Payment Date</span>
+                                    <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{st.paymentDateFormatted || '—'}</span>
+                                  </div>
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="text-slate-500 dark:text-slate-400 font-medium">Receipt No.</span>
+                                    <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">#{st.receipt_number || 'Verified'}</span>
+                                  </div>
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="text-slate-500 dark:text-slate-400 font-medium">UTR Ref</span>
+                                    <span className="font-mono font-semibold text-slate-600 dark:text-slate-400">{st.utr_number || '—'}</span>
+                                  </div>
+                                </>
+                              )}
+                              {!st.isPaid && st.isAllotted && (
+                                <>
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="text-slate-500 dark:text-slate-400 font-medium">Due Date</span>
+                                    <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{st.dueDateFormatted}</span>
+                                  </div>
+                                  {st.isOverdue && (
+                                    <div className="flex items-center justify-between text-xs">
+                                      <span className="text-rose-600 dark:text-rose-400 font-bold">Late Fine ({st.overdueDays}d × ₹{penaltyPerDay})</span>
+                                      <span className="font-mono font-black text-rose-600 dark:text-rose-400">+₹{st.penaltyAmount.toLocaleString('en-IN')}</span>
+                                    </div>
+                                  )}
+                                  <div className="flex items-center justify-between text-xs border-t border-slate-200 dark:border-slate-700 pt-2 mt-1">
+                                    <span className="font-bold text-slate-700 dark:text-slate-300">Total Payable</span>
+                                    <span className="font-black text-sm font-mono text-[#800000] dark:text-amber-400">₹{st.totalPayable.toLocaleString('en-IN')}</span>
+                                  </div>
+                                </>
+                              )}
+
+                              {/* Actions */}
+                              {((st.isAllotted && !st.isPaid) || st.payment_proof_url) ? (
+                                <div className="flex items-center gap-2 pt-1">
+                                  {st.isAllotted && !st.isPaid && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleCopyFeeNotice(st)}
+                                      className="flex-1 py-2 px-3 rounded-lg bg-slate-900 dark:bg-slate-700 hover:bg-black dark:hover:bg-slate-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition"
+                                    >
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                                      Copy Fee Notice
+                                    </button>
+                                  )}
+                                  {st.payment_proof_url && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setActiveProofModal(st.payment_proof_url)}
+                                      className="py-2 px-3 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-400 font-bold text-xs border border-blue-200 dark:border-blue-800 cursor-pointer transition hover:bg-blue-100"
+                                    >
+                                      View Proof
+                                    </button>
+                                  )}
+                                </div>
+                              ) : null}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* 💻 DESKTOP TABLE */}
+                    <div className="hidden md:block bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs border-collapse min-w-[1000px]">
+                          <thead>
+                            <tr className="border-b border-slate-200 dark:border-slate-800">
+                              <th className="py-3 px-5 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/60">Student</th>
+                              <th className="py-3 px-5 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/60">Allotment</th>
+                              <th className="py-3 px-5 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/60">Payment Status</th>
+                              <th className="py-3 px-5 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/60">Due Date</th>
+                              <th className="py-3 px-5 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/60 text-right">Late Fine</th>
+                              <th className="py-3 px-5 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/60 text-right">Total</th>
+                              <th className="py-3 px-5 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/60 text-center">Action</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                            {filteredPaymentLedger.map(st => (
+                              <tr key={st.id} className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors ${st.isOverdue ? 'bg-rose-50/30 dark:bg-rose-950/10' : ''}`}>
+                                {/* Student */}
+                                <td className="py-4 px-5">
+                                  <div className="flex items-center gap-3">
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs shrink-0 ${
+                                      st.gender === 'FEMALE' ? 'bg-pink-100 dark:bg-pink-950 text-pink-700 dark:text-pink-300' : 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300'
+                                    }`}>
+                                      {(st.full_name || '?')[0]}
+                                    </div>
+                                    <div>
+                                      <p className="font-bold text-slate-900 dark:text-white text-xs leading-tight">{st.full_name}</p>
+                                      <p className="text-[10px] font-mono text-slate-400 mt-0.5">{st.reg_no} · {st.roll_no}</p>
+                                      <span className={`inline-block mt-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                                        st.gender === 'FEMALE' ? 'bg-pink-50 dark:bg-pink-950/50 text-pink-600 dark:text-pink-400' : 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400'
+                                      }`}>
+                                        {st.gender === 'FEMALE' ? 'Girls Hostel' : 'Boys Hostel'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </td>
+
+                                {/* Allotment */}
+                                <td className="py-4 px-5">
+                                  {st.isAllotted ? (
+                                    <div>
+                                      <p className="font-bold text-slate-900 dark:text-white text-xs">Room {st.room_number} · Bed {st.bed_code}</p>
+                                      <p className="text-[10px] text-slate-400 mt-0.5 max-w-[160px] truncate">{st.hostel_name || (st.gender === 'FEMALE' ? 'Savitribai Phule Block' : 'Birsa Munda Block')}</p>
+                                    </div>
+                                  ) : st.isPendingAllot ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-bold text-[10px] border border-amber-200 dark:border-amber-800">
+                                      ⏳ Pending
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold text-[10px] border border-slate-200 dark:border-slate-700">
+                                      ✕ Not Approved
+                                    </span>
+                                  )}
+                                </td>
+
+                                {/* Payment Status */}
+                                <td className="py-4 px-5">
+                                  {st.isPaid ? (
+                                    <div>
+                                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold text-[10px] border border-emerald-200 dark:border-emerald-800">
+                                        ✓ Paid & Verified
+                                      </span>
+                                      <p className="text-[10px] font-mono text-slate-500 mt-1">{st.paymentDateFormatted}</p>
+                                      <p className="text-[10px] font-mono text-slate-400">UTR: {st.utr_number || '—'}</p>
+                                    </div>
+                                  ) : st.isVerifPending ? (
+                                    <div>
+                                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 font-bold text-[10px] border border-blue-200 dark:border-blue-800">
+                                        🔍 Verif. Pending
+                                      </span>
+                                      <p className="text-[10px] text-slate-400 mt-1">UTR submitted</p>
+                                    </div>
+                                  ) : st.isAllotted ? (
+                                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md font-bold text-[10px] border ${
+                                      st.isOverdue
+                                        ? 'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                                        : 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                                    }`}>
+                                      {st.isOverdue ? '⚠ Overdue' : '⏳ Not Submitted'}
+                                    </span>
+                                  ) : (
+                                    <span className="text-slate-400 dark:text-slate-500 text-[11px]">— N/A</span>
+                                  )}
+                                </td>
+
+                                {/* Due Date */}
+                                <td className="py-4 px-5 font-mono text-[11px]">
+                                  {st.isAllotted ? (
+                                    <div>
+                                      <p className="font-bold text-slate-800 dark:text-slate-200">{st.dueDateFormatted}</p>
+                                      {st.isOverdue ? (
+                                        <p className="text-rose-600 dark:text-rose-400 font-bold text-[10px] mt-0.5">{st.overdueDays}d overdue</p>
+                                      ) : st.isPaid ? (
+                                        <p className="text-emerald-600 dark:text-emerald-400 font-semibold text-[10px] mt-0.5">✓ Cleared</p>
+                                      ) : (
+                                        <p className="text-slate-400 text-[10px] mt-0.5">In window</p>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span className="text-slate-400">—</span>
+                                  )}
+                                </td>
+
+                                {/* Late Fine */}
+                                <td className="py-4 px-5 font-mono text-right">
+                                  {st.isOverdue ? (
+                                    <div>
+                                      <p className="font-black text-rose-600 dark:text-rose-400 text-sm">+₹{st.penaltyAmount.toLocaleString('en-IN')}</p>
+                                      <p className="text-[9.5px] text-rose-400/70 mt-0.5">{st.overdueDays}d × ₹{penaltyPerDay}</p>
+                                    </div>
+                                  ) : (
+                                    <span className="text-slate-400 font-semibold text-[11px]">₹0</span>
+                                  )}
+                                </td>
+
+                                {/* Total */}
+                                <td className="py-4 px-5 font-mono text-right">
+                                  {st.isAllotted ? (
+                                    <div>
+                                      <p className={`font-black text-sm ${st.isPaid ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>
+                                        ₹{st.totalPayable.toLocaleString('en-IN')}
+                                      </p>
+                                      {st.isPaid ? (
+                                        <p className="text-[9.5px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">Settled ✓</p>
+                                      ) : st.isOverdue ? (
+                                        <p className="text-[9.5px] text-rose-500 mt-0.5">Base + fine</p>
+                                      ) : (
+                                        <p className="text-[9.5px] text-amber-500 mt-0.5">Standard fee</p>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span className="text-slate-400">—</span>
+                                  )}
+                                </td>
+
+                                {/* Actions */}
+                                <td className="py-4 px-5 text-center">
+                                  <div className="flex items-center justify-center gap-1.5">
+                                    {st.isAllotted && !st.isPaid && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleCopyFeeNotice(st)}
+                                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-[10px] cursor-pointer transition border border-slate-200 dark:border-slate-700"
+                                        title="Copy fee notice for WhatsApp/SMS"
+                                      >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+                                        Notice
+                                      </button>
+                                    )}
+                                    {st.payment_proof_url && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setActiveProofModal(st.payment_proof_url)}
+                                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 text-blue-700 dark:text-blue-400 font-bold text-[10px] border border-blue-200 dark:border-blue-800 cursor-pointer transition"
+                                        title="View payment proof"
+                                      >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                        Proof
+                                      </button>
+                                    )}
+                                    {st.isVerifPending && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const el = document.getElementById('utr-verification-queue');
+                                          if (el) el.scrollIntoView({ behavior: 'smooth' });
+                                        }}
+                                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] cursor-pointer transition"
+                                      >
+                                        Verify →
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-slate-400">
+                        <span>Showing <strong className="text-slate-600 dark:text-slate-300">{filteredPaymentLedger.length}</strong> of <strong className="text-slate-600 dark:text-slate-300">{enrichedStudentLedger.length}</strong> students</span>
+                        <span>Late penalty: ₹{penaltyPerDay}/day after {new Date(fixedPaymentDueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* ── SECTION 3: UTR VERIFICATION QUEUE ── */}
+              <div id="utr-verification-queue" className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+                {/* Header */}
+                <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">UTR Verification Queue</h3>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">Review payment proofs and issue official receipts</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg self-start sm:self-auto">
+                    {[
+                      { id: 'ALL', label: 'All' },
+                      { id: 'PENDING', label: 'Pending' },
+                      { id: 'APPROVED', label: 'Approved' },
+                      { id: 'REJECTED', label: 'Rejected' }
+                    ].map(f => (
+                      <button
+                        key={f.id}
+                        onClick={() => setPaymentStatusFilter(f.id)}
+                        className={`px-3 py-1.5 rounded-md text-xs font-bold transition cursor-pointer ${
+                          paymentStatusFilter === f.id
+                            ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
+                        }`}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* UTR Table */}
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border-collapse min-w-[760px]">
+                  <table className="w-full text-left text-xs border-collapse min-w-[700px]">
                     <thead>
-                      <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-black uppercase text-[10px]">
-                        <th className="py-3 px-4">Student &amp; Hostel</th>
-                        <th className="py-3 px-4">Fee Category</th>
-                        <th className="py-3 px-4">Amount Paid</th>
-                        <th className="py-3 px-4">UTR Ref / Proof</th>
-                        <th className="py-3 px-4">Date Submitted</th>
-                        <th className="py-3 px-4 text-center">Status / Action</th>
+                      <tr className="border-b border-slate-100 dark:border-slate-800">
+                        {['Student & Hostel', 'Fee Category', 'Amount Paid', 'UTR Reference', 'Submitted On', 'Status & Action'].map(h => (
+                          <th key={h} className="py-3 px-5 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">{h}</th>
+                        ))}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-semibold">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
                       {paymentTransactions
                         .filter(txn => paymentStatusFilter === 'ALL' || txn.status === paymentStatusFilter)
                         .map(txn => {
@@ -1567,77 +2557,76 @@ function WardenDashboard() {
                           const isApproved = txn.status === 'APPROVED';
 
                           return (
-                            <tr key={txn.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                              <td className="py-3.5 px-4">
-                                <div className="font-bold text-slate-900 dark:text-white">
-                                  {txn.student_name}
-                                </div>
-                                <div className="text-[10px] text-slate-400 font-mono">
-                                  Reg #{txn.reg_no} • <span className={txn.gender === 'FEMALE' ? 'text-pink-500' : 'text-blue-500'}>{txn.gender === 'FEMALE' ? 'Girls Hostel' : 'Boys Hostel'}</span>
-                                </div>
+                            <tr key={txn.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
+                              <td className="py-3.5 px-5">
+                                <p className="font-bold text-slate-900 dark:text-white">{txn.student_name}</p>
+                                <p className="text-[10px] font-mono text-slate-400 mt-0.5">
+                                  #{txn.reg_no} · <span className={txn.gender === 'FEMALE' ? 'text-pink-500' : 'text-blue-500'}>{txn.gender === 'FEMALE' ? 'Girls' : 'Boys'} Hostel</span>
+                                </p>
                               </td>
-                              <td className="py-3.5 px-4">
+                              <td className="py-3.5 px-5">
                                 <span className={`font-bold ${txn.fee_type === 'HOSTEL' ? 'text-blue-600 dark:text-blue-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                                   {txn.fee_type === 'HOSTEL' ? '🏢 Hostel Fee' : '🍽️ Mess Advance'}
                                 </span>
-                                <div className="text-[10px] text-slate-400">{txn.payment_period || 'Standard'}</div>
+                                <p className="text-[10px] text-slate-400 mt-0.5">{txn.payment_period || 'Standard Term'}</p>
                               </td>
-                              <td className="py-3.5 px-4 font-mono font-black text-slate-900 dark:text-white text-sm">
-                                ₹{Number(txn.amount || 0).toLocaleString('en-IN')}.00
+                              <td className="py-3.5 px-5 font-mono font-black text-slate-900 dark:text-white">
+                                ₹{Number(txn.amount || 0).toLocaleString('en-IN')}
                               </td>
-                              <td className="py-3.5 px-4">
-                                <div className="font-mono text-slate-700 dark:text-slate-300 font-bold">
-                                  {txn.utr_number}
-                                </div>
+                              <td className="py-3.5 px-5">
+                                <p className="font-mono font-bold text-slate-700 dark:text-slate-300">{txn.utr_number || '—'}</p>
                                 {txn.proof_url ? (
                                   <button
                                     onClick={() => setActiveProofModal(txn.proof_url)}
-                                    className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline font-bold mt-0.5 cursor-pointer"
+                                    className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline font-bold mt-0.5 cursor-pointer flex items-center gap-1"
                                   >
-                                    🖼️ View Proof Screenshot
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                                    View Proof Image
                                   </button>
                                 ) : (
                                   <span className="text-[10px] text-slate-400">Direct UTR</span>
                                 )}
                               </td>
-                              <td className="py-3.5 px-4 text-slate-500 text-[11px]">
-                                {new Date(txn.created_at || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                              <td className="py-3.5 px-5 text-slate-500 dark:text-slate-400 text-[11px] font-mono">
+                                {new Date(txn.created_at || Date.now()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                               </td>
-                              <td className="py-3.5 px-4 text-center">
+                              <td className="py-3.5 px-5">
                                 {isPending ? (
-                                  <div className="flex items-center justify-center gap-2">
+                                  <div className="flex items-center gap-2">
                                     <button
                                       onClick={() => handleVerifyPayment(txn.id, 'approve')}
-                                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-sm cursor-pointer"
-                                      title="Approve and generate official receipt number"
+                                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] cursor-pointer transition shadow-sm"
                                     >
-                                      ✓ Verify &amp; Issue Receipt
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                      Verify & Receipt
                                     </button>
                                     <button
                                       onClick={() => handleVerifyPayment(txn.id, 'reject')}
-                                      className="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-sm cursor-pointer"
-                                      title="Reject payment proof"
+                                      className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-rose-100 dark:bg-rose-950 hover:bg-rose-200 text-rose-700 dark:text-rose-400 font-bold text-xs cursor-pointer transition border border-rose-200 dark:border-rose-800"
                                     >
                                       ✕
                                     </button>
                                   </div>
                                 ) : (
-                                  <div>
-                                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
-                                      isApproved ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                                    }`}>
-                                      {isApproved ? `✅ Receipt #${txn.receipt_number || 'VERIFIED'}` : '❌ REJECTED'}
-                                    </span>
-                                  </div>
+                                  <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold border ${
+                                    isApproved
+                                      ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                                      : 'bg-rose-50 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                                  }`}>
+                                    {isApproved ? `✓ Receipt #${txn.receipt_number || 'ISSUED'}` : '✕ Rejected'}
+                                  </span>
                                 )}
                               </td>
                             </tr>
                           );
                         })}
-                      {paymentTransactions.length === 0 && (
+                      {paymentTransactions.filter(t => paymentStatusFilter === 'ALL' || t.status === paymentStatusFilter).length === 0 && (
                         <tr>
-                          <td colSpan={6} className="py-8 text-center text-slate-400">
-                            No student transactions found in queue.
+                          <td colSpan={6} className="py-12 text-center">
+                            <div className="flex flex-col items-center gap-2 text-slate-400">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                              <p className="text-xs font-semibold">No transactions in this queue</p>
+                            </div>
                           </td>
                         </tr>
                       )}
@@ -3376,6 +4365,126 @@ function WardenDashboard() {
                 <span>📥</span> Download Copy
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 📅 WARDEN FEE DEADLINE & PENALTY RATE CONTROLLER MODAL */}
+      {isEditingDueDateModal && (
+        <div
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-3 sm:p-4 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => setIsEditingDueDateModal(false)}
+        >
+          <div
+            className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-5"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-xl">
+                  ⏰
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 dark:text-white">
+                    Set Fee Deadline &amp; Fine Rule
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Warden Master Control
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsEditingDueDateModal(false)}
+                className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center justify-center text-sm font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveDueDateConfig} className="space-y-4">
+              {/* DATE PICKER */}
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                  Fixed Submission Due Date <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={tempDueDate}
+                  onChange={e => setTempDueDate(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-bold outline-none focus:ring-2 focus:ring-[#800000]"
+                />
+              </div>
+
+              {/* QUICK PRESETS */}
+              <div>
+                <span className="text-[11px] font-bold text-slate-400 block mb-1.5">Quick Presets:</span>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { label: '+5 Days', days: 5 },
+                    { label: '+7 Days (1 Wk)', days: 7 },
+                    { label: '+14 Days (2 Wks)', days: 14 }
+                  ].map(p => (
+                    <button
+                      key={p.days}
+                      type="button"
+                      onClick={() => {
+                        const d = new Date();
+                        d.setDate(d.getDate() + p.days);
+                        setTempDueDate(d.toISOString().slice(0, 10));
+                      }}
+                      className="py-2 px-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer text-center"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* LATE PENALTY RATE PER DAY */}
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
+                  Late Penalty Rate (₹ Per Day After Deadline)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="500"
+                    required
+                    value={tempPenaltyRate}
+                    onChange={e => setTempPenaltyRate(e.target.value)}
+                    className="w-full pl-8 pr-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-mono font-black outline-none focus:ring-2 focus:ring-[#800000]"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Default: ₹25 / day. Applied automatically when deadline expires.
+                </p>
+              </div>
+
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-xl border border-amber-200 dark:border-amber-800 text-[11px] text-amber-900 dark:text-amber-200 leading-relaxed">
+                ℹ️ <strong>Live Broadcast Rule:</strong> This date and rate will be applied immediately to all student payment status calculations and notices.
+              </div>
+
+              <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsEditingDueDateModal(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-xl bg-[#800000] hover:bg-[#600000] text-white text-xs font-black uppercase tracking-wider shadow-md cursor-pointer transition-all"
+                >
+                  Save &amp; Broadcast
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

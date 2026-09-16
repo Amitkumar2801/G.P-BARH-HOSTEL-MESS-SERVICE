@@ -2127,7 +2127,7 @@ function StudentDashboard() {
                   {/* STUDENT GENDER-ISOLATED ROOM ALLOCATION BLUEPRINT */}
                   <RoomAllocationGrid
                     gender={String(currentUser?.gender || profileData?.gender || 'MALE').toUpperCase() === 'FEMALE' ? 'FEMALE' : 'MALE'}
-                    studentId={currentUser?.reg_no || currentUser?.reg_no_email || profileData?.regNo || currentUser?.id || '1554424049'}
+                    studentId={currentUser?.role === 'student' ? (currentUser?.reg_no || currentUser?.reg_no_email || profileData?.regNo || currentUser?.id) : '1554424049'}
                     isDarkMode={isDarkMode}
                     onBedRequested={fetchStudentAllotment}
                     activeAllotment={allotmentInfo}

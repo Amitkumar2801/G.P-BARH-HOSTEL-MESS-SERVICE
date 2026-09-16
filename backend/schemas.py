@@ -222,6 +222,15 @@ class StudentDirectoryItem(BaseModel):
     bed_code: Optional[str] = None
     status: str
     profile_completed: bool
+    allotment_status: Optional[str] = "NONE"
+    allotment_date: Optional[str] = None
+    hostel_name: Optional[str] = None
+    payment_status: Optional[str] = "UNPAID"
+    amount_paid: Optional[float] = 0.0
+    utr_number: Optional[str] = None
+    receipt_number: Optional[str] = None
+    payment_date: Optional[str] = None
+    payment_proof_url: Optional[str] = None
 
 # ==========================================
 # DYNAMIC FEE & PAYMENT SCHEMAS
