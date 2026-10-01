@@ -170,7 +170,7 @@ function MessScanner() {
   });
 
   // Load student profile directly from LocalStorage
-  const [currentUser] = useState(() => {
+  const [currentUser, setCurrentUser] = useState(() => {
     try {
       const saved = localStorage.getItem('user');
       if (saved && saved !== 'undefined' && saved !== 'null') {
@@ -181,31 +181,45 @@ function MessScanner() {
       console.warn('Could not parse user profile from localStorage', e);
     }
     return {
-      id: 1,
-      full_name: 'Amit Kumar Sharma',
-      reg_no: '1554424049',
-      branch: 'Artificial Intelligence & Machine Learning',
+      id: null,
+      full_name: 'Student',
+      reg_no: 'Pending',
+      branch: 'Engineering',
       gender: 'MALE',
-      hostel_block: 'Dr. Rajendra Prasad Block',
-      room_number: '102',
-      bed_code: 'Bed B'
+      hostel_block: 'Hostel Block',
+      room_number: 'Unassigned',
+      bed_code: 'Bed'
     };
   });
+
+  useEffect(() => {
+    const token = localStorage.getItem('token') || localStorage.getItem('access_token');
+    if (token) {
+      axios.get('http://127.0.0.1:8000/api/auth/me', {
+        headers: { Authorization: `Bearer ${token}` }
+      }).then(res => {
+        if (res.data) {
+          setCurrentUser(prev => ({ ...prev, ...res.data }));
+        }
+      }).catch(() => {});
+    }
+  }, []);
 
   // Extract dynamic attributes for Boys / Girls Hostel
   const isFemale = String(currentUser?.gender || '').toUpperCase() === 'FEMALE';
   const studentName = String(
-    currentUser?.full_name || currentUser?.fullName || (isFemale ? 'Sana Sharma' : 'Amit Kumar Sharma')
+    currentUser?.full_name || currentUser?.fullName || 'Student'
   ).trim();
-  const studentRegNo = String(currentUser?.reg_no || currentUser?.regNo || (isFemale ? '1554424000' : '1554424049'));
-  const studentBranch = currentUser?.branch || 'Artificial Intelligence & Machine Learning';
+  const studentRegNo = String(currentUser?.reg_no || currentUser?.regNo || 'Pending');
+  const studentBranch = currentUser?.branch || 'Engineering';
   const studentHostelBlock =
+    currentUser?.hostel_name ||
     currentUser?.hostel_block ||
     currentUser?.hostelBlock ||
     (isFemale ? 'Savitribai Phule Girls Hostel' : 'Dr. Rajendra Prasad Block');
-  const studentRoom = currentUser?.room_number || currentUser?.roomNumber || '102';
-  const studentBed = currentUser?.bed_code || currentUser?.bedCode || currentUser?.bed || 'Bed B';
-  const roomBedDisplay = `Room ${studentRoom} • ${studentBed.startsWith('Bed') ? studentBed : 'Bed ' + studentBed}`;
+  const studentRoom = currentUser?.room_number || currentUser?.roomNumber || 'Unassigned';
+  const studentBed = currentUser?.bed_code || currentUser?.bedCode || currentUser?.bed || 'Bed';
+  const roomBedDisplay = studentRoom === 'Unassigned' ? 'Room: Unassigned' : `Room ${studentRoom} • ${studentBed.startsWith('Bed') ? studentBed : 'Bed ' + studentBed}`;
 
   // Active View Mode: 'SCANNER' or 'COUNTER_QR'
   const [activeViewMode, setActiveViewMode] = useState('SCANNER');
@@ -397,7 +411,7 @@ function MessScanner() {
     // Backend sync
     try {
       await axios.post('http://127.0.0.1:8000/api/mess/mark-attendance', {
-        student_id: currentUser?.id || 1,
+        student_id: currentUser?.id,
         student_name: studentName,
         reg_no: studentRegNo,
         gender: isFemale ? 'FEMALE' : 'MALE',
@@ -409,7 +423,12 @@ function MessScanner() {
         token_code: tokenCode,
         seq_num: seqNum
       });
-    } catch {
+    } catch (err) {
+      if (err.response?.status === 409) {
+        toast('Attendance already recorded for this meal today! Verified. ⚡', {
+          icon: 'ℹ️'
+        });
+      }
       // Offline fallback
     }
 

@@ -4,6 +4,19 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import logo from '../assets/logo.png.png';
 import toast, { Toaster } from 'react-hot-toast';
+import { 
+  Lock, 
+  KeyRound, 
+  ShieldCheck, 
+  Eye, 
+  EyeOff, 
+  Check, 
+  AlertCircle, 
+  Sparkles, 
+  CheckCircle2, 
+  ArrowRight,
+  ShieldAlert
+} from 'lucide-react';
 import RoomAllocationGrid from '../components/RoomAllocationGrid';
 import StudentRecordDossier from '../components/StudentRecordDossier';
 import PaymentsHub from '../components/PaymentsHub';
@@ -580,37 +593,94 @@ function StudentDashboard() {
       console.warn("Could not parse user from localStorage", e);
     }
     return {
-      id: 2,
-      full_name: 'AMIT KUMAR SHARMA',
-      reg_no_email: '1554424049',
-      reg_no: '1554424049',
+      id: null,
+      full_name: '',
+      reg_no_email: '',
+      reg_no: '',
       gender: 'MALE',
       role: 'student'
     };
   });
 
-  // Session verification and authentication safeguard
+  // Session verification and dynamic profile loading safeguard
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('user');
-      if (!saved || saved === 'null' || saved === 'undefined') {
-        const token = localStorage.getItem('token') || localStorage.getItem('access_token');
+    const loadProfile = async () => {
+      try {
+        const token = localStorage.getItem('access_token') || localStorage.getItem('token');
         if (!token) {
           navigate('/');
           return;
         }
-      }
-      if (saved && saved !== 'null' && saved !== 'undefined') {
-        const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed === 'object') {
-          setCurrentUser(parsed);
+
+        const res = await axios.get('http://127.0.0.1:8000/api/auth/me', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (res.data) {
+          const u = res.data;
+          setCurrentUser(u);
+          localStorage.setItem('user', JSON.stringify(u));
+
+          setProfileData(prev => ({
+            ...prev,
+            fullName: u.full_name || prev.fullName || '',
+            regNo: u.reg_no || prev.regNo || '',
+            rollNo: u.roll_no || prev.rollNo || '',
+            branch: u.branch || prev.branch || '',
+            session: u.session || u.semester || prev.session || '2024-27',
+            semester: u.session || u.semester || prev.semester || '2024-27',
+            gender: (u.gender || prev.gender || 'MALE').toUpperCase(),
+            email: u.email || prev.email || '',
+            contact: u.mobile || prev.contact || '',
+            category: u.category || prev.category || 'General',
+            hostelBlock: u.hostel_block || prev.hostelBlock || '',
+            roomNumber: u.room_number || prev.roomNumber || '',
+            bedNumber: u.bed_code || prev.bedNumber || '',
+            allotmentStatus: u.allotment_status || 'NONE',
+            feeUnlocked: u.fee_unlocked ?? Boolean(u.room_number && u.bed_code)
+          }));
+
+          if (u.room_number && u.bed_code) {
+            setAllotmentInfo({
+              has_request: true,
+              status: u.allotment_status || 'APPROVED',
+              room_number: u.room_number,
+              bed_code: u.bed_code,
+              hostel_name: u.hostel_block || '',
+              fee_unlocked: true
+            });
+          } else {
+            setAllotmentInfo(prev => ({
+              ...prev,
+              has_request: Boolean(u.allotment_status && u.allotment_status !== 'NONE'),
+              status: u.allotment_status || 'NONE',
+              room_number: '',
+              bed_code: '',
+              hostel_name: u.hostel_block || '',
+              fee_unlocked: false
+            }));
+          }
+
+          const userKey = u.reg_no || u.id || 'default';
+          const userSpecificLock = localStorage.getItem(`gpbarh_profile_locked_${userKey}`);
+          if (userSpecificLock !== null) {
+            setIsProfileLocked(userSpecificLock === 'true');
+          }
         }
+      } catch (err) {
+        console.warn("Could not fetch authenticated profile:", err);
+        if (err.response && err.response.status === 401) {
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          navigate('/');
+        }
+      } finally {
+        setLoading(false);
       }
-    } catch (e) {
-      console.error("Session verification error:", e);
-    } finally {
-      setLoading(false);
-    }
+    };
+
+    loadProfile();
   }, [navigate]);
 
   // Payment Simulation States
@@ -638,48 +708,97 @@ function StudentDashboard() {
   };
 
   const defaultAvatar = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'/%3E%3C/svg%3E";
-  const [profilePic, setProfilePic] = useState(defaultAvatar);
+  const [profilePic, setProfilePic] = useState(() => {
+    try {
+      const saved = localStorage.getItem('user');
+      const u = saved && saved !== 'undefined' && saved !== 'null' ? JSON.parse(saved) : null;
+      const userKey = u?.reg_no || u?.reg_no_email || u?.id || 'default';
+      return (
+        u?.profile_pic ||
+        u?.profilePic ||
+        localStorage.getItem(`gpbarh_student_avatar_${userKey}`) ||
+        localStorage.getItem('gpbarh_student_avatar') ||
+        defaultAvatar
+      );
+    } catch {
+      return defaultAvatar;
+    }
+  });
   const [complaintPreview, setComplaintPreview] = useState(null);
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image file size should be under 5MB!");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64Image = event.target.result;
+      setProfilePic(base64Image);
+      const userKey = currentUser?.reg_no || currentUser?.reg_no_email || currentUser?.id || 'default';
+      localStorage.setItem(`gpbarh_student_avatar_${userKey}`, base64Image);
+      localStorage.setItem('gpbarh_student_avatar', base64Image);
+
+      const updatedUser = {
+        ...currentUser,
+        profile_pic: base64Image,
+        profilePic: base64Image
+      };
+      setCurrentUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+
+      toast.success("Profile photo updated! 📸 Click 'SAVE & LOCK RECORDS' to lock.", {
+        style: { borderRadius: '10px', background: '#2563eb', color: '#fff' }
+      });
+    };
+    reader.readAsDataURL(file);
+  };
 
   const [profileData, setProfileData] = useState(() => {
     let u = {};
+    let savedProfData = {};
     try {
       const saved = localStorage.getItem('user');
       if (saved && saved !== 'undefined' && saved !== 'null') {
         const parsed = JSON.parse(saved);
         if (parsed && typeof parsed === 'object') u = parsed;
       }
+      const userKey = u?.reg_no || u?.reg_no_email || u?.id || 'default';
+      const savedProf = localStorage.getItem(`gpbarh_profile_data_${userKey}`) || localStorage.getItem('gpbarh_profile_data');
+      if (savedProf && savedProf !== 'undefined' && savedProf !== 'null') {
+        savedProfData = JSON.parse(savedProf) || {};
+      }
     } catch (e) {
       console.warn("Could not parse profileData from localStorage", e);
     }
-    const fullNameStr = String(u?.full_name || '');
-    const cleanName = (fullNameStr && !fullNameStr.includes('Chief Warden')) ? fullNameStr : "AMIT SHARMA";
-    const userGender = String(u?.gender || '').toUpperCase() === 'FEMALE' ? 'FEMALE' : 'MALE';
-    const userBlock = u?.hostel_block || u?.hostelBlock || (userGender === 'FEMALE' ? 'Savitribai Phule Girls Hostel' : 'Birsa Munda Block');
-    const regNoStr = String(u?.reg_no || '');
-    const cleanReg = (regNoStr && !regNoStr.includes('@')) ? regNoStr : (userGender === 'FEMALE' ? '1554424000' : '1554424049');
-    const mobileStr = String(u?.mobile || '');
-    const isMockMobile = mobileStr && (mobileStr.includes('42022') || mobileStr.includes('56789'));
-    const addrStr = String(u?.address || '');
-    const isMockAddress = addrStr && (addrStr.includes('Saksohara') || addrStr.includes('Agwanpur') || addrStr.includes('Village, P.O'));
-    const cleanMobile = (mobileStr && !isMockMobile) ? mobileStr : "";
-    const cleanAddress = (addrStr && !isMockAddress) ? addrStr : "";
-    const cleanEmail = userGender === 'FEMALE' ? "sanasharma.gpb.ai@gmail.com" : "amitkumar.gpb.ai@gmail.com";
-    const userPincode = u?.pincode || (userGender === 'FEMALE' ? '803214' : '804401');
-    const userDistrict = u?.home_district || (userGender === 'FEMALE' ? 'Patna (Barh Sub-division)' : 'Arwal');
-    const userState = u?.home_state || 'Bihar';
-    const userDistKm = u?.distance_km !== undefined && u?.distance_km !== null ? u.distance_km : (userGender === 'FEMALE' ? 0.0 : 145.0);
-    const userVerified = u?.distance_verified || false;
+
+    const merged = { ...u, ...savedProfData };
+    const userGender = String(merged?.gender || '').toUpperCase() === 'FEMALE' ? 'FEMALE' : 'MALE';
+    const fullNameStr = String(merged?.fullName || merged?.full_name || '');
+    const cleanName = fullNameStr && !fullNameStr.includes('Chief Warden') ? fullNameStr : "";
+    const userBlock = merged?.hostelBlock || merged?.hostel_block || "";
+    const regNoStr = String(merged?.regNo || merged?.reg_no || '');
+    const cleanReg = regNoStr && !regNoStr.includes('@') ? regNoStr : "";
+    const cleanMobile = merged?.contact || merged?.mobile || "";
+    const cleanAddress = merged?.address || "";
+    const cleanEmail = merged?.email || "";
+    const userPincode = merged?.pincode || "";
+    const userDistrict = merged?.homeDistrict || merged?.home_district || "";
+    const userState = merged?.homeState || merged?.home_state || 'Bihar';
+    const userDistKm = merged?.distanceKm !== undefined && merged?.distanceKm !== null ? merged.distanceKm : (merged?.distance_km !== undefined && merged?.distance_km !== null ? merged.distance_km : 0.0);
+    const userVerified = merged?.distanceVerified !== undefined ? merged.distanceVerified : (merged?.distance_verified || false);
     const userPriority = userDistKm >= 80 ? 'HIGH PRIORITY (>80 KM)' : (userDistKm >= 40 ? 'MEDIUM PRIORITY (40-80 KM)' : 'LOCAL RESIDENT (<40 KM)');
 
     return {
       fullName: cleanName,
       regNo: cleanReg,
-      rollNo: userGender === 'FEMALE' ? '00' : '49',
-      branch: u?.branch || "Artificial Intelligence & Machine Learning",
-      session: u?.session || u?.semester || "2024-27",
-      semester: u?.session || u?.semester || "2024-27",
-      bloodGroup: u?.blood_group || "O+",
+      rollNo: merged?.rollNo || merged?.roll_no || "",
+      branch: merged?.branch || "Artificial Intelligence & Machine Learning",
+      session: merged?.session || merged?.semester || "2024-27",
+      semester: merged?.session || merged?.semester || "2024-27",
+      bloodGroup: merged?.bloodGroup || merged?.blood_group || "O+",
       contact: cleanMobile,
       email: cleanEmail,
       address: cleanAddress,
@@ -765,8 +884,24 @@ function StudentDashboard() {
 
   // 🔒 PROFILE RECORD SECURITY & LOCK STATES
   const [isProfileLocked, setIsProfileLocked] = useState(() => {
-    const savedLock = localStorage.getItem('gpbarh_profile_locked');
-    return savedLock !== null ? JSON.parse(savedLock) : true; // Default locked for security
+    try {
+      const savedUser = localStorage.getItem('user');
+      const parsedUser = savedUser ? JSON.parse(savedUser) : null;
+      // If user profile is not completed or new, always default to UNLOCKED (false)
+      if (parsedUser && (parsedUser.profile_completed === false || parsedUser.profileCompleted === false)) {
+        return false;
+      }
+      const userKey = parsedUser?.reg_no || parsedUser?.reg_no_email || parsedUser?.id || 'default';
+      const userSpecificLock = localStorage.getItem(`gpbarh_profile_locked_${userKey}`);
+      if (userSpecificLock !== null) {
+        return userSpecificLock === 'true';
+      }
+      const savedLock = localStorage.getItem('gpbarh_profile_locked');
+      if (savedLock === 'true' || savedLock === true) return true;
+      return false; // Default UNLOCKED for all new students & first time views
+    } catch {
+      return false;
+    }
   });
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const [unlockPasswordInput, setUnlockPasswordInput] = useState("");
@@ -782,14 +917,11 @@ function StudentDashboard() {
     const inputClean = unlockPasswordInput.trim();
     if (
       inputClean === userPass ||
-      inputClean === 'password123' ||
-      inputClean === '123456' ||
-      inputClean === 'admin123' ||
-      inputClean === 'student123' ||
-      inputClean === currentUser?.reg_no ||
-      inputClean === 'SANAMIT'
+      inputClean === currentUser?.reg_no
     ) {
       setIsProfileLocked(false);
+      const userKey = currentUser?.reg_no || currentUser?.reg_no_email || currentUser?.id || 'default';
+      localStorage.setItem(`gpbarh_profile_locked_${userKey}`, 'false');
       localStorage.setItem('gpbarh_profile_locked', 'false');
       setShowUnlockModal(false);
       setUnlockPasswordInput("");
@@ -805,6 +937,8 @@ function StudentDashboard() {
 
   const handleLockProfile = () => {
     setIsProfileLocked(true);
+    const userKey = currentUser?.reg_no || currentUser?.reg_no_email || currentUser?.id || 'default';
+    localStorage.setItem(`gpbarh_profile_locked_${userKey}`, 'true');
     localStorage.setItem('gpbarh_profile_locked', 'true');
     toast.success("Profile Locked & Secured! 🔒", {
       style: { borderRadius: '10px', background: '#1e293b', color: '#fff' }
@@ -897,32 +1031,68 @@ function StudentDashboard() {
     }
   });
 
-  const fetchStudentAllotment = async () => {
+  const [upgradeMode, setUpgradeMode] = useState(false);
+
+  const fetchStudentAllotment = async (interactive = false) => {
     try {
-      const studentIdentifier = currentUser?.reg_no || currentUser?.reg_no_email || profileData?.regNo || currentUser?.id || '1554424049';
+      const studentIdentifier = currentUser?.reg_no || currentUser?.reg_no_email || profileData?.regNo || currentUser?.id;
       if (!studentIdentifier) return;
       const res = await axios.get(`http://127.0.0.1:8000/api/student/allotment-status/${studentIdentifier}`);
       if (res.data) {
         setAllotmentInfo(res.data);
         if (res.data.status === 'APPROVED') {
-          localStorage.setItem('gpbarh_student_allotment_approved', 'true');
-          localStorage.setItem('gpbarh_allotment_status', 'APPROVED');
+          const userKey = studentIdentifier;
+          localStorage.setItem(`gpbarh_student_allotment_approved_${userKey}`, 'true');
+          localStorage.setItem(`gpbarh_allotment_status_${userKey}`, 'APPROVED');
+
+          const updated = {
+            ...currentUser,
+            room_number: res.data.room_number,
+            bed_code: res.data.bed_code,
+            hostel_block: res.data.hostel_name || res.data.block_name || currentUser.hostel_block,
+            allotment_status: 'APPROVED',
+            fee_unlocked: true
+          };
+          setCurrentUser(updated);
+          localStorage.setItem('user', JSON.stringify(updated));
+
+          if (interactive === true) {
+            toast.success(`Hostel Seat Allotment Approved! 🎉\nRoom ${res.data.room_number} • Bed ${res.data.bed_code} (${res.data.hostel_name || 'Hostel Block'})`, {
+              duration: 5000,
+              style: { borderRadius: '12px', background: '#0f172a', color: '#10b981', border: '1px solid #10b981' }
+            });
+          }
         } else if (res.data.status === 'PENDING') {
           localStorage.setItem('gpbarh_student_allotment_approved', 'false');
           localStorage.setItem('gpbarh_allotment_status', 'PENDING');
+          if (interactive === true) {
+            toast(`Allotment Request Pending Warden Review ⏳\nRoom ${res.data.room_number || ''} • Bed ${res.data.bed_code || ''}`, {
+              duration: 4000,
+              style: { borderRadius: '12px', background: '#0f172a', color: '#facc15', border: '1px solid #eab308' }
+            });
+          }
         } else {
           localStorage.setItem('gpbarh_student_allotment_approved', 'false');
           localStorage.setItem('gpbarh_allotment_status', res.data.status || 'NONE');
+          if (interactive === true) {
+            toast(`Status: ${res.data.status || 'No active request'}. You may select a seat from the blueprint.`, {
+              duration: 4000,
+              style: { borderRadius: '12px', background: '#0f172a', color: '#94a3b8', border: '1px solid #475569' }
+            });
+          }
         }
       }
     } catch (err) {
       console.warn("Could not fetch student allotment status:", err);
+      if (interactive === true) {
+        toast.error("Could not fetch live allotment status. Please check your network connection.");
+      }
     }
   };
 
   useEffect(() => {
     fetchStudentAllotment();
-    const interval = setInterval(fetchStudentAllotment, 4000);
+    const interval = setInterval(() => fetchStudentAllotment(false), 4000);
     return () => clearInterval(interval);
   }, [currentUser, profileData]);
 
@@ -999,65 +1169,97 @@ function StudentDashboard() {
     });
   };
 
-  const handleChangePassword = (e) => {
+  const evaluatePasswordStrength = (pwd) => {
+    if (!pwd) return { score: 0, label: 'Empty', color: 'bg-slate-200 dark:bg-slate-700', width: '0%', textColor: 'text-slate-400' };
+    let score = 0;
+    if (pwd.length >= 8) score++;
+    if (/[0-9]/.test(pwd)) score++;
+    if (/[!@#$%^&*(),.?":{}|<>_~`+\-=\[\]\\;/]/.test(pwd)) score++;
+
+    if (score === 1) return { score: 1, label: 'Weak', color: 'bg-rose-500', width: '33%', textColor: 'text-rose-600 dark:text-rose-400' };
+    if (score === 2) return { score: 2, label: 'Moderate', color: 'bg-amber-500', width: '66%', textColor: 'text-amber-600 dark:text-amber-400' };
+    if (score === 3) return { score: 3, label: 'Strong', color: 'bg-emerald-500', width: '100%', textColor: 'text-emerald-600 dark:text-emerald-400' };
+    return { score: 0, label: 'Too Weak', color: 'bg-slate-300 dark:bg-slate-700', width: '15%', textColor: 'text-slate-400' };
+  };
+
+  const handleChangePassword = async (e) => {
     if (e) e.preventDefault();
-    const userPass = currentUser?.password || currentUser?.pass || 'password123';
     
-    if (!currentPasswordInput.trim()) {
-      toast.error("Please enter your Current Password!");
-      return;
-    }
-    
-    const validCurrentPass =
-      currentPasswordInput === userPass ||
-      currentPasswordInput === 'password123' ||
-      currentPasswordInput === '123456' ||
-      currentPasswordInput === 'admin123' ||
-      currentPasswordInput === 'student123' ||
-      currentPasswordInput === currentUser?.reg_no ||
-      currentPasswordInput === 'SANAMIT';
+    const cleanCurrent = (currentPasswordInput || "").trim();
+    const cleanNew = (newPasswordInput || "").trim();
+    const cleanConfirm = (confirmPasswordInput || "").trim();
 
-    if (!validCurrentPass) {
-      toast.error("Current password is incorrect! Verification failed ❌");
+    if (!cleanCurrent) {
+      toast.error("Please enter your current password.");
       return;
     }
 
-    if (!newPasswordInput || !confirmPasswordInput) {
-      toast.error("Please enter and confirm your new password!");
+    if (!cleanNew || !cleanConfirm) {
+      toast.error("Please enter and confirm your new password.");
       return;
     }
 
-    if (newPasswordInput.length < 6) {
-      toast.error("New password must be at least 6 characters long!");
+    if (cleanNew.length < 8) {
+      toast.error("New password must be at least 8 characters long.");
       return;
     }
 
-    if (newPasswordInput !== confirmPasswordInput) {
-      toast.error("New passwords do not match! Please verify.");
+    if (!/[0-9]/.test(cleanNew)) {
+      toast.error("New password must include at least one numeric digit (0-9).");
+      return;
+    }
+
+    if (!/[!@#$%^&*(),.?":{}|<>_~`+\-=\[\]\\;/]/.test(cleanNew)) {
+      toast.error("New password must include at least one special character (!@#$%^&*).");
+      return;
+    }
+
+    if (cleanNew !== cleanConfirm) {
+      toast.error("New passwords do not match. Please verify.");
       return;
     }
 
     setIsUpdatingPassword(true);
-    setTimeout(() => {
-      setIsUpdatingPassword(false);
-      const updatedUser = {
-        ...currentUser,
-        password: newPasswordInput,
-        pass: newPasswordInput
-      };
-      setCurrentUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      localStorage.setItem('gpbarh_student_password', newPasswordInput);
+    try {
+      const token = localStorage.getItem('access_token') || localStorage.getItem('token') || localStorage.getItem('auth_token');
+      const res = await axios.put("http://127.0.0.1:8000/api/auth/change-password", {
+        current_password: cleanCurrent,
+        new_password: cleanNew
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
 
       setCurrentPasswordInput("");
       setNewPasswordInput("");
       setConfirmPasswordInput("");
 
-      toast.success("Account Password Successfully Changed & Secured! 🔐✅", {
-        duration: 5000,
-        style: { borderRadius: '10px', background: '#166534', color: '#ffffff' }
+      // Show sleek success toast ("Password updated successfully. Please log in again."), clear inputs, and revoke old JWT
+      toast.success(res.data?.message || "Password updated successfully. Please log in again.", {
+        duration: 4000,
+        style: { borderRadius: '12px', background: '#0f172a', color: '#f8fafc', border: '1px solid #334155' }
       });
-    }, 800);
+
+      // Revoke old JWT & credentials
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('token');
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user');
+
+      setTimeout(() => {
+        navigate('/');
+      }, 1600);
+
+    } catch (err) {
+      const msg = err.response?.data?.detail || "Current password does not match our records.";
+      toast.error(msg, {
+        duration: 4000,
+        style: { borderRadius: '12px', background: '#7f1d1d', color: '#fef2f2', border: '1px solid #ef4444' }
+      });
+    } finally {
+      setIsUpdatingPassword(false);
+    }
   };
 
   // Sync settings whenever switching tabs or loading
@@ -1068,35 +1270,11 @@ function StudentDashboard() {
     }
   }, [activeTab]);
 
-  const handleSaveProfile = async () => {
+  const handleSaveProfile = () => {
     const sessionVal = profileData.session || profileData.semester || '2024-27';
     const genderVal = profileData.gender || currentUser?.gender || 'MALE';
-    try {
-      if (currentUser?.id) {
-        await axios.put('http://127.0.0.1:8000/api/student/profile', {
-          user_id: currentUser.id,
-          full_name: profileData.fullName,
-          email: profileData.email || (genderVal === 'FEMALE' ? 'sanasharma.gpb.ai@gmail.com' : 'amitkumar.gpb.ai@gmail.com'),
-          gender: genderVal,
-          branch: profileData.branch,
-          semester: sessionVal,
-          session: sessionVal,
-          roll_no: profileData.rollNo || '24-AIML-01',
-          reg_no: profileData.regNo,
-          mobile: profileData.contact,
-          address: profileData.address,
-          blood_group: profileData.bloodGroup,
-          profile_pic: profilePic,
-          pincode: profileData.pincode,
-          home_district: profileData.homeDistrict,
-          home_state: profileData.homeState || 'Bihar',
-          distance_km: profileData.distanceKm,
-          distance_verified: profileData.distanceVerified || false
-        });
-      }
-    } catch (e) {
-      console.log('Profile API note:', e.message);
-    }
+    const userKey = currentUser?.reg_no || currentUser?.reg_no_email || currentUser?.id || profileData.regNo || 'default';
+
     const updatedUser = {
       ...currentUser,
       full_name: profileData.fullName,
@@ -1106,6 +1284,8 @@ function StudentDashboard() {
       branch: profileData.branch,
       semester: sessionVal,
       session: sessionVal,
+      reg_no: profileData.regNo,
+      email: profileData.email,
       mobile: profileData.contact,
       address: profileData.address,
       blood_group: profileData.bloodGroup,
@@ -1113,18 +1293,60 @@ function StudentDashboard() {
       home_district: profileData.homeDistrict,
       home_state: profileData.homeState || 'Bihar',
       distance_km: profileData.distanceKm,
-      distance_verified: profileData.distanceVerified || false
+      distance_verified: profileData.distanceVerified || false,
+      profile_pic: profilePic,
+      profilePic: profilePic,
+      profile_completed: true
     };
+
+    // ⚡ INSTANT OPTIMISTIC LOCK & LOCAL PERSISTENCE
     setCurrentUser(updatedUser);
     localStorage.setItem('user', JSON.stringify(updatedUser));
-
-    // Automatically lock profile upon saving
+    localStorage.setItem(`gpbarh_profile_data_${userKey}`, JSON.stringify(profileData));
+    localStorage.setItem('gpbarh_profile_data', JSON.stringify(profileData));
+    localStorage.setItem(`gpbarh_student_avatar_${userKey}`, profilePic);
+    localStorage.setItem('gpbarh_student_avatar', profilePic);
     setIsProfileLocked(true);
+
+    localStorage.setItem(`gpbarh_profile_locked_${userKey}`, 'true');
     localStorage.setItem('gpbarh_profile_locked', 'true');
 
-    toast.success("Profile records saved & locked successfully! 🔒✅", {
-      style: { borderRadius: '10px', background: '#166534', color: '#fff' }
+    toast.success("Profile saved & locked successfully! 🔒⚡", {
+      duration: 3500,
+      style: { borderRadius: '12px', background: '#14532d', color: '#ffffff', border: '1px solid #22c55e' }
     });
+
+    // 🚀 Background Non-blocking Database Sync
+    if (currentUser?.id) {
+      axios.put('http://127.0.0.1:8000/api/student/profile', {
+        user_id: currentUser.id,
+        full_name: profileData.fullName || currentUser?.full_name || '',
+        email: profileData.email || currentUser?.email || '',
+        gender: genderVal,
+        branch: profileData.branch,
+        semester: sessionVal,
+        session: sessionVal,
+        roll_no: profileData.rollNo || currentUser?.roll_no || '',
+        reg_no: profileData.regNo,
+        mobile: profileData.contact,
+        address: profileData.address,
+        blood_group: profileData.bloodGroup,
+        profile_pic: profilePic,
+        pincode: profileData.pincode,
+        home_district: profileData.homeDistrict,
+        home_state: profileData.homeState || 'Bihar',
+        distance_km: profileData.distanceKm,
+        distance_verified: profileData.distanceVerified || false
+      }).then(res => {
+        if (res.data) {
+          const freshUser = { ...updatedUser, ...res.data, profile_pic: profilePic, profilePic: profilePic };
+          setCurrentUser(freshUser);
+          localStorage.setItem('user', JSON.stringify(freshUser));
+        }
+      }).catch(err => {
+        console.warn('Background profile sync note:', err.message);
+      });
+    }
   };
 
   const handleWalletTopup = (amount) => {
@@ -1162,9 +1384,9 @@ function StudentDashboard() {
       category: 'Accommodation & Hostel Charges',
       period: 'August 2026',
       amount: rentAmount,
-      paidBy: profileData.fullName || 'Amit Kumar Sharma',
-      regNo: profileData.regNo || '1554424049',
-      roomNo: 'Room 102 (Block A)',
+      paidBy: profileData.fullName || currentUser?.full_name || 'Student',
+      regNo: profileData.regNo || currentUser?.reg_no || '',
+      roomNo: allotmentInfo?.room_number ? `Room ${allotmentInfo.room_number}` : (profileData.roomNumber ? `Room ${profileData.roomNumber}` : 'Room'),
       date: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
       time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
       paymentMethod: mode === 'wallet' ? 'Prepaid Student Wallet' : 'Secure Online Payment Gateway',
@@ -1195,9 +1417,9 @@ function StudentDashboard() {
       category: 'Hostel Mess & Boarding Fee',
       period: 'August 2026',
       amount: messAmount,
-      paidBy: profileData.fullName || 'Amit Kumar Sharma',
-      regNo: profileData.regNo || '1554424049',
-      roomNo: 'Room 102 (Block A)',
+      paidBy: profileData.fullName || currentUser?.full_name || 'Student',
+      regNo: profileData.regNo || currentUser?.reg_no || '',
+      roomNo: allotmentInfo?.room_number ? `Room ${allotmentInfo.room_number}` : (profileData.roomNumber ? `Room ${profileData.roomNumber}` : 'Room'),
       date: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
       time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
       paymentMethod: mode === 'wallet' ? 'Prepaid Student Wallet' : 'Secure Online Payment Gateway',
@@ -1225,9 +1447,7 @@ function StudentDashboard() {
     else document.documentElement.classList.remove('dark-theme');
   }, [isDarkMode]);
 
-  const handleAvatarChange = (e) => {
-    if (e.target.files && e.target.files[0]) setProfilePic(URL.createObjectURL(e.target.files[0]));
-  };
+
 
   const handleComplaintProof = (e) => {
     if (e.target.files && e.target.files[0]) setComplaintPreview(URL.createObjectURL(e.target.files[0]));
@@ -1617,7 +1837,15 @@ function StudentDashboard() {
               );
             })}
           </nav>
-          <button className="logout-btn" onClick={() => navigate("/")}>
+
+          <button className="logout-btn" onClick={() => {
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('gpbarh_student_allotment_approved');
+            localStorage.removeItem('gpbarh_allotment_status');
+            navigate("/");
+          }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
             Secure Log Out
           </button>
@@ -1766,7 +1994,7 @@ function StudentDashboard() {
                             disabled={isProfileLocked}
                             value={profileData.fullName}
                             onChange={e => setProfileData({ ...profileData, fullName: e.target.value })}
-                            placeholder="e.g. AMIT SHARMA"
+                            placeholder="e.g. Full Name"
                             style={isProfileLocked ? { opacity: 0.75, cursor: 'not-allowed', background: 'var(--input-bg)' } : {}}
                           />
                         </div>
@@ -1778,7 +2006,7 @@ function StudentDashboard() {
                             disabled={isProfileLocked}
                             value={profileData.regNo}
                             onChange={e => setProfileData({ ...profileData, regNo: e.target.value })}
-                            placeholder="1554424049"
+                            placeholder="e.g. 1554424049"
                             style={isProfileLocked ? { opacity: 0.75, cursor: 'not-allowed', background: 'var(--input-bg)' } : {}}
                           />
                         </div>
@@ -1821,7 +2049,7 @@ function StudentDashboard() {
                             disabled={isProfileLocked}
                             value={profileData.contact}
                             onChange={e => setProfileData({ ...profileData, contact: e.target.value })}
-                            placeholder={profileData.gender === 'FEMALE' ? "+91 91234 -----" : "+91 88731 -----"}
+                            placeholder="+91 XXXXX XXXXX"
                             style={isProfileLocked ? { opacity: 0.75, cursor: 'not-allowed', background: 'var(--input-bg)' } : {}}
                           />
                         </div>
@@ -1833,7 +2061,7 @@ function StudentDashboard() {
                             disabled={isProfileLocked}
                             value={profileData.email}
                             onChange={e => setProfileData({ ...profileData, email: e.target.value })}
-                            placeholder={profileData.gender === 'FEMALE' ? "sanasharma.gpb.ai@gmail.com" : "amitkumar.gpb.ai@gmail.com"}
+                            placeholder="student@example.com"
                             style={isProfileLocked ? { opacity: 0.75, cursor: 'not-allowed', background: 'var(--input-bg)' } : {}}
                           />
                         </div>
@@ -2002,8 +2230,51 @@ function StudentDashboard() {
                         </span>
                         <button
                           type="button"
-                          onClick={fetchStudentAllotment}
+                          onClick={() => fetchStudentAllotment(true)}
                           style={{ padding: '8px 16px', borderRadius: '10px', background: '#eab308', color: '#000', border: 'none', fontSize: '12px', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                        >
+                          <span>Check Status</span> 🔄
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 🌟 2. PENDING UPGRADE NOTIFICATION BANNER */}
+                  {allotmentInfo?.has_pending_upgrade && (
+                    <div style={{
+                      background: isDarkMode ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(180, 83, 9, 0.32) 100%)' : '#fffbeb',
+                      border: '2px solid #f59e0b',
+                      borderRadius: '16px',
+                      padding: '16px 22px',
+                      margin: '16px 20px 20px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '16px',
+                      flexWrap: 'wrap',
+                      boxShadow: '0 6px 24px rgba(245, 158, 11, 0.22)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                        <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#f59e0b', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', fontWeight: 900, flexShrink: 0 }}>
+                          🔄
+                        </div>
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: isDarkMode ? '#fde68a' : '#92400e' }}>
+                            Room / Seat Upgrade Request Awaiting Warden Approval
+                          </h4>
+                          <p style={{ margin: '4px 0 0', fontSize: '13px', color: isDarkMode ? '#fef3c7' : '#78350f', fontWeight: 600 }}>
+                            Current Room: <strong>Room {allotmentInfo.room_number} • Bed {allotmentInfo.bed_code}</strong> ➔ Requested Upgrade: <strong style={{ color: isDarkMode ? '#ffffff' : '#b45309' }}>Room {allotmentInfo.upgrade_room_number} • Bed {allotmentInfo.upgrade_bed_code}</strong> ({allotmentInfo.upgrade_hostel_name}) • ({allotmentInfo.upgrade_hours_left}h left in review window).
+                          </p>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ padding: '6px 14px', borderRadius: '20px', background: isDarkMode ? 'rgba(245, 158, 11, 0.25)' : '#fef3c7', border: '1px solid #f59e0b', color: isDarkMode ? '#fbbf24' : '#b45309', fontSize: '11px', fontWeight: 900, letterSpacing: '0.5px' }}>
+                          UPGRADE PENDING
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => fetchStudentAllotment(true)}
+                          style={{ padding: '8px 16px', borderRadius: '10px', background: '#f59e0b', color: '#000', border: 'none', fontSize: '12px', fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                         >
                           <span>Check Status</span> 🔄
                         </button>
@@ -2040,6 +2311,26 @@ function StudentDashboard() {
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          onClick={() => setUpgradeMode((prev) => !prev)}
+                          style={{
+                            padding: '8px 16px',
+                            borderRadius: '10px',
+                            background: upgradeMode ? '#f59e0b' : (isDarkMode ? '#1e293b' : '#e2e8f0'),
+                            color: upgradeMode ? '#000' : (isDarkMode ? '#f8fafc' : '#0f172a'),
+                            border: upgradeMode ? '1px solid #d97706' : '1px solid #94a3b8',
+                            fontSize: '12px',
+                            fontWeight: 900,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            boxShadow: upgradeMode ? '0 4px 12px rgba(245,158,11,0.3)' : 'none'
+                          }}
+                        >
+                          <span>{upgradeMode ? '✕ Close Upgrade Mode' : '🔄 Request Room / Seat Change'}</span>
+                        </button>
                         {!isAdmissionFeePaid && (
                           <button
                             type="button"
@@ -2127,10 +2418,12 @@ function StudentDashboard() {
                   {/* STUDENT GENDER-ISOLATED ROOM ALLOCATION BLUEPRINT */}
                   <RoomAllocationGrid
                     gender={String(currentUser?.gender || profileData?.gender || 'MALE').toUpperCase() === 'FEMALE' ? 'FEMALE' : 'MALE'}
-                    studentId={currentUser?.role === 'student' ? (currentUser?.reg_no || currentUser?.reg_no_email || profileData?.regNo || currentUser?.id) : '1554424049'}
+                    studentId={currentUser?.reg_no || currentUser?.reg_no_email || profileData?.regNo || currentUser?.id || ''}
                     isDarkMode={isDarkMode}
                     onBedRequested={fetchStudentAllotment}
                     activeAllotment={allotmentInfo}
+                    upgradeMode={upgradeMode}
+                    onCancelUpgrade={() => setUpgradeMode(false)}
                   />
                 </div>
               )}
@@ -2315,10 +2608,10 @@ function StudentDashboard() {
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: '15px', fontWeight: 900, color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {profileData?.fullName || (profileData?.gender === 'FEMALE' ? 'SANA SHARMA' : 'AMIT KUMAR SHARMA')}
+                              {profileData?.fullName || currentUser?.full_name || 'STUDENT NAME'}
                             </div>
                             <div style={{ fontSize: '11px', color: '#93c5fd', fontFamily: 'monospace', fontWeight: 700, marginTop: '2px' }}>
-                              REG: {profileData?.regNo || (profileData?.gender === 'FEMALE' ? '1554424000' : '1554424049')} • ROLL: {profileData?.rollNo || '49'}
+                              REG: {profileData?.regNo || currentUser?.reg_no || 'PENDING'} • ROLL: {profileData?.rollNo || currentUser?.roll_no || '00'}
                             </div>
                             <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.7)', marginTop: '2px' }}>
                               {profileData?.branch || 'AI & Machine Learning'}
@@ -2332,18 +2625,18 @@ function StudentDashboard() {
                             <div>
                               <span style={{ fontSize: '9px', color: '#94a3b8', display: 'block', fontWeight: 700 }}>CONFIRMED ROOM</span>
                               <strong style={{ color: '#38bdf8', fontSize: '13px' }}>
-                                {allotmentInfo?.room_number ? `Room No. ${allotmentInfo.room_number}` : (profileData?.roomNumber ? `Room No. ${profileData.roomNumber}` : 'Room No. 101')}
+                                {allotmentInfo?.room_number ? `Room No. ${allotmentInfo.room_number}` : (profileData?.roomNumber ? `Room No. ${profileData.roomNumber}` : 'Unassigned')}
                               </strong>
                             </div>
                             <div>
                               <span style={{ fontSize: '9px', color: '#94a3b8', display: 'block', fontWeight: 700 }}>BED POSITION</span>
                               <strong style={{ color: '#38bdf8', fontSize: '13px' }}>
-                                {allotmentInfo?.bed_code ? `Bed ${allotmentInfo.bed_code}` : (profileData?.bedNumber ? `Bed ${profileData.bedNumber}` : 'Bed No. 1 (Bed A)')}
+                                {allotmentInfo?.bed_code ? `Bed ${allotmentInfo.bed_code}` : (profileData?.bedNumber ? `Bed ${profileData.bedNumber}` : 'Unassigned')}
                               </strong>
                             </div>
                           </div>
                           <div style={{ borderTop: '1px dashed rgba(255, 255, 255, 0.12)', marginTop: '8px', paddingTop: '6px', fontSize: '10px', color: '#e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span>🏢 {allotmentInfo?.hostel_name || (profileData?.gender === 'FEMALE' ? 'Savitribai Phule Girls Hostel' : (profileData?.hostelBlock?.toLowerCase().includes('rajendra') ? 'Dr. Rajendra Prasad Boys Hostel' : 'Birsa Munda Boys Hostel'))}</span>
+                            <span>🏢 {allotmentInfo?.hostel_name || profileData?.hostelBlock || 'Hostel Block'}</span>
                             <span style={{ color: isAdmissionFeePaid ? '#4ade80' : '#facc15', fontWeight: 900 }}>
                               ● {isAdmissionFeePaid ? 'ALLOTTED & VERIFIED' : (isAllotmentApproved ? 'APPROVED (PAY TO UNLOCK)' : 'PENDING ALLOTMENT')}
                             </span>
@@ -2669,7 +2962,7 @@ function StudentDashboard() {
                               STUDENT HOSTEL ACCOUNT (PREPAID LEDGER)
                             </div>
                             <div style={{ fontSize: '20px', fontWeight: 800, fontFamily: "'Fraunces', serif" }}>
-                              {profileData.fullName || 'AMIT KUMAR'}
+                              {profileData.fullName || currentUser?.full_name || 'STUDENT'}
                             </div>
                             <div style={{ fontSize: '12px', color: '#cbd5e1', marginTop: '2px', fontFamily: 'monospace' }}>
                               A/C: GPB-HST-{profileData.regNo} • Room #204 (Block-A) • IFSC: GPBARH001
@@ -3074,7 +3367,7 @@ function StudentDashboard() {
                                   textShadow: '0 2px 10px rgba(0,0,0,0.5)'
                                 }}
                               >
-                                {profileData.fullName || (profileData.gender === 'FEMALE' ? 'Sana Sharma' : 'Amit Kumar Sharma')}
+                                {profileData.fullName || currentUser?.full_name || 'STUDENT NAME'}
                               </h3>
                               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
                                 <span
@@ -3089,7 +3382,7 @@ function StudentDashboard() {
                                     border: '1px solid rgba(234, 179, 8, 0.35)'
                                   }}
                                 >
-                                  ID: {profileData.regNo || (profileData.gender === 'FEMALE' ? '1554424000' : '1554424049')}
+                                  ID: {profileData.regNo || currentUser?.reg_no || 'PENDING'}
                                 </span>
                                 <span
                                   style={{
@@ -3186,7 +3479,7 @@ function StudentDashboard() {
                                 ✉️ Email
                               </div>
                               <div style={{ fontSize: '12px', fontWeight: 800, color: '#f8fafc', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={profileData.email}>
-                                {profileData.email || (profileData.gender === 'FEMALE' ? 'sanasharma.gpb.ai@gmail.com' : 'amitkumar.gpb.ai@gmail.com')}
+                                {profileData.email || currentUser?.email || ''}
                               </div>
                             </div>
                           </div>
@@ -3233,7 +3526,7 @@ function StudentDashboard() {
                         <input
                           type="text"
                           className="form-input"
-                          value={bankAccountHolder || profileData.fullName || (profileData.gender === 'FEMALE' ? 'Sana Sharma' : 'Amit Kumar Sharma')}
+                          value={bankAccountHolder || profileData.fullName || currentUser?.full_name || ''}
                           onChange={e => setBankAccountHolder(e.target.value)}
                           placeholder="Must match bank passbook"
                           autoComplete="off"
@@ -3341,190 +3634,221 @@ function StudentDashboard() {
                   <h2 className="page-title">Security &amp; Password</h2>
                   <p className="page-sub">Manage your account credentials, generate secure passkeys, and keep your portal access protected.</p>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-                    <div className="custom-card" style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-                      <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(34, 197, 94, 0.1)', color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
-                        🛡️
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex items-center gap-3.5 shadow-xs">
+                      <div className="w-11 h-11 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40 flex items-center justify-center shrink-0">
+                        <ShieldCheck className="w-5 h-5" />
                       </div>
                       <div>
-                        <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Account Status</div>
-                        <div style={{ fontSize: '15px', fontWeight: 900, color: '#16a34a' }}>Active &amp; Protected</div>
+                        <div className="text-[10.5px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Account Protection</div>
+                        <div className="text-sm font-bold text-slate-900 dark:text-slate-100">Bcrypt Salted Hash</div>
                       </div>
                     </div>
-                    <div className="custom-card" style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-                      <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(37, 99, 235, 0.1)', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
-                        🔑
+
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex items-center gap-3.5 shadow-xs">
+                      <div className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0">
+                        <KeyRound className="w-5 h-5" />
                       </div>
                       <div>
-                        <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Password Strength</div>
-                        <div style={{ fontSize: '15px', fontWeight: 900, color: 'var(--text)' }}>High-Grade Encryption</div>
+                        <div className="text-[10.5px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Security Policy</div>
+                        <div className="text-sm font-bold text-slate-900 dark:text-slate-100">8+ Chars • Num • Symbol</div>
                       </div>
                     </div>
-                    <div className="custom-card" style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-                      <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(234, 179, 8, 0.1)', color: '#ca8a04', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
-                        📱
+
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex items-center gap-3.5 shadow-xs">
+                      <div className="w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/40 flex items-center justify-center shrink-0">
+                        <Lock className="w-5 h-5" />
                       </div>
                       <div>
-                        <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Device Session</div>
-                        <div style={{ fontSize: '15px', fontWeight: 900, color: 'var(--text)' }}>Authenticated ID: {profileData.regNo}</div>
+                        <div className="text-[10.5px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Active Student ID</div>
+                        <div className="text-sm font-bold text-slate-900 dark:text-slate-100 font-mono">{profileData.regNo || currentUser?.reg_no || '1554424049'}</div>
                       </div>
                     </div>
                   </div>
 
                   {/* MAIN CHANGE PASSWORD CARD */}
-                  <div
-                    className="custom-card"
-                    style={{
-                      padding: '32px 28px',
-                      borderRadius: '20px',
-                      background: 'var(--card)',
-                      border: '1px solid var(--border)',
-                      boxShadow: 'var(--shadow)'
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '24px', paddingBottom: '18px', borderBottom: '1px solid var(--border)' }}>
-                      <div>
-                        <h3 style={{ fontSize: '18px', fontWeight: 900, margin: '0 0 4px', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span>🔐</span> Update Account Password
-                        </h3>
-                        <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>
-                          Enter your current password followed by your chosen new password.
-                        </p>
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm">
+                    {/* Card Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100 dark:border-slate-800">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-slate-900 dark:bg-slate-800 text-white flex items-center justify-center shadow-xs">
+                          <KeyRound className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
+                            Update Account Password
+                          </h3>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                            Verify your current password, then specify a new high-security password.
+                          </p>
+                        </div>
                       </div>
 
-                      {/* GENERATE PASSWORD BUTTON */}
                       <button
                         type="button"
                         onClick={generateStrongPassword}
-                        style={{
-                          padding: '10px 20px',
-                          background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.2) 100%)',
-                          color: '#2563eb',
-                          border: '1px solid rgba(37, 99, 235, 0.35)',
-                          borderRadius: '12px',
-                          fontSize: '13px',
-                          fontWeight: 800,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          cursor: 'pointer',
-                          boxShadow: '0 2px 8px rgba(37, 99, 235, 0.15)',
-                          transition: 'all 0.2s'
-                        }}
-                        onMouseOver={(e) => { e.currentTarget.style.background = '#2563eb'; e.currentTarget.style.color = '#fff'; }}
-                        onMouseOut={(e) => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(37, 99, 235, 0.2) 100%)'; e.currentTarget.style.color = '#2563eb'; }}
+                        className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-slate-800 dark:text-slate-200 transition-all border border-slate-200 dark:border-slate-700 active:scale-95 self-start sm:self-auto cursor-pointer"
                       >
-                        <span style={{ fontSize: '15px' }}>⚡</span>
-                        <span>Generate Strong Password</span>
+                        <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                        <span>Generate Strong Key</span>
                       </button>
                     </div>
 
-                    <div className="form-row">
-                      {/* CURRENT PASSWORD */}
-                      <div className="form-group">
-                        <label className="form-label" style={{ fontWeight: 700 }}>Current Password</label>
-                        <div style={{ position: 'relative' }}>
+                    {/* Inputs Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-6">
+                      {/* Current Password */}
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
+                          Current Password
+                        </label>
+                        <div className="relative">
                           <input
-                            className="form-input"
                             type={showCurrentPass ? "text" : "password"}
                             value={currentPasswordInput}
                             onChange={e => setCurrentPasswordInput(e.target.value)}
-                            placeholder="Enter current account password..."
-                            style={{ paddingRight: '44px' }}
+                            placeholder="Enter current password..."
+                            className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 placeholder-slate-400 text-sm font-medium outline-none focus:border-slate-900 dark:focus:border-slate-400 focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-white/10 transition-all"
                           />
                           <button
                             type="button"
                             onClick={() => setShowCurrentPass(!showCurrentPass)}
-                            style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: 'var(--text-muted)' }}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1 cursor-pointer"
+                            title={showCurrentPass ? "Hide password" : "Show password"}
                           >
-                            {showCurrentPass ? '👁️' : '🔒'}
+                            {showCurrentPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                           </button>
                         </div>
                       </div>
 
-                      {/* NEW PASSWORD */}
-                      <div className="form-group">
-                        <label className="form-label" style={{ fontWeight: 700 }}>New Password</label>
-                        <div style={{ position: 'relative' }}>
+                      {/* New Password */}
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
+                          New Password
+                        </label>
+                        <div className="relative">
                           <input
-                            className="form-input"
                             type={showNewPass ? "text" : "password"}
                             value={newPasswordInput}
                             onChange={e => setNewPasswordInput(e.target.value)}
-                            placeholder="Enter new password (min. 6 chars)..."
-                            style={{ paddingRight: '44px' }}
+                            placeholder="Min. 8 chars, 1 num, 1 sym..."
+                            className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 placeholder-slate-400 text-sm font-medium outline-none focus:border-slate-900 dark:focus:border-slate-400 focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-white/10 transition-all"
                           />
                           <button
                             type="button"
                             onClick={() => setShowNewPass(!showNewPass)}
-                            style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: 'var(--text-muted)' }}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1 cursor-pointer"
+                            title={showNewPass ? "Hide password" : "Show password"}
                           >
-                            {showNewPass ? '👁️' : '🔒'}
+                            {showNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                           </button>
                         </div>
                       </div>
 
-                      {/* CONFIRM NEW PASSWORD */}
-                      <div className="form-group">
-                        <label className="form-label" style={{ fontWeight: 700 }}>Confirm New Password</label>
-                        <div style={{ position: 'relative' }}>
+                      {/* Confirm New Password */}
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
+                          Confirm New Password
+                        </label>
+                        <div className="relative">
                           <input
-                            className="form-input"
                             type={showConfirmPass ? "text" : "password"}
                             value={confirmPasswordInput}
                             onChange={e => setConfirmPasswordInput(e.target.value)}
                             placeholder="Re-enter new password..."
-                            style={{ paddingRight: '44px' }}
+                            className={`w-full px-3.5 py-2.5 pr-10 rounded-xl border text-slate-900 dark:text-slate-100 placeholder-slate-400 text-sm font-medium outline-none focus:ring-2 transition-all ${
+                              confirmPasswordInput && newPasswordInput === confirmPasswordInput
+                                ? 'border-emerald-500 dark:border-emerald-600 bg-emerald-50/20 dark:bg-emerald-950/20 focus:ring-emerald-500/20'
+                                : confirmPasswordInput && newPasswordInput !== confirmPasswordInput
+                                ? 'border-rose-400 dark:border-rose-600 bg-rose-50/20 dark:bg-rose-950/20 focus:ring-rose-500/20'
+                                : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 focus:border-slate-900 dark:focus:border-slate-400 focus:ring-slate-900/10 dark:focus:ring-white/10'
+                            }`}
                           />
                           <button
                             type="button"
                             onClick={() => setShowConfirmPass(!showConfirmPass)}
-                            style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: 'var(--text-muted)' }}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1 cursor-pointer"
+                            title={showConfirmPass ? "Hide password" : "Show password"}
                           >
-                            {showConfirmPass ? '👁️' : '🔒'}
+                            {showConfirmPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                           </button>
                         </div>
                       </div>
                     </div>
 
-                    {/* SECURITY GUIDELINES BOX */}
-                    <div style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '14px', padding: '16px 20px', marginTop: '16px', fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '18px' }}>💡</span>
-                      <div>
-                        <strong>Password Tips:</strong> Must be at least 6 characters long. For best security, combine capital letters, numbers, and special symbols (e.g. <code>GPB@738#x</code>).
-                      </div>
-                    </div>
+                    {/* Interactive Password Strength Meter & Requirements */}
+                    {newPasswordInput && (
+                      <div className="mt-5 p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800">
+                        <div className="flex items-center justify-between text-xs mb-2">
+                          <span className="font-semibold text-slate-700 dark:text-slate-300">Password Strength</span>
+                          <span className={`font-bold uppercase tracking-wider ${evaluatePasswordStrength(newPasswordInput).textColor}`}>
+                            {evaluatePasswordStrength(newPasswordInput).label}
+                          </span>
+                        </div>
+                        {/* Progress Bar */}
+                        <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden mb-3">
+                          <div
+                            className={`h-full transition-all duration-300 ${evaluatePasswordStrength(newPasswordInput).color}`}
+                            style={{ width: evaluatePasswordStrength(newPasswordInput).width }}
+                          ></div>
+                        </div>
 
-                    <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
+                        {/* Criteria Checklist */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                          <div className={`flex items-center gap-1.5 ${newPasswordInput.length >= 8 ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-400 dark:text-slate-500'}`}>
+                            <span className="text-xs">{newPasswordInput.length >= 8 ? '✓' : '•'}</span>
+                            <span>At least 8 characters</span>
+                          </div>
+                          <div className={`flex items-center gap-1.5 ${/[0-9]/.test(newPasswordInput) ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-400 dark:text-slate-500'}`}>
+                            <span className="text-xs">{/[0-9]/.test(newPasswordInput) ? '✓' : '•'}</span>
+                            <span>At least 1 number (0-9)</span>
+                          </div>
+                          <div className={`flex items-center gap-1.5 ${/[!@#$%^&*(),.?":{}|<>_~`+\-=\[\]\\;/]/.test(newPasswordInput) ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-400 dark:text-slate-500'}`}>
+                            <span className="text-xs">{/[!@#$%^&*(),.?":{}|<>_~`+\-=\[\]\\;/]/.test(newPasswordInput) ? '✓' : '•'}</span>
+                            <span>At least 1 special char</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Match Alert Indicator */}
+                    {confirmPasswordInput && (
+                      <div className="mt-3 text-xs flex items-center gap-1.5">
+                        {newPasswordInput === confirmPasswordInput ? (
+                          <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                            <Check className="w-3.5 h-3.5" /> Passwords match perfectly
+                          </span>
+                        ) : (
+                          <span className="text-rose-500 dark:text-rose-400 font-medium flex items-center gap-1">
+                            <AlertCircle className="w-3.5 h-3.5" /> Passwords do not match yet
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Footer Actions */}
+                    <div className="mt-7 pt-5 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+                      <div className="text-xs text-slate-500 dark:text-slate-400 text-center sm:text-left">
+                        Updating will invalidate your active session and require you to sign in again.
+                      </div>
+
                       <button
                         type="button"
-                        className="btn-primary"
                         disabled={isUpdatingPassword}
                         onClick={handleChangePassword}
-                        style={{
-                          padding: '14px 36px',
-                          background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                          color: '#ffffff',
-                          borderRadius: '12px',
-                          fontWeight: 800,
-                          fontSize: '14px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '10px',
-                          cursor: isUpdatingPassword ? 'wait' : 'pointer',
-                          border: 'none',
-                          boxShadow: '0 6px 20px rgba(37, 99, 235, 0.35)',
-                          transition: 'all 0.2s'
-                        }}
-                        onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(37, 99, 235, 0.45)'; }}
-                        onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(37, 99, 235, 0.35)'; }}
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 shadow-sm transition-all duration-200 cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {isUpdatingPassword ? (
-                          <span>Updating Password... ⏳</span>
+                          <>
+                            <svg className="animate-spin h-3.5 w-3.5 text-current" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                            </svg>
+                            <span>Updating Password...</span>
+                          </>
                         ) : (
                           <>
-                            <span>🔐</span>
-                            <span>SAVE &amp; UPDATE PASSWORD</span>
+                            <Lock className="w-3.5 h-3.5" />
+                            <span>Save &amp; Update Password</span>
                           </>
                         )}
                       </button>
@@ -3656,15 +3980,15 @@ function StudentDashboard() {
               <tbody>
                 <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
                   <td style={{ padding: '6px 8px', color: '#64748b', fontWeight: 700, width: '22%' }}>Student Name:</td>
-                  <td style={{ padding: '6px 8px', fontWeight: 900, color: '#0f172a', width: '28%' }}>{profileData?.fullName || (profileData?.gender === 'FEMALE' ? 'SANA SHARMA' : 'AMIT KUMAR SHARMA')}</td>
+                  <td style={{ padding: '6px 8px', fontWeight: 900, color: '#0f172a', width: '28%' }}>{profileData?.fullName || currentUser?.full_name || 'STUDENT NAME'}</td>
                   <td style={{ padding: '6px 8px', color: '#64748b', fontWeight: 700, width: '22%' }}>Registration No:</td>
-                  <td style={{ padding: '6px 8px', fontWeight: 900, color: '#0f172a', width: '28%', fontFamily: 'monospace' }}>{profileData?.regNo || (profileData?.gender === 'FEMALE' ? '1554424000' : '1554424049')}</td>
+                  <td style={{ padding: '6px 8px', fontWeight: 900, color: '#0f172a', width: '28%', fontFamily: 'monospace' }}>{profileData?.regNo || currentUser?.reg_no || 'PENDING'}</td>
                 </tr>
                 <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
                   <td style={{ padding: '6px 8px', color: '#64748b', fontWeight: 700 }}>Discipline / Branch:</td>
                   <td style={{ padding: '6px 8px', fontWeight: 800 }}>{profileData?.branch || 'Artificial Intelligence & Machine Learning'}</td>
                   <td style={{ padding: '6px 8px', color: '#64748b', fontWeight: 700 }}>Class Roll No:</td>
-                  <td style={{ padding: '6px 8px', fontWeight: 900, color: '#0f172a' }}>{profileData?.rollNo || currentUser?.roll_no || (profileData?.gender === 'FEMALE' ? '00' : '49')}</td>
+                  <td style={{ padding: '6px 8px', fontWeight: 900, color: '#0f172a' }}>{profileData?.rollNo || currentUser?.roll_no || '00'}</td>
                 </tr>
                 <tr>
                   <td style={{ padding: '6px 8px', color: '#64748b', fontWeight: 700 }}>Hostel Name:</td>
@@ -3699,13 +4023,13 @@ function StudentDashboard() {
                 <tr>
                   <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>1</td>
                   <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}><strong>Hostel Room</strong> (Ground Floor, Main Wing)</td>
-                  <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'center', fontWeight: 900, color: '#1e40af' }}>Room No. 101</td>
+                  <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'center', fontWeight: 900, color: '#1e40af' }}>{allotmentInfo?.room_number ? `Room No. ${allotmentInfo.room_number}` : 'Room No. 101'}</td>
                   <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'center', color: '#16a34a', fontWeight: 800 }}>Inspected &amp; Handed Over</td>
                 </tr>
                 <tr style={{ background: '#f8fafc' }}>
                   <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'center' }}>2</td>
                   <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}><strong>Single Bed &amp; Foam Mattress</strong> (Standard Size)</td>
-                  <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'center', fontWeight: 900, color: '#1e40af' }}>Bed No. 1 (Bed A)</td>
+                  <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'center', fontWeight: 900, color: '#1e40af' }}>{allotmentInfo?.bed_code ? `Bed ${allotmentInfo.bed_code}` : 'Bed No. 1 (Bed A)'}</td>
                   <td style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'center', color: '#16a34a', fontWeight: 800 }}>Inspected &amp; Handed Over</td>
                 </tr>
                 <tr>
@@ -3765,7 +4089,7 @@ function StudentDashboard() {
               <div style={{ textAlign: 'center', width: '180px' }}>
                 <div style={{ height: '30px' }}></div>
                 <div style={{ borderTop: '1px solid #0f172a', paddingTop: '4px', fontWeight: 800 }}>Signature of Student</div>
-                <div style={{ fontSize: '9.5px', color: '#64748b' }}>({profileData?.fullName || (profileData?.gender === 'FEMALE' ? 'Sana Sharma' : 'Amit Kumar Sharma')})</div>
+                <div style={{ fontSize: '9.5px', color: '#64748b' }}>({profileData?.fullName || currentUser?.full_name || 'Student'})</div>
               </div>
 
               <div style={{ textAlign: 'center' }}>
@@ -4077,15 +4401,15 @@ function StudentDashboard() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: '6px', columnGap: '12px', fontSize: '11.5px' }}>
                     <div>
                       <span style={{ color: '#64748b', fontWeight: 700, display: 'block', fontSize: '9.5px' }}>STUDENT NAME</span>
-                      <strong style={{ color: '#0f172a' }}>{profileData?.fullName || (profileData?.gender === 'FEMALE' ? 'Sana Sharma' : 'Amit Kumar Sharma')}</strong>
+                      <strong style={{ color: '#0f172a' }}>{profileData?.fullName || currentUser?.full_name || 'STUDENT NAME'}</strong>
                     </div>
                     <div>
                       <span style={{ color: '#64748b', fontWeight: 700, display: 'block', fontSize: '9.5px' }}>ROLL / REG NO</span>
-                      <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>{profileData?.regNo || (profileData?.gender === 'FEMALE' ? '1554424000' : '1554424049')}</strong>
+                      <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>{profileData?.regNo || currentUser?.reg_no || 'PENDING'}</strong>
                     </div>
                     <div>
                       <span style={{ color: '#64748b', fontWeight: 700, display: 'block', fontSize: '9.5px' }}>CLASS ROLL NO</span>
-                      <strong style={{ color: '#0f172a' }}>{profileData?.rollNo || currentUser?.roll_no || (profileData?.gender === 'FEMALE' ? '00' : '49')}</strong>
+                      <strong style={{ color: '#0f172a' }}>{profileData?.rollNo || currentUser?.roll_no || '00'}</strong>
                     </div>
                     <div>
                       <span style={{ color: '#64748b', fontWeight: 700, display: 'block', fontSize: '9.5px' }}>DISCIPLINE / BRANCH</span>
