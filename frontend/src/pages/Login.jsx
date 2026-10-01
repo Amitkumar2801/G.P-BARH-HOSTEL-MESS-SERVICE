@@ -4,6 +4,23 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { QRCodeSVG } from 'qrcode.react';
 import toast from 'react-hot-toast';
+import {
+  KeyRound,
+  ShieldCheck,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  ArrowLeft,
+  Check,
+  AlertCircle,
+  Sparkles,
+  RefreshCw,
+  X,
+  CheckCircle2,
+  User
+} from 'lucide-react';
 import PublicNoticeModal from '../components/PublicNoticeModal';
 import '../App.css';
 
@@ -36,12 +53,18 @@ function Login() {
 
   // FORGOT PASSWORD MODAL STATES
   const [showForgotModal, setShowForgotModal] = useState(false);
-  const [forgotStep, setForgotStep] = useState(1); // 1: Verify Identity, 2: OTP, 3: Set Password
+  const [forgotStep, setForgotStep] = useState(1); // 1: Verify Identity, 2: 6-Digit OTP, 3: Set Password
   const [forgotInput, setForgotInput] = useState("");
-  const [forgotOtp, setForgotOtp] = useState("");
+  const [forgotTargetEmail, setForgotTargetEmail] = useState("");
+  const [otpBoxes, setOtpBoxes] = useState(['', '', '', '', '', '']);
+  const otpRefs = useRef([]);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showForgotNewPass, setShowForgotNewPass] = useState(false);
+  const [showForgotConfirmPass, setShowForgotConfirmPass] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [isForgotLoading, setIsForgotLoading] = useState(false);
+  const [forgotOtpError, setForgotOtpError] = useState("");
 
   const navigate = useNavigate();
 
@@ -52,29 +75,29 @@ function Login() {
       if (AudioCtx) {
         const ctx = new AudioCtx();
         const now = ctx.currentTime;
-        
+
         const osc1 = ctx.createOscillator();
         const osc2 = ctx.createOscillator();
         const gainNode = ctx.createGain();
-        
+
         osc1.type = 'sine';
         osc2.type = 'triangle';
-        
+
         osc1.frequency.setValueAtTime(523.25, now); // C5
         osc1.frequency.exponentialRampToValueAtTime(659.25, now + 0.12); // E5
         osc1.frequency.exponentialRampToValueAtTime(783.99, now + 0.24); // G5
         osc1.frequency.exponentialRampToValueAtTime(1046.50, now + 0.36); // C6
-        
+
         osc2.frequency.setValueAtTime(261.63, now);
         osc2.frequency.exponentialRampToValueAtTime(523.25, now + 0.36);
-        
+
         gainNode.gain.setValueAtTime(0.35, now);
         gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
-        
+
         osc1.connect(gainNode);
         osc2.connect(gainNode);
         gainNode.connect(ctx.destination);
-        
+
         osc1.start(now);
         osc2.start(now);
         osc1.stop(now + 0.7);
@@ -194,70 +217,200 @@ function Login() {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
+  // Resend cooldown timer for OTP
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setInterval(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(t);
+  }, [resendCooldown]);
+
+  // Auto-focus first OTP box when entering stage 2
+  useEffect(() => {
+    if (showForgotModal && forgotStep === 2) {
+      setTimeout(() => {
+        otpRefs.current[0]?.focus();
+      }, 100);
+    }
+  }, [showForgotModal, forgotStep]);
+
+  // Individual 6-Digit OTP Box Handlers (Auto-focus & Auto-advance)
+  const handleOtpBoxChange = (idx, val) => {
+    if (forgotOtpError) setForgotOtpError("");
+    const clean = val.replace(/\D/g, '');
+    if (!clean) {
+      const next = [...otpBoxes];
+      next[idx] = '';
+      setOtpBoxes(next);
+      return;
+    }
+    // Auto-distribute if user pastes multi-character code
+    if (clean.length > 1) {
+      const chars = clean.slice(0, 6).split('');
+      const next = [...otpBoxes];
+      chars.forEach((c, i) => {
+        if (i < 6) next[i] = c;
+      });
+      setOtpBoxes(next);
+      const focusTarget = Math.min(chars.length, 5);
+      otpRefs.current[focusTarget]?.focus();
+      return;
+    }
+
+    const next = [...otpBoxes];
+    next[idx] = clean;
+    setOtpBoxes(next);
+
+    // Auto-advance to next input box
+    if (idx < 5) {
+      otpRefs.current[idx + 1]?.focus();
+    }
+  };
+
+  const handleOtpBoxKeyDown = (idx, e) => {
+    if (forgotOtpError) setForgotOtpError("");
+    if (e.key === 'Backspace' && !otpBoxes[idx] && idx > 0) {
+      otpRefs.current[idx - 1]?.focus();
+    }
+  };
+
+  const evaluateForgotPassStrength = (pwd) => {
+    if (!pwd) return { score: 0, label: 'Empty', color: 'bg-slate-200 dark:bg-slate-700', width: '0%', textColor: 'text-slate-400' };
+    let score = 0;
+    if (pwd.length >= 8) score++;
+    if (/[0-9]/.test(pwd)) score++;
+    if (/[!@#$%^&*(),.?":{}|<>_~`+\-=\[\]\\;/]/.test(pwd)) score++;
+
+    if (score === 1) return { score: 1, label: 'Weak', color: 'bg-rose-500', width: '33%', textColor: 'text-rose-600 dark:text-rose-400' };
+    if (score === 2) return { score: 2, label: 'Moderate', color: 'bg-amber-500', width: '66%', textColor: 'text-amber-600 dark:text-amber-400' };
+    if (score === 3) return { score: 3, label: 'Strong', color: 'bg-emerald-500', width: '100%', textColor: 'text-emerald-600 dark:text-emerald-400' };
+    return { score: 0, label: 'Too Short', color: 'bg-slate-300 dark:bg-slate-700', width: '15%', textColor: 'text-slate-400' };
+  };
+
   // FORGOT PASSWORD HANDLERS
-  const handleSendOtp = (e) => {
-    e.preventDefault();
-    if (!forgotInput.trim()) {
+  const handleSendOtp = async (e) => {
+    if (e) e.preventDefault();
+    const cleanIdent = (forgotInput || "").trim();
+    if (!cleanIdent) {
       toast.error("Please enter your Registration ID or Registered Email!");
       return;
     }
     setIsForgotLoading(true);
-    setTimeout(() => {
-      setIsForgotLoading(false);
-      setForgotStep(2);
-      toast.success("Verification Code sent to your registered contact! (Use OTP: 749201)", {
-        duration: 5000,
-        style: { borderRadius: '10px', background: '#333', color: '#fff' }
+    try {
+      const res = await axios.post("http://127.0.0.1:8000/api/auth/send-otp", {
+        identifier: cleanIdent,
+        email: cleanIdent,
+        purpose: "FORGOT_PASSWORD"
       });
-    }, 1000);
-  };
-
-  const handleVerifyOtp = (e) => {
-    e.preventDefault();
-    if (!forgotOtp.trim()) {
-      toast.error("Please enter the 6-digit verification code!");
-      return;
-    }
-    if (forgotOtp !== "749201" && forgotOtp.length !== 6) {
-      toast.error("Invalid Code! Please enter 749201 to verify.");
-      return;
-    }
-    setIsForgotLoading(true);
-    setTimeout(() => {
-      setIsForgotLoading(false);
-      setForgotStep(3);
-      toast.success("Identity Verified! Please enter your new password.");
-    }, 900);
-  };
-
-  const handleResetPassword = (e) => {
-    e.preventDefault();
-    if (!newPassword || !confirmPassword) {
-      toast.error("Please fill in both password fields!");
-      return;
-    }
-    if (newPassword.length < 6) {
-      toast.error("Password must be at least 6 characters long!");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      toast.error("Passwords do not match! Please verify.");
-      return;
-    }
-    setIsForgotLoading(true);
-    setTimeout(() => {
-      setIsForgotLoading(false);
-      toast.success("Password reset successfully! You can now log in with your new password.", {
+      setForgotTargetEmail(res.data?.email || cleanIdent);
+      setForgotStep(2);
+      setResendCooldown(60);
+      setOtpBoxes(['', '', '', '', '', '']);
+      setForgotOtpError("");
+      toast.success("6-digit OTP sent to your email. Please check your inbox / spam folder.", {
+        duration: 6000,
+        style: { borderRadius: '12px', background: '#0f172a', color: '#f8fafc', border: '1px solid #334155' }
+      });
+    } catch (err) {
+      const detail = err.response?.data?.detail || "Could not dispatch OTP. Please check your registration ID/email.";
+      toast.error(detail, {
         duration: 5000,
-        style: { borderRadius: '10px', background: '#166534', color: '#fff' }
+        style: { borderRadius: '12px', background: '#7f1d1d', color: '#fef2f2', border: '1px solid #ef4444' }
+      });
+    } finally {
+      setIsForgotLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    if (e) e.preventDefault();
+    const fullOtp = otpBoxes.join('').trim();
+    if (fullOtp.length !== 6) {
+      setForgotOtpError("Wrong OTP! Please enter all 6 digits.");
+      toast.error("Please enter the complete 6-digit verification code!");
+      return;
+    }
+    setIsForgotLoading(true);
+    try {
+      const res = await axios.post("http://127.0.0.1:8000/api/auth/verify-otp", {
+        identifier: forgotInput.trim(),
+        email: forgotInput.trim(),
+        otp: fullOtp,
+        purpose: "FORGOT_PASSWORD"
+      });
+      setForgotOtpError("");
+      setForgotStep(3);
+      toast.success(res.data?.message || "Identity confirmed. Please set your new password.", {
+        duration: 4000,
+        style: { borderRadius: '12px', background: '#0f172a', color: '#f8fafc', border: '1px solid #334155' }
+      });
+    } catch (err) {
+      const errorMsg = "Wrong OTP! Please enter the correct 6-digit code.";
+      setForgotOtpError(errorMsg);
+      toast.error(errorMsg, {
+        duration: 4000,
+        style: { borderRadius: '12px', background: '#7f1d1d', color: '#fef2f2', border: '1px solid #ef4444' }
+      });
+    } finally {
+      setIsForgotLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    if (e) e.preventDefault();
+    const cleanNew = (newPassword || "").trim();
+    const cleanConfirm = (confirmPassword || "").trim();
+    const fullOtp = otpBoxes.join('').trim();
+
+    if (!cleanNew || !cleanConfirm) {
+      toast.error("Please fill in both password fields.");
+      return;
+    }
+    if (cleanNew.length < 8) {
+      toast.error("New password must be at least 8 characters long.");
+      return;
+    }
+    if (!/[0-9]/.test(cleanNew)) {
+      toast.error("New password must include at least one numeric digit (0-9).");
+      return;
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>_~`+\-=\[\]\\;/]/.test(cleanNew)) {
+      toast.error("New password must include at least one special character (!@#$%^&*).");
+      return;
+    }
+    if (cleanNew !== cleanConfirm) {
+      toast.error("Passwords do not match. Please verify.");
+      return;
+    }
+    setIsForgotLoading(true);
+    try {
+      const res = await axios.post("http://127.0.0.1:8000/api/auth/reset-password", {
+        identifier: forgotInput.trim(),
+        email: forgotInput.trim(),
+        otp: fullOtp,
+        new_password: cleanNew
+      });
+      toast.success(res.data?.message || "Password successfully reset! You can now log in with your new credentials.", {
+        duration: 5000,
+        style: { borderRadius: '12px', background: '#0f172a', color: '#f8fafc', border: '1px solid #10b981' }
       });
       setShowForgotModal(false);
       setForgotStep(1);
       setForgotInput("");
-      setForgotOtp("");
+      setForgotTargetEmail("");
+      setOtpBoxes(['', '', '', '', '', '']);
       setNewPassword("");
       setConfirmPassword("");
-    }, 1100);
+    } catch (err) {
+      const detail = err.response?.data?.detail || "Failed to reset password. Please verify your OTP code.";
+      toast.error(detail, {
+        duration: 4000,
+        style: { borderRadius: '12px', background: '#7f1d1d', color: '#fef2f2', border: '1px solid #ef4444' }
+      });
+    } finally {
+      setIsForgotLoading(false);
+    }
   };
 
   // API CALL: HANDLE LOGIN
@@ -281,13 +434,14 @@ function Login() {
     setIsLoading(true);
     try {
       const endpoints = [
+        "http://127.0.0.1:8000/api/auth/login",
         "http://127.0.0.1:8000/login",
-        "http://localhost:8000/login",
+        "/api/auth/login",
         "/login"
       ];
       let response = null;
       let lastErr = null;
-      
+
       for (const ep of endpoints) {
         try {
           response = await axios.post(ep, {
@@ -300,62 +454,25 @@ function Login() {
         }
       }
 
-      let loggedInUser = response?.data?.user;
-
-      // Resilient Smart Offline/Alias Fallback (if backend is restarting or on custom email)
-      if (!loggedInUser && (password === 'SANAMIT' || password.length >= 4)) {
-        const lowerInput = inputClean.toLowerCase();
-        if (lowerInput === 'warden@gpbarh.ac.in' || lowerInput === 'warden') {
-          loggedInUser = {
-            id: 3,
-            full_name: 'Chief Warden (Hostel Admin)',
-            reg_no_email: 'warden@gpbarh.ac.in',
-            email: 'warden@gpbarh.ac.in',
-            role: 'warden',
-            gender: 'MALE',
-            branch: 'Hostel Administration'
-          };
-        } else if (lowerInput.includes('sana') || lowerInput === '1554424000') {
-          loggedInUser = {
-            id: 1,
-            full_name: 'SANA SHARMA',
-            reg_no_email: '1554424000',
-            reg_no: '1554424000',
-            email: inputClean.includes('@') ? inputClean : 'sanasharma.gpb.ai@gmail.com',
-            role: 'student',
-            gender: 'FEMALE',
-            branch: 'Artificial Intelligence & Machine Learning',
-            semester: '2024-27',
-            session: '2024-27',
-            mobile: '+91 98765 43210',
-            profile_completed: true
-          };
-        } else if (lowerInput.includes('amit') || lowerInput === '1554424049' || !isNaN(Number(lowerInput))) {
-          loggedInUser = {
-            id: 2,
-            full_name: 'AMIT KUMAR SHARMA',
-            reg_no_email: '1554424049',
-            reg_no: '1554424049',
-            email: inputClean.includes('@') ? inputClean : 'amitkumar.gpb.ai@gmail.com',
-            role: 'student',
-            gender: 'MALE',
-            branch: 'Artificial Intelligence & Machine Learning',
-            semester: '2024-27',
-            session: '2024-27',
-            mobile: '+91 88731 42022',
-            profile_completed: true
-          };
-        }
-      }
+      const loggedInUser = response?.data?.user;
+      const accessToken = response?.data?.access_token || response?.data?.token;
 
       if (loggedInUser) {
         setLoginError("");
-        toast.success(`Authentication Successful: Login successful!\nWelcome, ${loggedInUser.full_name}. Redirecting...`, {
+        toast.success(`Authentication Successful!\nWelcome, ${loggedInUser.full_name}. Redirecting...`, {
           duration: 3000,
           style: { borderRadius: '10px', background: '#14532d', color: '#fff', border: '1px solid #22c55e' }
         });
 
         localStorage.setItem('user', JSON.stringify(loggedInUser));
+        if (accessToken) {
+          localStorage.setItem('access_token', accessToken);
+          localStorage.setItem('token', accessToken);
+        }
+        // Clear previous user's allotment cache keys so the new session is strictly isolated
+        localStorage.removeItem('gpbarh_student_allotment_approved');
+        localStorage.removeItem('gpbarh_allotment_status');
+
         const role = (loggedInUser.role || '').toLowerCase();
         setTimeout(() => {
           if (role === 'warden') {
@@ -371,15 +488,11 @@ function Login() {
 
       throw lastErr || new Error("Incorrect email / registration ID or password.");
     } catch (error) {
-      let errorDetail = "Incorrect username or password. Please try again.";
-      if (error.response && error.response.status === 401) {
-        errorDetail = "Incorrect email / registration ID or password.";
-      } else if (error.response && error.response.data && error.response.data.detail) {
+      let errorDetail = "Incorrect email / registration ID or password.";
+      if (error.response && error.response.data && error.response.data.detail) {
         errorDetail = error.response.data.detail;
-      } else if (!error.response) {
-        errorDetail = "Incorrect email / registration ID or password.";
       }
-      
+
       setLoginError(errorDetail);
       setShakeForm(true);
       setTimeout(() => setShakeForm(false), 500);
@@ -452,6 +565,8 @@ function Login() {
               <h2 className="text-[9px] md:text-[11px] font-semibold tracking-widest uppercase opacity-95 mt-0.5">Government Polytechnic, Barh</h2>
             </div>
           </div>
+          <div className="flex items-center gap-2">
+          </div>
         </div>
       </header>
 
@@ -460,11 +575,10 @@ function Login() {
         <div className={`absolute inset-0 transition-colors duration-500 ${isDarkMode ? 'bg-black/75' : 'bg-black/40'}`}></div>
 
         {/* 🌟 SPLIT MODERN CARD (RESPONSIVE: SINGLE CARD ON MOBILE/APK, SPLIT WITH QR ON DESKTOP) 🌟 */}
-        <div className={`relative z-10 rounded-[32px] shadow-[0_25px_70px_rgba(0,0,0,0.35)] flex flex-col md:flex-row w-full max-w-[460px] md:max-w-[980px] min-h-[500px] md:min-h-[580px] overflow-hidden border transition-all duration-300 ${
-          isDarkMode 
-            ? 'bg-[#111827] border-gray-800 text-white' 
+        <div className={`relative z-10 rounded-[32px] shadow-[0_25px_70px_rgba(0,0,0,0.35)] flex flex-col md:flex-row w-full max-w-[460px] md:max-w-[980px] min-h-[500px] md:min-h-[580px] overflow-hidden border transition-all duration-300 ${isDarkMode
+            ? 'bg-[#111827] border-gray-800 text-white'
             : 'bg-white border-gray-100 text-gray-900 shadow-2xl'
-        }`}>
+          }`}>
 
           {/* LEFT SIDE: CLEAN WHITE SIGN IN FORM */}
           <div className="w-full md:w-[54%] p-6 sm:p-10 lg:p-12 flex flex-col justify-between relative bg-white dark:bg-[#111827]">
@@ -568,7 +682,11 @@ function Login() {
                       onClick={() => {
                         setShowForgotModal(true);
                         setForgotStep(1);
-                        setForgotInput(userId || "");
+                        setForgotInput("");
+                        setForgotTargetEmail("");
+                        setOtpBoxes(['', '', '', '', '', '']);
+                        setNewPassword("");
+                        setConfirmPassword("");
                       }}
                       className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 hover:underline cursor-pointer bg-transparent border-none p-0"
                     >
@@ -577,28 +695,61 @@ function Login() {
                   </div>
                 </div>
 
-                {/* SIGN IN BUTTON */}
-                <div className="pt-2">
+                {/* SIGN IN BUTTON - PRIMARY ACTION */}
+                <div className="pt-1">
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full py-3.5 bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold text-sm rounded-xl shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer border-none flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-60"
+                    id="btn-login-submit"
+                    className="w-full group py-3.5 px-5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:via-indigo-500 hover:to-blue-600 text-white font-bold text-sm rounded-xl shadow-md hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-200 cursor-pointer border-0 flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-60"
                   >
                     <span>{isLoading ? 'Signing In...' : 'Sign In'}</span>
-                    {!isLoading && <span>➔</span>}
+                    {!isLoading && (
+                      <svg className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                      </svg>
+                    )}
                   </button>
                 </div>
               </form>
             </div>
 
-            {/* FOOTER REGISTER LINK */}
-            <div className="text-center pt-5 mt-4 border-t border-gray-100 dark:border-gray-800">
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                New to GP Barh?{' '}
-                <Link to="/signup" className="font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 hover:underline">
-                  Create an account
-                </Link>
-              </p>
+            {/* FOOTER REGISTER ACTION - HUMAN-CRAFTED TOP 1% UI/UX */}
+            <div className="pt-4 mt-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="relative mb-3 flex items-center justify-center">
+                <div className="w-full border-t border-slate-200/80 dark:border-slate-800"></div>
+                <span className="absolute px-3 bg-white dark:bg-[#111827] text-[11px] font-bold tracking-wider uppercase text-slate-400 dark:text-slate-500">
+                  New to GP Barh Hostel?
+                </span>
+              </div>
+
+              <Link
+                to="/signup"
+                id="btn-goto-signup"
+                className="group w-full flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/80 hover:bg-white dark:bg-slate-800/40 dark:hover:bg-slate-800/90 hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-md transition-all duration-200 text-left"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-900/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-200 shadow-xs">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-black text-slate-800 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate">
+                      Register as New Student
+                    </div>
+                    <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">
+                      Apply for hostel room & mess allocation
+                    </div>
+                  </div>
+                </div>
+
+                <div className="w-7 h-7 rounded-lg bg-slate-200/70 dark:bg-slate-700/60 group-hover:bg-indigo-600 group-hover:text-white text-slate-500 dark:text-slate-300 flex items-center justify-center transition-all duration-200 shrink-0 ml-2">
+                  <svg className="w-3.5 h-3.5 transform group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </Link>
             </div>
           </div>
 
@@ -788,13 +939,14 @@ function Login() {
                   </button>
                 </li>
                 <li>
-                  <button
-                    type="button"
-                    onClick={() => setPublicNoticeModal({ isOpen: true, category: 'RULES' })}
-                    className="w-full text-left hover:text-yellow-300 text-gray-300 font-medium transition-colors flex items-center gap-1.5 py-0.5 rounded hover:bg-white/5 cursor-pointer bg-transparent border-none"
+                  <a
+                    href="https://www.antiragging.in/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-yellow-300 text-gray-300 font-medium transition-colors flex items-center gap-1.5 py-0.5 rounded hover:bg-white/5"
                   >
                     <span className="text-yellow-500 font-bold">›</span> Anti-Ragging Helpline
-                  </button>
+                  </a>
                 </li>
               </ul>
             </div>
@@ -807,7 +959,7 @@ function Login() {
                   System Status
                 </h4>
               </div>
-              
+
               <div className="bg-black/50 border border-emerald-500/30 p-1.5 rounded-lg flex items-center gap-2 text-[9.5px] text-emerald-400 font-bold">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -950,160 +1102,337 @@ function Login() {
         </div>
       )}
 
-      {/* ================= FORGOT PASSWORD MODAL ================= */}
+      {/* ================= TOP-TIER ENTERPRISE RESET PASSWORD MODAL ================= */}
       {showForgotModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md animate-fade-in px-4"
-          onClick={() => setShowForgotModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-sm animate-fade-in p-4"
+          onClick={() => {
+            if (!isForgotLoading) setShowForgotModal(false);
+          }}
         >
           <div
-            className="bg-white dark:bg-[#18181f] text-gray-900 dark:text-white w-full max-w-[440px] rounded-3xl overflow-hidden shadow-[0_25px_80px_rgba(0,0,0,0.6)] border border-gray-200 dark:border-gray-700 relative animate-scale-in"
+            className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white w-full max-w-[480px] rounded-3xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 relative animate-scale-in"
             onClick={(e) => e.stopPropagation()}
           >
             {/* MODAL HEADER */}
-            <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-900 text-white p-6 relative">
+            <div className="p-6 pb-5 border-b border-slate-100 dark:border-slate-800 relative">
               <button
+                type="button"
                 onClick={() => setShowForgotModal(false)}
-                className="absolute top-4 right-4 bg-white/20 hover:bg-white/30 text-white rounded-full h-8 w-8 flex items-center justify-center text-sm font-black transition-colors"
+                disabled={isForgotLoading}
+                className="absolute top-5 right-5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1 rounded-xl transition-colors cursor-pointer"
+                title="Close modal"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
-              <div className="flex items-center gap-3 mb-1">
-                <div className="w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center text-xl border border-white/20">
-                  🔐
+
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-2xl bg-slate-900 dark:bg-slate-800 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <KeyRound className="w-5 h-5 text-slate-100" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black tracking-tight leading-tight">Reset Password</h3>
-                  <p className="text-[10.5px] text-blue-200 uppercase font-bold tracking-wider">
-                    GP Barh Student Account Recovery
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
+                    Reset Account Password
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Official Student Portal Recovery • GP Barh
                   </p>
                 </div>
               </div>
 
-              {/* STEP PROGRESS BAR */}
-              <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/15 text-[10px] font-bold">
-                <div className={`flex items-center gap-1.5 ${forgotStep >= 1 ? 'text-yellow-300 font-extrabold' : 'text-white/60'}`}>
-                  <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] ${forgotStep >= 1 ? 'bg-yellow-400 text-black' : 'bg-white/20 text-white'}`}>1</span>
-                  <span>ID Verify</span>
+              {/* FLUID MULTI-STAGE PROGRESS BAR */}
+              <div className="flex items-center justify-between text-xs pt-3 border-t border-slate-100 dark:border-slate-800/80">
+                <div className={`flex items-center gap-1.5 font-bold ${forgotStep >= 1 ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>
+                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-mono ${
+                    forgotStep >= 1 ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'bg-slate-100 text-slate-400 dark:bg-slate-800'
+                  }`}>1</span>
+                  <span>Identity</span>
                 </div>
-                <span className="text-white/30">➔</span>
-                <div className={`flex items-center gap-1.5 ${forgotStep >= 2 ? 'text-yellow-300 font-extrabold' : 'text-white/60'}`}>
-                  <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] ${forgotStep >= 2 ? 'bg-yellow-400 text-black' : 'bg-white/20 text-white'}`}>2</span>
-                  <span>Enter OTP</span>
+                <div className={`flex-1 h-0.5 mx-2.5 rounded-full transition-all ${forgotStep >= 2 ? 'bg-slate-900 dark:bg-white' : 'bg-slate-200 dark:bg-slate-800'}`}></div>
+                <div className={`flex items-center gap-1.5 font-bold ${forgotStep >= 2 ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>
+                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-mono ${
+                    forgotStep >= 2 ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'bg-slate-100 text-slate-400 dark:bg-slate-800'
+                  }`}>2</span>
+                  <span>Verify OTP</span>
                 </div>
-                <span className="text-white/30">➔</span>
-                <div className={`flex items-center gap-1.5 ${forgotStep >= 3 ? 'text-yellow-300 font-extrabold' : 'text-white/60'}`}>
-                  <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] ${forgotStep >= 3 ? 'bg-yellow-400 text-black' : 'bg-white/20 text-white'}`}>3</span>
+                <div className={`flex-1 h-0.5 mx-2.5 rounded-full transition-all ${forgotStep >= 3 ? 'bg-slate-900 dark:bg-white' : 'bg-slate-200 dark:bg-slate-800'}`}></div>
+                <div className={`flex items-center gap-1.5 font-bold ${forgotStep >= 3 ? 'text-slate-900 dark:text-white' : 'text-slate-400'}`}>
+                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-mono ${
+                    forgotStep >= 3 ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900' : 'bg-slate-100 text-slate-400 dark:bg-slate-800'
+                  }`}>3</span>
                   <span>New Password</span>
                 </div>
               </div>
             </div>
 
             {/* MODAL BODY */}
-            <div className="p-6 md:p-8">
-              {/* STEP 1: ENTER ID */}
+            <div className="p-6 sm:p-7">
+              {/* STAGE 1: ENTER REGISTRATION ID OR EMAIL */}
               {forgotStep === 1 && (
                 <form onSubmit={handleSendOtp} className="space-y-4">
                   <div>
-                    <label className="block text-xs font-black uppercase tracking-wider mb-2 text-gray-700 dark:text-gray-300">
-                      Registration ID / Registered Email
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
+                      Registration ID or Registered Email
                     </label>
-                    <input
-                      type="text"
-                      value={forgotInput}
-                      onChange={(e) => setForgotInput(e.target.value)}
-                      placeholder="e.g. 1554424049 or email@gpbarh.in"
-                      className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-sm font-bold focus:border-blue-600 outline-none transition-all"
-                      autoFocus
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={forgotInput}
+                        onChange={(e) => setForgotInput(e.target.value)}
+                        placeholder="e.g. 1554424049 or student@gpbarh.in"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-sm font-medium outline-none focus:border-slate-900 dark:focus:border-slate-300 focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-white/10 transition-all placeholder-slate-400"
+                        autoFocus
+                      />
+                    </div>
                   </div>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
-                    We'll send a 6-digit password reset verification code to your registered contact.
-                  </p>
+
                   <button
                     type="submit"
-                    disabled={isForgotLoading}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-3.5 rounded-xl text-sm uppercase tracking-wider shadow-lg shadow-blue-500/25 transition-all flex items-center justify-center gap-2 mt-2"
+                    disabled={isForgotLoading || !forgotInput.trim()}
+                    className="w-full bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 font-bold py-3.5 rounded-xl text-xs uppercase tracking-wider shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <span>{isForgotLoading ? 'Sending OTP...' : 'Send Verification OTP'}</span>
-                    {!isForgotLoading && <span>➔</span>}
+                    {isForgotLoading ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4 text-current" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                        </svg>
+                        <span>Verifying &amp; Dispatching OTP...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Send Verification OTP</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
                   </button>
                 </form>
               )}
 
-              {/* STEP 2: ENTER OTP */}
+              {/* STAGE 2: 6 SEPARATE INDIVIDUAL DIGIT BOXES */}
               {forgotStep === 2 && (
-                <form onSubmit={handleVerifyOtp} className="space-y-4">
-                  <div className="p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-xl text-[11px] text-blue-700 dark:text-blue-300 font-bold">
-                    💡 OTP sent for <strong>{forgotInput}</strong> (Demo OTP: <span className="underline font-mono text-sm font-black">749201</span>)
+                <form onSubmit={handleVerifyOtp} className="space-y-5">
+                  <div className="p-3.5 bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200/70 dark:border-blue-800/40 rounded-2xl text-xs text-blue-800 dark:text-blue-300">
+                    <div className="font-semibold flex items-center gap-1.5 mb-0.5">
+                      <Mail className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <span>Code Dispatched via Gmail SMTP</span>
+                    </div>
+                    <p className="text-[11px] text-blue-700/80 dark:text-blue-300/80">
+                      Check your Gmail inbox / spam folder for <strong>{forgotTargetEmail || forgotInput}</strong>.
+                    </p>
                   </div>
+
                   <div>
-                    <label className="block text-xs font-black uppercase tracking-wider mb-2 text-gray-700 dark:text-gray-300">
-                      Enter 6-Digit OTP
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-3 text-center">
+                      Enter 6-Digit Verification Code
                     </label>
-                    <input
-                      type="text"
-                      maxLength={6}
-                      value={forgotOtp}
-                      onChange={(e) => setForgotOtp(e.target.value)}
-                      placeholder="749201"
-                      className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-center tracking-[0.5em] font-mono text-lg font-black focus:border-blue-600 outline-none transition-all"
-                      autoFocus
-                    />
+
+                    {/* 6 Individual Digit Inputs with Auto-Advance */}
+                    <div className="flex items-center justify-center gap-2 sm:gap-2.5">
+                      {otpBoxes.map((digit, index) => (
+                        <input
+                          key={index}
+                          ref={(el) => (otpRefs.current[index] = el)}
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          maxLength={1}
+                          value={digit}
+                          onChange={(e) => handleOtpBoxChange(index, e.target.value)}
+                          onKeyDown={(e) => handleOtpBoxKeyDown(index, e)}
+                          className={`w-11 sm:w-12 h-14 text-center font-mono text-2xl font-black rounded-xl border outline-none transition-all shadow-xs ${
+                            forgotOtpError
+                              ? 'border-red-500 bg-red-50/70 dark:bg-red-950/40 text-red-600 dark:text-red-400 focus:ring-2 focus:ring-red-500/30 ring-2 ring-red-500/40 animate-shake'
+                              : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-slate-300 focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-white/10'
+                          }`}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Wrong OTP Alert Message */}
+                    {forgotOtpError && (
+                      <div className="mt-3 flex items-center justify-center gap-1.5 text-xs font-bold text-red-600 dark:text-red-400 animate-shake">
+                        <AlertCircle className="w-4 h-4 shrink-0 text-red-600 dark:text-red-400" />
+                        <span>{forgotOtpError}</span>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex gap-2">
+
+                  {/* Resend Cooldown Counter */}
+                  <div className="text-center text-xs">
+                    {resendCooldown > 0 ? (
+                      <span className="text-slate-400 font-medium">
+                        Resend available in <strong className="font-mono text-slate-700 dark:text-slate-300">{resendCooldown}s</strong>
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleSendOtp}
+                        disabled={isForgotLoading}
+                        className="inline-flex items-center gap-1 font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>Didn't receive code? Resend OTP</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2.5 pt-1">
                     <button
                       type="button"
                       onClick={() => setForgotStep(1)}
-                      className="w-1/3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 text-gray-800 dark:text-gray-200 font-bold py-3.5 rounded-xl text-xs uppercase"
+                      disabled={isForgotLoading}
+                      className="w-1/3 bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold py-3.5 rounded-xl text-xs uppercase tracking-wider transition-colors cursor-pointer"
                     >
                       Back
                     </button>
                     <button
                       type="submit"
-                      disabled={isForgotLoading}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black py-3.5 rounded-xl text-xs uppercase tracking-wider shadow-lg shadow-blue-500/25 transition-all flex items-center justify-center gap-2"
+                      disabled={isForgotLoading || otpBoxes.join('').length !== 6}
+                      className="flex-1 bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 font-bold py-3.5 rounded-xl text-xs uppercase tracking-wider shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <span>{isForgotLoading ? 'Verifying...' : 'Verify OTP ➔'}</span>
+                      {isForgotLoading ? (
+                        <>
+                          <svg className="animate-spin h-4 w-4 text-current" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                          </svg>
+                          <span>Verifying...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Verify Code</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      )}
                     </button>
                   </div>
                 </form>
               )}
 
-              {/* STEP 3: SET NEW PASSWORD */}
+              {/* STAGE 3: SET NEW PASSWORD & CONFIRM */}
               {forgotStep === 3 && (
                 <form onSubmit={handleResetPassword} className="space-y-4">
+                  {/* New Password */}
                   <div>
-                    <label className="block text-xs font-black uppercase tracking-wider mb-2 text-gray-700 dark:text-gray-300">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
                       New Password
                     </label>
-                    <input
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Minimum 6 characters"
-                      className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-sm font-bold focus:border-blue-600 outline-none transition-all"
-                      autoFocus
-                    />
+                    <div className="relative">
+                      <input
+                        type={showForgotNewPass ? "text" : "password"}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Min. 8 chars, 1 num, 1 sym..."
+                        className="w-full px-4 py-3 pr-11 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-sm font-medium outline-none focus:border-slate-900 dark:focus:border-slate-300 focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-white/10 transition-all placeholder-slate-400"
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowForgotNewPass(!showForgotNewPass)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1 cursor-pointer"
+                        title={showForgotNewPass ? "Hide password" : "Show password"}
+                      >
+                        {showForgotNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
+
+                  {/* Interactive Password Strength Indicator */}
+                  {newPassword && (
+                    <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800">
+                      <div className="flex items-center justify-between text-xs mb-2">
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">Password Strength</span>
+                        <span className={`font-bold uppercase tracking-wider ${evaluateForgotPassStrength(newPassword).textColor}`}>
+                          {evaluateForgotPassStrength(newPassword).label}
+                        </span>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden mb-2.5">
+                        <div
+                          className={`h-full transition-all duration-300 ${evaluateForgotPassStrength(newPassword).color}`}
+                          style={{ width: evaluateForgotPassStrength(newPassword).width }}
+                        ></div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 text-[11px]">
+                        <div className={`flex items-center gap-1 ${newPassword.length >= 8 ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-400'}`}>
+                          <span>{newPassword.length >= 8 ? '✓' : '•'}</span>
+                          <span>8+ characters</span>
+                        </div>
+                        <div className={`flex items-center gap-1 ${/[0-9]/.test(newPassword) ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-400'}`}>
+                          <span>{/[0-9]/.test(newPassword) ? '✓' : '•'}</span>
+                          <span>1+ number</span>
+                        </div>
+                        <div className={`flex items-center gap-1 ${/[!@#$%^&*(),.?":{}|<>_~`+\-=\[\]\\;/]/.test(newPassword) ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-slate-400'}`}>
+                          <span>{/[!@#$%^&*(),.?":{}|<>_~`+\-=\[\]\\;/]/.test(newPassword) ? '✓' : '•'}</span>
+                          <span>1+ special</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Confirm Password */}
                   <div>
-                    <label className="block text-xs font-black uppercase tracking-wider mb-2 text-gray-700 dark:text-gray-300">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
                       Confirm New Password
                     </label>
-                    <input
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Re-enter new password"
-                      className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-sm font-bold focus:border-blue-600 outline-none transition-all"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showForgotConfirmPass ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Re-enter new password..."
+                        className={`w-full px-4 py-3 pr-11 rounded-xl border text-sm font-medium outline-none focus:ring-2 transition-all placeholder-slate-400 ${
+                          confirmPassword && newPassword === confirmPassword
+                            ? 'border-emerald-500 bg-emerald-50/20 text-slate-900 dark:text-white focus:ring-emerald-500/20'
+                            : confirmPassword && newPassword !== confirmPassword
+                            ? 'border-rose-400 bg-rose-50/20 text-slate-900 dark:text-white focus:ring-rose-500/20'
+                            : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:border-slate-900 dark:focus:border-slate-300 focus:ring-slate-900/10 dark:focus:ring-white/10'
+                        }`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowForgotConfirmPass(!showForgotConfirmPass)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1 cursor-pointer"
+                        title={showForgotConfirmPass ? "Hide password" : "Show password"}
+                      >
+                        {showForgotConfirmPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+
+                    {confirmPassword && (
+                      <div className="mt-2 text-xs flex items-center gap-1.5">
+                        {newPassword === confirmPassword ? (
+                          <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                            <Check className="w-3.5 h-3.5" /> Passwords match
+                          </span>
+                        ) : (
+                          <span className="text-rose-500 dark:text-rose-400 font-medium flex items-center gap-1">
+                            <AlertCircle className="w-3.5 h-3.5" /> Passwords do not match
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
+
                   <button
                     type="submit"
-                    disabled={isForgotLoading}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-xl text-sm uppercase tracking-wider shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 mt-2"
+                    disabled={isForgotLoading || !newPassword || !confirmPassword || newPassword !== confirmPassword}
+                    className="w-full bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 font-bold py-3.5 rounded-xl text-xs uppercase tracking-wider shadow-sm transition-all flex items-center justify-center gap-2 mt-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <span>{isForgotLoading ? 'Updating Password...' : 'Save New Password & Login 🔒'}</span>
+                    {isForgotLoading ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4 text-current" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                        </svg>
+                        <span>Saving Password...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>Update Password &amp; Login</span>
+                      </>
+                    )}
                   </button>
                 </form>
               )}

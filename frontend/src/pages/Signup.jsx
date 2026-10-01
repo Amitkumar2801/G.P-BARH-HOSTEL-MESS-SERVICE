@@ -1,5 +1,5 @@
 // src/pages/Signup.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
@@ -24,13 +24,105 @@ function Signup() {
   const [regNo, setRegNo] = useState("");
   const [session, setSession] = useState("2024-27");
   const [email, setEmail] = useState("");
-  const [branch, setBranch] = useState("AI & ML");
+  const [branch, setBranch] = useState("Artificial Intelligence & Machine Learning");
   const [adminId, setAdminId] = useState("");
   const [masterKey, setMasterKey] = useState("");
   const [showMasterKey, setShowMasterKey] = useState(false);
 
+  // Email OTP state for student verification
+  const [signupOtp, setSignupOtp] = useState("");
+  const [signupOtpError, setSignupOtpError] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [isOtpSending, setIsOtpSending] = useState(false);
+  const [isOtpVerifying, setIsOtpVerifying] = useState(false);
+  const [isOtpVerified, setIsOtpVerified] = useState(false);
+  const [otpCountdown, setOtpCountdown] = useState(0);
+
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+
+  // OTP Countdown timer effect (60-second cooldown)
+  useEffect(() => {
+    if (otpCountdown <= 0) return;
+    const timer = setInterval(() => {
+      setOtpCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [otpCountdown]);
+
+  // Send OTP handler
+  const handleSendSignupOtp = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const cleanEmail = (email || '').trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@') || cleanEmail.length < 5) {
+      toast.error("Please enter a valid student email address first! 🛑");
+      return;
+    }
+    setSignupOtpError("");
+    setIsOtpSending(true);
+    try {
+      const payload = {
+        email: cleanEmail,
+        identifier: cleanEmail,
+        purpose: "SIGNUP"
+      };
+      let res;
+      try {
+        res = await axios.post("http://127.0.0.1:8000/api/auth/send-registration-otp", payload);
+      } catch (endpointErr) {
+        res = await axios.post("http://127.0.0.1:8000/api/auth/send-otp", payload);
+      }
+      setOtpSent(true);
+      setOtpCountdown(60); // 60-second cooldown timer
+      setIsOtpVerified(false);
+      setSignupOtpError("");
+      toast.success("6-digit OTP sent to your email. Please check your inbox / spam folder.", { duration: 6000 });
+    } catch (err) {
+      console.error("Send OTP Error:", err);
+      const detail = err?.response?.data?.detail || err?.message || "Could not send OTP. Please check your email.";
+      toast.error(detail);
+    } finally {
+      setIsOtpSending(false);
+    }
+  };
+
+  // Verify OTP handler
+  const handleVerifySignupOtp = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanOtp = (signupOtp || '').trim();
+    if (!cleanOtp || cleanOtp.length !== 6 || !/^\d{6}$/.test(cleanOtp)) {
+      setSignupOtpError("Wrong OTP! Please enter the complete 6-digit numeric code.");
+      toast.error("Please enter the 6-digit numeric OTP code! 🛑");
+      return;
+    }
+    setIsOtpVerifying(true);
+    try {
+      const payload = {
+        email: cleanEmail,
+        identifier: cleanEmail,
+        otp: cleanOtp,
+        purpose: "SIGNUP"
+      };
+      let res;
+      try {
+        res = await axios.post("http://127.0.0.1:8000/api/auth/verify-registration-otp", payload);
+      } catch (endpointErr) {
+        res = await axios.post("http://127.0.0.1:8000/api/auth/verify-otp", payload);
+      }
+      setIsOtpVerified(true);
+      setSignupOtpError("");
+      toast.success(res?.data?.message || "OTP Verified Successfully! ✓ Proceed with Registration.");
+    } catch (err) {
+      console.error("Verify OTP Error:", err);
+      const errorMsg = "Wrong OTP! Please enter the correct 6-digit code.";
+      setSignupOtpError(errorMsg);
+      toast.error(errorMsg);
+      setIsOtpVerified(false);
+    } finally {
+      setIsOtpVerifying(false);
+    }
+  };
 
   // ---------------------------------------------------------
   // API CALL: HANDLE SIGNUP
@@ -43,9 +135,15 @@ function Signup() {
       toast.error("Please fill in Name and Password! 🛑");
       return;
     }
-    if (role === 'student' && (!regNo || !email)) {
-      toast.error("Student Registration No. & Email are required! 🛑");
-      return;
+    if (role === 'student') {
+      if (!regNo || !email) {
+        toast.error("Student Registration No. & Email are required! 🛑");
+        return;
+      }
+      if (!isOtpVerified) {
+        toast.error("Please click 'Send OTP' and verify your 6-digit email OTP first! 🛑");
+        return;
+      }
     }
     if (role === 'warden' && (!adminId || !masterKey)) {
       toast.error("Warden Admin ID & Master Key are required! 🛑");
@@ -65,10 +163,11 @@ function Signup() {
     if (role === 'student') {
       payload.reg_no = regNo;
       payload.branch = branch;
-      payload.email = email;
+      payload.email = email.trim().toLowerCase();
       payload.session = session;
       payload.semester = session;
-      payload.reg_no_email = regNo; 
+      payload.reg_no_email = regNo;
+      payload.otp = signupOtp.trim();
     } else if (role === 'warden') {
       payload.admin_id = adminId;
       payload.master_key = masterKey;
@@ -76,22 +175,59 @@ function Signup() {
     }
 
     try {
-      const response = await axios.post("http://127.0.0.1:8000/signup", payload);
+      const endpoints = [
+        "http://127.0.0.1:8000/api/auth/register",
+        "http://127.0.0.1:8000/api/auth/signup",
+        "http://127.0.0.1:8000/signup",
+        "/api/auth/register",
+        "/api/auth/signup",
+        "/signup"
+      ];
+      let response = null;
+      let lastErr = null;
 
-      toast.success(response.data.message || "Account successfully created! 🎉", {
+      for (const ep of endpoints) {
+        try {
+          response = await axios.post(ep, payload);
+          if (response && response.data) break;
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+
+      if (!response && lastErr) throw lastErr;
+
+      // On successful signup, store token & profile
+      if (response?.data?.access_token) {
+        localStorage.setItem('access_token', response.data.access_token);
+        localStorage.setItem('token', response.data.access_token);
+      }
+      if (response?.data?.user) {
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+      }
+
+      // Clear any prior user's allotment cache so new student starts fresh & locked
+      localStorage.removeItem('gpbarh_student_allotment_approved');
+      localStorage.removeItem('gpbarh_allotment_status');
+
+      toast.success(response?.data?.message || "Account successfully created! 🎉", {
         duration: 3500,
         style: { borderRadius: '12px', background: '#0f172a', color: '#fff' }
       });
       
       setTimeout(() => {
-        navigate("/");
-      }, 1200);
+        if (role === 'student') {
+          navigate("/student-dashboard");
+        } else {
+          navigate("/");
+        }
+      }, 1000);
 
     } catch (error) {
-      if (error.response && error.response.data) {
+      if (error.response && error.response.data && error.response.data.detail) {
         toast.error("Signup Failed: " + error.response.data.detail);
       } else {
-        toast.error("Server connection failed. Is backend running? 🤔");
+        toast.error("Signup failed. Please verify that the backend is running and OTP is valid.");
       }
     } finally {
       setIsLoading(false);
@@ -212,7 +348,7 @@ function Signup() {
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="e.g. Amit Kumar Sharma"
+                  placeholder="e.g. AMIT KUMAR"
                   className={inputClass}
                 />
               </div>
@@ -220,7 +356,8 @@ function Signup() {
               {/* STUDENT FIELDS */}
               {role === 'student' && (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {/* ROW 1: REGISTRATION NUMBER & ACADEMIC SESSION */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className={labelClass}>Registration Number</label>
                       <input
@@ -244,30 +381,174 @@ function Signup() {
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <label className={labelClass}>Branch / Department</label>
-                      <select
-                        value={branch}
-                        onChange={(e) => setBranch(e.target.value)}
-                        className={inputClass}
-                      >
-                        <option value="Artificial Intelligence & Machine Learning">Artificial Intelligence & Machine Learning</option>
-                        <option value="Civil Engineering (Construction Technology)">Civil Engineering (Construction Technology)</option>
-                        <option value="Electronics (Robotics)">Electronics (Robotics)</option>
-                        <option value="Mechanical Engineering (CAD/CAM)">Mechanical Engineering (CAD/CAM)</option>
-                      </select>
+
+                  {/* ROW 2: BRANCH / DEPARTMENT (FULL-WIDTH FOR COMPLETE READABILITY) */}
+                  <div>
+                    <label className={labelClass}>Branch / Department</label>
+                    <select
+                      value={branch}
+                      onChange={(e) => setBranch(e.target.value)}
+                      className={inputClass}
+                    >
+                      <option value="Artificial Intelligence & Machine Learning">Artificial Intelligence & Machine Learning</option>
+                      <option value="Civil Engineering (Construction Technology)">Civil Engineering (Construction Technology)</option>
+                      <option value="Electronics (Robotics)">Electronics (Robotics)</option>
+                      <option value="Mechanical Engineering (CAD/CAM)">Mechanical Engineering (CAD/CAM)</option>
+                    </select>
+                  </div>
+
+                  {/* ROW 3: STUDENT EMAIL ADDRESS (SPACIOUS FULL-WIDTH ROW) */}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center">
+                      <label className={`text-[11px] font-bold uppercase tracking-widest ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        Student Email Address
+                      </label>
+                      {isOtpVerified && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-wider">
+                          <span>✓</span> Verified
+                        </span>
+                      )}
                     </div>
-                    <div>
-                      <label className={labelClass}>Email Address</label>
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <input
                         type="email"
                         required
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="student@example.com"
-                        className={inputClass}
+                        disabled={isOtpVerified}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          if (isOtpVerified) setIsOtpVerified(false);
+                        }}
+                        placeholder="e.g. amit.kumar@gpbarh.ac.in"
+                        className={`${inputClass} flex-1`}
                       />
+                      <button
+                        type="button"
+                        id="btn-send-registration-otp"
+                        onClick={handleSendSignupOtp}
+                        disabled={isOtpSending || otpCountdown > 0 || isOtpVerified}
+                        className={`px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-200 shadow-md flex items-center justify-center gap-1.5 shrink-0 ${
+                          isOtpVerified
+                            ? 'bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 cursor-not-allowed'
+                            : otpCountdown > 0
+                            ? 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed'
+                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white cursor-pointer active:scale-95'
+                        }`}
+                      >
+                        {isOtpSending ? (
+                          <>
+                            <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                            </svg>
+                            <span>Sending...</span>
+                          </>
+                        ) : otpCountdown > 0 ? (
+                          <span>Resend ({otpCountdown}s)</span>
+                        ) : isOtpVerified ? (
+                          <span>Verified ✓</span>
+                        ) : (
+                          <span>Send 6-Digit OTP 📩</span>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* ROW 4: 6-DIGIT OTP VERIFICATION BOX (COMPACT & SLEEK) */}
+                  <div className={`p-3 rounded-2xl border transition-all duration-300 space-y-2 ${
+                    isOtpVerified
+                      ? 'bg-emerald-50/70 dark:bg-emerald-950/25 border-emerald-400/50 shadow-xs'
+                      : otpSent
+                      ? 'bg-blue-50/80 dark:bg-blue-950/35 border-blue-400/50 shadow-xs'
+                      : 'bg-slate-50 dark:bg-slate-800/35 border-slate-200 dark:border-slate-700/60'
+                  }`}>
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 text-[11px]">
+                        <span>{isOtpVerified ? '🛡️' : '🔑'}</span>
+                        <span>Enter 6-Digit Verification Code</span>
+                      </div>
+                      {otpSent && otpCountdown > 0 && !isOtpVerified && (
+                        <span className="font-mono text-blue-600 dark:text-blue-400 text-[11px] font-bold">
+                          Resend in {otpCountdown}s
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          maxLength={6}
+                          disabled={isOtpVerified}
+                          value={signupOtp}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                            setSignupOtp(val);
+                            if (signupOtpError) setSignupOtpError("");
+                          }}
+                          placeholder="• • • • • •"
+                          className={`w-full py-2.5 px-3 rounded-xl border text-center font-mono font-black text-base tracking-[0.45em] outline-none transition-all ${
+                            signupOtpError
+                              ? 'bg-red-50/70 dark:bg-red-950/40 border-red-500 text-red-600 dark:text-red-400 focus:ring-2 focus:ring-red-500/30 ring-2 ring-red-500/40 animate-shake'
+                              : isOtpVerified
+                              ? 'bg-emerald-100/40 dark:bg-emerald-950/40 border-emerald-400 text-emerald-800 dark:text-emerald-200 cursor-not-allowed'
+                              : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500'
+                          }`}
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        id="btn-verify-registration-otp"
+                        onClick={handleVerifySignupOtp}
+                        disabled={isOtpVerifying || isOtpVerified || signupOtp.length !== 6}
+                        className={`px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-200 shadow-sm flex items-center justify-center gap-1.5 shrink-0 ${
+                          isOtpVerified
+                            ? 'bg-emerald-600 text-white cursor-default'
+                            : signupOtp.length === 6
+                            ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white cursor-pointer active:scale-95'
+                            : 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                        }`}
+                      >
+                        {isOtpVerifying ? (
+                          <>
+                            <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                            </svg>
+                            <span>Checking...</span>
+                          </>
+                        ) : isOtpVerified ? (
+                          <span>Verified ✓</span>
+                        ) : (
+                          <span>Verify OTP</span>
+                        )}
+                      </button>
+                    </div>
+
+                    {signupOtpError && (
+                      <div className="text-xs font-bold text-red-600 dark:text-red-400 flex items-center gap-1.5 animate-shake pt-1">
+                        <span>⚠️</span>
+                        <span>{signupOtpError}</span>
+                      </div>
+                    )}
+
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-0.5">
+                      {isOtpVerified ? (
+                        <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                          <span>✓</span> Verified for <strong>{email}</strong>. Ready to register!
+                        </span>
+                      ) : otpSent ? (
+                        <span>
+                          6-digit OTP sent to <strong>{email}</strong>. Please check your inbox / spam folder.
+                        </span>
+                      ) : (
+                        <span>
+                          Click <strong>"Send 6-Digit OTP 📩"</strong> to receive your code.
+                        </span>
+                      )}
                     </div>
                   </div>
                 </>
@@ -283,7 +564,7 @@ function Signup() {
                       required
                       value={adminId}
                       onChange={(e) => setAdminId(e.target.value)}
-                      placeholder="e.g. amitkumar.arwal28@gmail.com"
+                      placeholder="e.g. warden@gpbarh.ac.in"
                       className={inputClass}
                     />
                   </div>
@@ -356,11 +637,12 @@ function Signup() {
 
               <button
                 type="submit"
-                disabled={isLoading}
+                id="btn-signup-submit"
+                disabled={isLoading || (role === 'student' && !isOtpVerified)}
                 className={`w-full font-extrabold py-3.5 rounded-xl transition-all shadow-lg text-sm tracking-wider uppercase mt-4 flex items-center justify-center gap-2 ${
-                  isLoading
-                    ? 'bg-blue-400 text-white cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow-blue-500/40 transform hover:-translate-y-0.5'
+                  isLoading || (role === 'student' && !isOtpVerified)
+                    ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed border border-slate-300 dark:border-slate-600'
+                    : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white hover:shadow-blue-500/40 transform hover:-translate-y-0.5 cursor-pointer'
                 }`}
               >
                 {isLoading ? (
@@ -371,9 +653,13 @@ function Signup() {
                     </svg>
                     <span>Creating Account...</span>
                   </>
+                ) : role === 'student' && !isOtpVerified ? (
+                  <>
+                    <span>🔒 Enter &amp; Verify 6-Digit OTP to Register</span>
+                  </>
                 ) : (
                   <>
-                    <span>🚀 Register & Continue to Onboarding</span>
+                    <span>🚀 Register &amp; Continue to Onboarding</span>
                   </>
                 )}
               </button>
