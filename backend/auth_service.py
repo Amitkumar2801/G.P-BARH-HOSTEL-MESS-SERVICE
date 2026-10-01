@@ -5,8 +5,6 @@ import secrets
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.mime.image import MIMEImage
-import base64
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 
@@ -270,62 +268,18 @@ def get_stored_otp(email: str, purpose: str = "SIGNUP") -> Optional[str]:
     return None
 
 # --------------------------------------------------------------------------
-# FREE GMAIL SMTP EMAIL DISPATCHER (smtplib & email.mime)
+# FREE GMAIL SMTP EMAIL DISPATCHER (smtplib & email.mime - Zero Attachments)
 # --------------------------------------------------------------------------
-def get_logo_bytes() -> Optional[bytes]:
-    """Retrieve official Govt. Polytechnic Barh institutional seal logo bytes."""
-    search_dirs = [
-        os.path.join(os.path.dirname(__file__), "logo.png"),
-        os.path.join(os.path.dirname(__file__), "..", "frontend", "src", "assets", "logo.png"),
-        os.path.join(os.path.dirname(__file__), "..", "frontend", "src", "assets", "logo.png.png"),
-        os.path.join(os.path.dirname(__file__), "..", "frontend", "public", "logo.png"),
-    ]
-    for p in search_dirs:
-        norm_p = os.path.abspath(p)
-        if os.path.exists(norm_p):
-            try:
-                with open(norm_p, "rb") as f:
-                    return f.read()
-            except Exception:
-                continue
-    return None
-
 def send_email_otp(to_email: str, otp: str, purpose: str = "SIGNUP") -> Dict[str, Any]:
     """
-    Sends 6-digit OTP using Python's built-in smtplib to Gmail SMTP
-    formatted in a premium, government-grade institutional HTML template
-    with prominent Govt. Polytechnic, Barh college logo and aesthetic.
+    Sends 6-digit OTP using Python's built-in smtplib to Gmail SMTP.
+    Strictly lightweight MIME alternative (Plain Text + HTML) with zero file
+    attachments to pass Gmail DKIM authentication and avoid spam blocking.
+    Official college avatar icon is provided natively by the sender Google Account.
     """
     clean_purpose = purpose.strip().upper()
     purpose_label = "Student Registration & Account Creation" if clean_purpose == "SIGNUP" else "Account Password Recovery"
     subject = f"Govt. Polytechnic Barh - Portal Verification Code: {otp}"
-
-    # Permanent static public URL for Google / Gmail proxy rendering + optimized Base64 fallback
-    static_public_logo = os.getenv("COLLEGE_LOGO_URL", "https://files.catbox.moe/8czd78.png")
-    logo_bytes = get_logo_bytes()
-    logo_base64 = ""
-    if logo_bytes:
-        try:
-            from PIL import Image
-            import io
-            im = Image.open(io.BytesIO(logo_bytes))
-            im.thumbnail((160, 160), Image.Resampling.LANCZOS)
-            buf = io.BytesIO()
-            im.save(buf, format="PNG", optimize=True)
-            logo_base64 = base64.b64encode(buf.getvalue()).decode("utf-8")
-        except Exception:
-            logo_base64 = base64.b64encode(logo_bytes).decode("utf-8")
-
-    # Priority: static public URL (optimal for Gmail desktop/mobile) -> inline base64 -> cid
-    use_inline_base64 = os.getenv("USE_INLINE_BASE64_LOGO", "false").lower() == "true"
-    if use_inline_base64 and logo_base64:
-        logo_src = f"data:image/png;base64,{logo_base64}"
-    elif static_public_logo:
-        logo_src = static_public_logo
-    elif logo_base64:
-        logo_src = f"data:image/png;base64,{logo_base64}"
-    else:
-        logo_src = "cid:institution_logo"
 
     html_content = f"""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -335,57 +289,48 @@ def send_email_otp(to_email: str, otp: str, purpose: str = "SIGNUP") -> Dict[str
   <title>{subject}</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
-  <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#f1f5f9" style="background-color: #f1f5f9; padding: 24px 12px; margin: 0; width: 100%;">
+  <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#f1f5f9" style="background-color: #f1f5f9; padding: 32px 12px; margin: 0; width: 100%;">
     <tr>
       <td align="center" valign="top">
         <!-- MAIN CONTAINER (Max 580px) -->
-        <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="max-width: 580px; width: 100%; background-color: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 10px 25px rgba(0,0,0,0.06);">
+        <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="max-width: 580px; width: 100%; background-color: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 10px 25px rgba(0,0,0,0.06);">
           
-          <!-- 1. HEADER BANNER (Official Deep Maroon #800000 with College Logo) -->
+          <!-- 1. CLEAN INSTITUTIONAL HEADER (Zero Attachments, Pure HTML/CSS) -->
           <tr>
-            <td align="center" bgcolor="#800000" style="background-color: #800000; padding: 28px 20px; text-align: center; border-bottom: 3px solid #facc15;">
-              {'<table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto 8px auto;"><tr><td align="center"><img src="' + logo_src + '" alt="Govt. Polytechnic, Barh Logo" width="72" height="72" style="width: 72px; height: 72px; border-radius: 50%; border: 2px solid #ffffff; background: #ffffff; padding: 2px; margin-bottom: 8px; display: block; margin-left: auto; margin-right: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.25);" /></td></tr></table>' if logo_src else ''}
-              
-              <h1 style="margin: 0; font-size: 20px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.3;">
-                राजकीय पॉलिटेक्निक, बाढ़
-              </h1>
-              <div style="font-size: 13px; font-weight: 600; color: #fde047; text-transform: uppercase; margin-top: 3px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; letter-spacing: 0.8px;">
-                Govt. Polytechnic, Barh • Patna, Bihar
-              </div>
-              <div style="font-size: 11px; color: #e2e8f0; margin-top: 2px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                Department of Science, Technology &amp; Technical Education
-              </div>
+            <td align="center" bgcolor="#800000" style="background: #800000; border-radius: 12px 12px 0 0; padding: 24px; text-align: center;">
+              <h1 style="color: #ffffff; font-size: 20px; font-weight: 800; margin: 0; font-family: sans-serif;">Government Polytechnic, Barh</h1>
+              <p style="color: #fde047; font-size: 13px; font-weight: 600; margin: 4px 0 0 0; letter-spacing: 1px;">HOSTEL &amp; MESS MANAGEMENT SYSTEM</p>
             </td>
           </tr>
 
           <!-- 2. REFINED BODY UI/UX -->
           <tr>
-            <td style="padding: 28px 24px 20px 24px; text-align: left; background-color: #ffffff;">
+            <td style="padding: 32px 28px 24px 28px; text-align: left; background-color: #ffffff;">
               
               <!-- Clean Security Verification Badge -->
               <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto 18px auto;">
                 <tr>
                   <td align="center">
-                    <div style="display: inline-block; background-color: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 20px; padding: 5px 16px; font-size: 12px; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: 0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                      🛡️ Official Security Verification
+                    <div style="display: inline-block; background-color: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 20px; padding: 6px 18px; font-size: 12px; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: 0.5px; font-family: sans-serif;">
+                      🛡️ Official Verification Code
                     </div>
                   </td>
                 </tr>
               </table>
 
               <!-- Student Salutation -->
-              <p style="color: #0f172a; font-size: 15px; font-weight: 700; margin: 0 0 6px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+              <p style="color: #0f172a; font-size: 15px; font-weight: 700; margin: 0 0 6px 0; font-family: sans-serif;">
                 Dear Student / Applicant,
               </p>
-              <p style="color: #475569; font-size: 13.5px; margin: 0 0 20px 0; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+              <p style="color: #475569; font-size: 13.5px; margin: 0 0 22px 0; line-height: 1.6; font-family: sans-serif;">
                 Use the single-use 6-digit authentication PIN below to complete your <strong>{purpose_label}</strong> on the official Govt. Polytechnic Barh portal:
               </p>
 
-              <!-- MAIN 6-DIGIT OTP CONTAINER -->
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto 18px auto; background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">
+              <!-- CRISP 6-DIGIT OTP CONTAINER -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto 20px auto; background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">
                 <tr>
-                  <td align="center" style="padding: 16px 34px;">
-                    <span style="color: #800000; font-size: 34px; font-weight: 800; letter-spacing: 10px; font-family: monospace; display: inline-block;">
+                  <td align="center" style="padding: 16px 36px;">
+                    <span style="color: #800000; font-size: 34px; font-weight: 800; letter-spacing: 10px; font-family: 'Courier New', Courier, monospace; display: inline-block;">
                       {otp}
                     </span>
                   </td>
@@ -393,14 +338,17 @@ def send_email_otp(to_email: str, otp: str, purpose: str = "SIGNUP") -> Dict[str
               </table>
 
               <!-- NEAT SECURITY CALLOUT BOX -->
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; margin-bottom: 20px;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; margin-bottom: 22px;">
                 <tr>
                   <td style="padding: 14px 18px; text-align: center;">
-                    <div style="display: inline-block; background-color: #ef4444; color: #ffffff; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; padding: 4px 12px; border-radius: 6px; margin-bottom: 6px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                    <div style="display: inline-block; background-color: #ef4444; color: #ffffff; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; padding: 4px 12px; border-radius: 6px; margin-bottom: 6px; font-family: sans-serif;">
                       🔒 Security PIN • Single-use only
                     </div>
-                    <div style="color: #991b1b; font-size: 12.5px; font-weight: 600; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                      This OTP expires in strictly 5 minutes. Do not forward or share this code with anyone.
+                    <div style="color: #991b1b; font-size: 12.5px; font-weight: 600; line-height: 1.5; font-family: sans-serif;">
+                      This OTP is strictly confidential. Govt. Polytechnic Barh authorities will never ask for your code.
+                    </div>
+                    <div style="color: #b91c1c; font-size: 11.5px; margin-top: 4px; font-family: sans-serif;">
+                      Valid for strictly 5 minutes. Do not forward or share this code with anyone.
                     </div>
                   </td>
                 </tr>
@@ -411,7 +359,7 @@ def send_email_otp(to_email: str, otp: str, purpose: str = "SIGNUP") -> Dict[str
 
           <!-- 3. INSTITUTIONAL OFFICIAL FOOTER -->
           <tr>
-            <td align="center" bgcolor="#f8fafc" style="background-color: #f8fafc; border-top: 2px solid #e2e8f0; padding: 22px 20px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+            <td align="center" bgcolor="#f8fafc" style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 22px 20px; text-align: center; font-family: sans-serif;">
               <div style="font-size: 12px; font-weight: 800; color: #1e293b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
                 Chief Warden Office • Central Hostel &amp; Dining Administration
               </div>
@@ -432,15 +380,15 @@ def send_email_otp(to_email: str, otp: str, purpose: str = "SIGNUP") -> Dict[str
 </html>
 """
 
-    text_content = f"""राजकीय पॉलिटेक्निक, बाढ़ (GOVT. POLYTECHNIC, BARH)
-Govt. Polytechnic, Barh • Patna, Bihar
-Department of Science, Technology & Technical Education
+    text_content = f"""Government Polytechnic, Barh
+HOSTEL & MESS MANAGEMENT SYSTEM
 ======================================================
 PURPOSE: {purpose_label}
 
 OFFICIAL 6-DIGIT OTP: {otp}
 🔒 Security PIN • Single-use only
-This OTP expires in strictly 5 minutes. Do not forward or share this code with anyone.
+This OTP is strictly confidential. Govt. Polytechnic Barh authorities will never ask for your code.
+Valid for strictly 5 minutes. Do not forward or share this code with anyone.
 
 ------------------------------------------------------
 Chief Warden Office • Central Hostel & Dining Administration
@@ -456,41 +404,26 @@ For issues regarding seat allotment, contact: gpbarhhostel@gmail.com
     clean_smtp_pass = (SMTP_PASSWORD or "").replace(" ", "").strip()
     if clean_smtp_pass:
         try:
-            if logo_bytes:
-                root_msg = MIMEMultipart("related")
-                root_msg["Subject"] = subject
-                root_msg["From"] = f"Govt. Polytechnic Barh <{SMTP_EMAIL}>"
-                root_msg["To"] = to_email
+            # Strictly lightweight MIME alternative (Plain Text + HTML) - Zero file attachments
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = subject
+            msg["From"] = f"Govt. Polytechnic Barh <{SMTP_EMAIL}>"
+            msg["To"] = to_email
+            msg["Reply-To"] = SMTP_EMAIL
 
-                alt_part = MIMEMultipart("alternative")
-                alt_part.attach(MIMEText(text_content, "plain", "utf-8"))
-                alt_part.attach(MIMEText(html_content, "html", "utf-8"))
-                root_msg.attach(alt_part)
-
-                img_part = MIMEImage(logo_bytes, _subtype="png")
-                img_part.add_header("Content-ID", "<institution_logo>")
-                img_part.add_header("Content-Disposition", "inline", filename="logo.png")
-                root_msg.attach(img_part)
-
-                outgoing_msg = root_msg
-            else:
-                msg = MIMEMultipart("alternative")
-                msg["Subject"] = subject
-                msg["From"] = f"Govt. Polytechnic Barh <{SMTP_EMAIL}>"
-                msg["To"] = to_email
-                msg.attach(MIMEText(text_content, "plain", "utf-8"))
-                msg.attach(MIMEText(html_content, "html", "utf-8"))
-                outgoing_msg = msg
+            # Attach plain text version first, then HTML version (standard RFC 2046)
+            msg.attach(MIMEText(text_content, "plain", "utf-8"))
+            msg.attach(MIMEText(html_content, "html", "utf-8"))
 
             if SMTP_PORT == 465:
                 with smtplib.SMTP_SSL(SMTP_SERVER, SMTP_PORT, timeout=30) as server:
                     server.login(SMTP_EMAIL, clean_smtp_pass)
-                    server.send_message(outgoing_msg)
+                    server.send_message(msg)
             else:
                 with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=30) as server:
                     server.starttls()
                     server.login(SMTP_EMAIL, clean_smtp_pass)
-                    server.send_message(outgoing_msg)
+                    server.send_message(msg)
 
             return {
                 "success": True,
