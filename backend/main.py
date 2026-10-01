@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import text
 from datetime import datetime, date, timedelta
 
+import os
 import json
 import secrets
 import uuid
@@ -14,157 +15,116 @@ import time
 import models
 import schemas
 from database import engine, SessionLocal
+from auth_service import (
+    get_password_hash,
+    verify_password,
+    pwd_context,
+    validate_password_complexity,
+    check_otp_dispatch_rate_limit,
+    record_otp_dispatch,
+    check_otp_attempt_lockout,
+    invalidate_otp,
+    create_access_token,
+    decode_access_token,
+    generate_numeric_otp,
+    store_otp,
+    verify_otp_code,
+    is_otp_pre_verified,
+    send_email_otp
+)
 
 # ---------------------------------------------------------
 # DATABASE INITIALIZATION & MIGRATION HELPER
 # ---------------------------------------------------------
-models.Base.metadata.create_all(bind=engine)
 
-def run_sqlite_migrations():
-    """Ensure newly added columns exist in sqlite table without dropping data."""
-    db = SessionLocal()
+def run_database_migrations():
+    """Ensure newly added columns exist across tables without dropping data."""
     try:
-        # Check and add columns to users table if missing
-        cursor = db.connection()
-        columns_to_add = [
-            ("users", "email", "VARCHAR"),
-            ("users", "gender", "VARCHAR DEFAULT 'MALE'"),
-            ("users", "branch", "VARCHAR"),
-            ("users", "semester", "VARCHAR"),
-            ("users", "roll_no", "VARCHAR"),
-            ("users", "reg_no", "VARCHAR"),
-            ("users", "mobile", "VARCHAR"),
-            ("users", "guardian_contact", "VARCHAR"),
-            ("users", "guardian_mobile", "VARCHAR"),
-            ("users", "address", "VARCHAR"),
-            ("users", "blood_group", "VARCHAR"),
-            ("users", "profile_pic", "TEXT"),
-            ("users", "profile_completed", "BOOLEAN DEFAULT 0"),
-            ("users", "pincode", "VARCHAR"),
-            ("users", "home_district", "VARCHAR"),
-            ("users", "home_state", "VARCHAR DEFAULT 'Bihar'"),
-            ("users", "distance_km", "FLOAT"),
-            ("users", "distance_verified", "BOOLEAN DEFAULT 0"),
-            ("users", "room_number", "VARCHAR"),
-            ("users", "bed_code", "VARCHAR"),
-            ("users", "hostel_block", "VARCHAR"),
-            ("beds", "current_student_id", "INTEGER"),
-            ("allotment_requests", "remarks", "VARCHAR"),
-            ("payment_transactions", "payment_period", "VARCHAR"),
-            ("payment_transactions", "created_at", "DATETIME"),
-            ("payment_transactions", "verified_at", "DATETIME"),
-            ("payment_transactions", "proof_url", "TEXT"),
-            ("payment_transactions", "remarks", "VARCHAR"),
-            ("payment_transactions", "receipt_number", "VARCHAR"),
-            ("payment_transactions", "gender", "VARCHAR DEFAULT 'MALE'")
-        ]
-        for table, col, col_type in columns_to_add:
+        from sqlalchemy import inspect
+        insp = inspect(engine)
+        db = SessionLocal()
+        try:
+            is_pg = engine.dialect.name == "postgresql"
+            existing_tables = set(insp.get_table_names())
+            columns_to_add = [
+                ("users", "email", "VARCHAR(255)"),
+                ("users", "gender", "VARCHAR(20) DEFAULT 'MALE'"),
+                ("users", "branch", "VARCHAR(100)"),
+                ("users", "semester", "VARCHAR(50)"),
+                ("users", "roll_no", "VARCHAR(50)"),
+                ("users", "reg_no", "VARCHAR(50)"),
+                ("users", "mobile", "VARCHAR(30)"),
+                ("users", "guardian_contact", "VARCHAR(30)"),
+                ("users", "guardian_mobile", "VARCHAR(30)"),
+                ("users", "address", "VARCHAR(255)"),
+                ("users", "blood_group", "VARCHAR(10)"),
+                ("users", "profile_pic", "TEXT"),
+                ("users", "profile_completed", "BOOLEAN DEFAULT FALSE" if is_pg else "BOOLEAN DEFAULT 0"),
+                ("users", "pincode", "VARCHAR(20)"),
+                ("users", "home_district", "VARCHAR(100)"),
+                ("users", "home_state", "VARCHAR(100) DEFAULT 'Bihar'"),
+                ("users", "distance_km", "FLOAT"),
+                ("users", "distance_verified", "BOOLEAN DEFAULT FALSE" if is_pg else "BOOLEAN DEFAULT 0"),
+                ("users", "room_number", "VARCHAR(20)"),
+                ("users", "bed_code", "VARCHAR(10)"),
+                ("users", "hostel_block", "VARCHAR(100)"),
+                ("users", "hostel_id", "INTEGER"),
+                ("users", "allotment_status", "VARCHAR(50) DEFAULT 'NONE'"),
+                ("users", "allotment_date", "TIMESTAMP" if is_pg else "DATETIME"),
+                ("beds", "current_student_id", "INTEGER"),
+                ("allotment_requests", "remarks", "VARCHAR(255)"),
+                ("allotment_requests", "request_type", "VARCHAR(20) DEFAULT 'NEW'"),
+                ("payment_transactions", "payment_period", "VARCHAR(50)"),
+                ("payment_transactions", "created_at", "TIMESTAMP" if is_pg else "DATETIME"),
+                ("payment_transactions", "verified_at", "TIMESTAMP" if is_pg else "DATETIME"),
+                ("payment_transactions", "proof_url", "TEXT"),
+                ("payment_transactions", "remarks", "VARCHAR(255)"),
+                ("payment_transactions", "receipt_number", "VARCHAR(100)"),
+                ("payment_transactions", "gender", "VARCHAR(20) DEFAULT 'MALE'"),
+                ("users", "is_year_back", "BOOLEAN DEFAULT FALSE" if is_pg else "BOOLEAN DEFAULT 0"),
+                ("users", "is_archived", "BOOLEAN DEFAULT FALSE" if is_pg else "BOOLEAN DEFAULT 0"),
+                ("users", "created_at", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP" if is_pg else "DATETIME"),
+                ("users", "updated_at", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP" if is_pg else "DATETIME"),
+                ("mess_attendance", "token_number", "VARCHAR(100)")
+            ]
+            
+            table_cols = {}
+            for table, col, col_type in columns_to_add:
+                if table not in existing_tables:
+                    continue
+                if table not in table_cols:
+                    table_cols[table] = {c["name"] for c in insp.get_columns(table)}
+                if col not in table_cols[table]:
+                    try:
+                        if is_pg:
+                            db.execute(text(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {col_type};"))
+                        else:
+                            db.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {col_type};"))
+                        db.commit()
+                        table_cols[table].add(col)
+                    except Exception:
+                        db.rollback()
+
+            # Enforce unique constraint / index on (student_id, date, meal_type) to prevent double dipping
             try:
-                db.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {col_type};"))
+                db.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_mess_attendance_student_date_meal ON mess_attendance (student_id, date, meal_type);"))
                 db.commit()
             except Exception:
                 db.rollback()
+        finally:
+            db.close()
     except Exception as e:
-        print("Migration note:", e)
-    finally:
-        db.close()
+        print("Migration check note:", e)
 
-run_sqlite_migrations()
 
 def seed_default_users():
-    """Ensure standard student and warden credentials exist in database."""
+    """Ensure standard Chief Warden credentials exist in database."""
     db = SessionLocal()
     try:
-        # 0. Clean up any invalid registration numbers accidentally mapped to warden
+        # Clean up any invalid registration numbers accidentally mapped to warden
         db.query(models.User).filter(models.User.reg_no_email == "1554424001").delete()
 
-        # 1. Girl Student Account (SANA SHARMA) - Log in with 1554424000 OR sanasharma.gpb.ai@gmail.com
-        girl = db.query(models.User).filter(
-            (models.User.reg_no_email == "1554424000") | 
-            (models.User.email == "sanasharma.gpb.ai@gmail.com") |
-            (models.User.email == "sana.sharma@gpbarh.ac.in")
-        ).first()
-        if not girl:
-            girl = models.User(
-                full_name="SANA SHARMA",
-                reg_no_email="1554424000",
-                email="sanasharma.gpb.ai@gmail.com",
-                password="SANAMIT",
-                role="student",
-                gender="FEMALE",
-                reg_no="1554424000",
-                branch="Artificial Intelligence & Machine Learning",
-                semester="2024-27",
-                mobile="+91 98765 43210",
-                guardian_mobile="+91 98765 01234",
-                address="East Champaran (Motihari), Bihar",
-                blood_group="O+",
-                pincode="845401",
-                home_district="East Champaran (Motihari)",
-                home_state="Bihar",
-                distance_km=188.0,
-                distance_verified=True,
-                profile_completed=True
-            )
-            db.add(girl)
-        else:
-            girl.password = "SANAMIT"
-            girl.gender = "FEMALE"
-            girl.role = "student"
-            girl.full_name = "SANA SHARMA"
-            girl.reg_no = "1554424000"
-            girl.email = "sanasharma.gpb.ai@gmail.com"
-            if not girl.pincode:
-                girl.pincode = "845401"
-                girl.home_district = "East Champaran (Motihari)"
-                girl.home_state = "Bihar"
-                girl.distance_km = 188.0
-                girl.distance_verified = True
-
-        # 2. Boy Student Account (AMIT KUMAR SHARMA) - Log in with 1554424049 OR amitkumar.gpb.ai@gmail.com
-        boy = db.query(models.User).filter(
-            (models.User.reg_no_email == "1554424049") | 
-            (models.User.email == "amitkumar.gpb.ai@gmail.com") |
-            (models.User.email == "amit.sharma@gpbarh.ac.in")
-        ).first()
-        if not boy:
-            boy = models.User(
-                full_name="AMIT KUMAR SHARMA",
-                reg_no_email="1554424049",
-                email="amitkumar.gpb.ai@gmail.com",
-                password="SANAMIT",
-                role="student",
-                gender="MALE",
-                reg_no="1554424049",
-                branch="Artificial Intelligence & Machine Learning",
-                semester="2024-27",
-                mobile="+91 88731 42022",
-                guardian_mobile="+91 98765 43211",
-                address="Arwal District, Bihar",
-                blood_group="O+",
-                pincode="804401",
-                home_district="Arwal",
-                home_state="Bihar",
-                distance_km=145.0,
-                distance_verified=True,
-                profile_completed=True
-            )
-            db.add(boy)
-        else:
-            boy.password = "SANAMIT"
-            boy.gender = "MALE"
-            boy.role = "student"
-            boy.full_name = "AMIT KUMAR SHARMA"
-            boy.reg_no = "1554424049"
-            boy.email = "amitkumar.gpb.ai@gmail.com"
-            if not boy.pincode:
-                boy.pincode = "804401"
-                boy.home_district = "Arwal"
-                boy.home_state = "Bihar"
-                boy.distance_km = 145.0
-                boy.distance_verified = True
-
-        # 3. Chief Warden Official Accounts ONLY: warden@gpbarh.ac.in & warden (Password: SANAMIT)
+        # Chief Warden Official Accounts ONLY: warden@gpbarh.ac.in & warden (Password: SANAMIT)
         warden_emails = ["warden@gpbarh.ac.in", "warden"]
         for w_email in warden_emails:
             w_user = db.query(models.User).filter(models.User.reg_no_email == w_email).first()
@@ -194,12 +154,9 @@ def seed_default_users():
     finally:
         db.close()
 
-seed_default_users()
 
 # ---------------------------------------------------------
-
 # FASTAPI APP INSTANCE SETUP
-
 # ---------------------------------------------------------
 app = FastAPI(
     title="GP Barh Hostel Management API - Pro Version",
@@ -210,13 +167,33 @@ app = FastAPI(
 # ---------------------------------------------------------
 # CORS CONFIGURATION
 # ---------------------------------------------------------
+cors_env = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,*")
+allowed_cors_origins = [orig.strip() for orig in cors_env.split(",") if orig.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "*"],
+    allow_origins=allowed_cors_origins if "*" not in allowed_cors_origins else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ---------------------------------------------------------
+# ROUTER INCLUSION
+# ---------------------------------------------------------
+from routes.allotment import router as allotment_router
+from routes.warden import router as warden_router
+app.include_router(allotment_router)
+app.include_router(warden_router)
+
+@app.on_event("startup")
+def startup_db_init():
+    try:
+        models.Base.metadata.create_all(bind=engine)
+        run_database_migrations()
+        seed_default_users()
+    except Exception as e:
+        print("Database startup init notice:", e)
 
 # ---------------------------------------------------------
 # DEPENDENCIES
@@ -276,10 +253,284 @@ def read_root():
     return {
         "message": "Welcome to GP Barh Hostel API! 🚀",
         "status": "Database Connected & Server Running!",
-        "version": "2.0.0"
+        "version": "2.1.0"
     }
 
+# ---------------------------------------------------------
+# ---------------------------------------------------------
+# 1. EMAIL OTP ENDPOINTS (SIGNUP & FORGOT PASSWORD)
+# ---------------------------------------------------------
+@app.post("/api/auth/send-registration-otp", tags=["Authentication"])
+@app.post("/api/auth/send-otp", tags=["Authentication"])
+@app.post("/auth/send-otp", tags=["Authentication"])
+def send_otp_endpoint(payload: schemas.SendOTPRequest, db: Session = Depends(get_db)):
+    """
+    Sends a 6-digit numeric OTP to the requested email via Gmail SMTP.
+    Enforces anti-spam (60s cooldown per target) and lockout after consecutive failures.
+    Validates against account duplication on SIGNUP, and verifies existence on FORGOT_PASSWORD.
+    """
+    email = payload.get_email()
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A valid student email address is required to dispatch OTP."
+        )
+    purpose = (payload.purpose or "SIGNUP").strip().upper()
+    target_email = email
+
+    from sqlalchemy import or_, func
+
+    if purpose == "SIGNUP":
+        existing = db.query(models.User).filter(
+            or_(func.lower(models.User.email) == email, func.lower(models.User.reg_no_email) == email)
+        ).first()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="An account with this email address already exists. Please log in or reset password."
+            )
+    elif purpose in ("FORGOT_PASSWORD", "RESET_PASSWORD"):
+        existing = db.query(models.User).filter(
+            or_(func.lower(models.User.email) == email, func.lower(models.User.reg_no_email) == email)
+        ).first()
+        if not existing:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No registered student account found matching this email address or registration number."
+            )
+        target_email = (existing.email or email).strip().lower()
+
+    # 1. Check if identifier is currently locked out (after >= 3 failed attempts)
+    is_locked, mins_left = check_otp_attempt_lockout(target_email)
+    if is_locked:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Security Alert: Account verification is temporarily locked. Please try again in {mins_left} minutes."
+        )
+
+    # 2. Enforce 60-second cooldown rate limit per target
+    allowed, cooldown_left = check_otp_dispatch_rate_limit(target_email, cooldown_seconds=60)
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Please wait {cooldown_left} seconds before requesting another verification code."
+        )
+
+    # Record dispatch timestamp
+    record_otp_dispatch(target_email)
+
+    otp_code = generate_numeric_otp(6)
+    store_otp(email, otp_code, purpose=purpose, ttl_seconds=300)
+    if purpose in ("FORGOT_PASSWORD", "RESET_PASSWORD") and target_email != email:
+        store_otp(target_email, otp_code, purpose=purpose, ttl_seconds=300)
+
+    dispatch_res = send_email_otp(target_email, otp_code, purpose=purpose)
+
+    response_payload = {
+        "message": "6-digit OTP sent to your email. Please check your inbox / spam folder.",
+        "email": target_email,
+        "purpose": purpose,
+        "expires_in": 300,
+        "dispatch_status": dispatch_res.get("message")
+    }
+    if os.getenv("INCLUDE_DEV_OTP", "false").lower() == "true":
+        response_payload["otp"] = otp_code
+
+    return response_payload
+
+@app.post("/api/auth/verify-registration-otp", tags=["Authentication"])
+@app.post("/api/auth/verify-otp", tags=["Authentication"])
+@app.post("/auth/verify-otp", tags=["Authentication"])
+def verify_otp_endpoint(payload: schemas.VerifyOTPRequest, db: Session = Depends(get_db)):
+    """
+    Verifies 6-digit numeric OTP within 5-minute TTL without consuming it immediately.
+    Tracks invalid attempts and locks identifier for 15 minutes after 3 failures.
+    """
+    email = payload.get_email()
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email address or registration number is required."
+        )
+
+    is_locked, mins_left = check_otp_attempt_lockout(email)
+    if is_locked:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Security Alert: Account verification locked for {mins_left} minutes due to multiple failed attempts."
+        )
+
+    purpose = (payload.purpose or "SIGNUP").strip().upper()
+    is_valid = verify_otp_code(email, payload.otp, purpose=purpose, consume=False)
+    if not is_valid:
+        from sqlalchemy import or_, func
+        existing = db.query(models.User).filter(
+            or_(func.lower(models.User.email) == email, func.lower(models.User.reg_no_email) == email)
+        ).first()
+        if existing and existing.email:
+            is_valid = verify_otp_code(existing.email, payload.otp, purpose=purpose, consume=False)
+
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired 6-digit OTP code. Please request a fresh OTP."
+        )
+
+    return {
+        "message": "OTP verified successfully! You may proceed.",
+        "verified": True,
+        "email": email,
+        "purpose": purpose
+    }
+
+@app.post("/api/auth/reset-password", tags=["Authentication"])
+@app.post("/api/auth/forgot-password", tags=["Authentication"])
+@app.post("/auth/forgot-password", tags=["Authentication"])
+def forgot_password_endpoint(payload: schemas.ForgotPasswordRequest, db: Session = Depends(get_db)):
+    """
+    Validates single-use 6-digit OTP, validates password complexity,
+    hashes new password with pwd_context, commits to Neon PostgreSQL,
+    and immediately deletes the OTP from cache.
+    """
+    email = payload.get_email()
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email address or registration number is required."
+        )
+
+    is_locked, mins_left = check_otp_attempt_lockout(email)
+    if is_locked:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Security Alert: Account recovery is locked for {mins_left} minutes due to consecutive failed attempts."
+        )
+
+    from sqlalchemy import or_, func
+    user = db.query(models.User).filter(
+        or_(func.lower(models.User.email) == email, func.lower(models.User.reg_no_email) == email)
+    ).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Student account not found."
+        )
+
+    is_valid = (
+        verify_otp_code(email, payload.otp, purpose="FORGOT_PASSWORD", consume=True) or
+        verify_otp_code(email, payload.otp, purpose="RESET_PASSWORD", consume=True) or
+        (user.email and (
+            verify_otp_code(user.email, payload.otp, purpose="FORGOT_PASSWORD", consume=True) or
+            verify_otp_code(user.email, payload.otp, purpose="RESET_PASSWORD", consume=True)
+        ))
+    )
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired OTP code! Password reset authorization failed."
+        )
+
+    clean_new_password = (payload.new_password or "").strip()
+    is_complex, err_msg = validate_password_complexity(clean_new_password)
+    if not is_complex:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=err_msg
+        )
+
+    hashed = pwd_context.hash(clean_new_password)
+    user.password = hashed
+    user.hashed_password = hashed
+    user.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(user)
+
+    # Invalidate OTP immediately from cache for single-use guarantee
+    invalidate_otp(email)
+    if user.email:
+        invalidate_otp(user.email)
+
+    return {
+        "message": "Password successfully reset! You can now log in with your new credentials.",
+        "email": user.email or email
+    }
+
+# ---------------------------------------------------------
+# 2. DYNAMIC PROFILE PASSWORD CHANGE (PUT /api/auth/change-password)
+# ---------------------------------------------------------
+@app.put("/api/auth/change-password", tags=["Authentication"])
+@app.put("/auth/change-password", tags=["Authentication"])
+def change_password_endpoint(
+    payload: schemas.ChangePasswordRequest,
+    authorization: Optional[str] = Header(None),
+    student_id: Optional[str] = Query(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Secure password change endpoint:
+    - Reads currently logged-in user from the JWT session.
+    - Verifies current_password matches stored hashed_password using pwd_context.verify(...).
+    - If mismatch, returns HTTP 400: 'Current password does not match our records.'
+    - Validates strict password complexity (minimum 8 chars, 1 number, 1 special char).
+    - Hashes new_password with pwd_context.hash(...).
+    - Updates user.hashed_password and commits transaction to Neon PostgreSQL.
+    """
+    user = None
+    if authorization and "Bearer " in authorization:
+        token = authorization.replace("Bearer ", "").strip()
+        t_data = decode_access_token(token)
+        if t_data and t_data.get("sub"):
+            sub_id = str(t_data["sub"])
+            user = db.query(models.User).filter(models.User.id == int(sub_id)).first() if sub_id.isdigit() else resolve_student_user(sub_id, db)
+
+    if not user and student_id:
+        user = resolve_student_user(student_id, db)
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required. Please log in to update your password."
+        )
+
+    clean_current = (payload.current_password or "").strip()
+    clean_new = (payload.new_password or "").strip()
+
+    # Verify current password using pwd_context.verify
+    stored_hash = user.hashed_password or user.password or ""
+    if not pwd_context.verify(clean_current, stored_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password does not match our records."
+        )
+
+    # Validate new password complexity
+    is_complex, err_msg = validate_password_complexity(clean_new)
+    if not is_complex:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=err_msg
+        )
+
+    # Hash new password with pwd_context.hash
+    hashed_new = pwd_context.hash(clean_new)
+    user.password = hashed_new
+    user.hashed_password = hashed_new
+    user.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(user)
+
+    return {
+        "message": "Password updated successfully. Please log in again.",
+        "student_id": user.id
+    }
+
+# ---------------------------------------------------------
+# 3. DYNAMIC REGISTRATION & LOGIN
+# ---------------------------------------------------------
 @app.post("/signup", status_code=status.HTTP_201_CREATED, tags=["Authentication"])
+@app.post("/api/auth/signup", status_code=status.HTTP_201_CREATED, tags=["Authentication"])
+@app.post("/api/auth/register", status_code=status.HTTP_201_CREATED, tags=["Authentication"])
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     ident = user.reg_no_email.strip().lower()
     from sqlalchemy import or_, func
@@ -294,37 +545,79 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User with this Registration No. / Email already exists."
+            detail="User with this Registration No. / Email already exists. Please log in."
         )
 
-    norm_gender = normalize_gender(user.gender)
+    # Enforce email OTP verification for student registration
     clean_email = user.email or (user.reg_no_email if "@" in str(user.reg_no_email) else None)
+    if user.role.lower() == "student":
+        otp_verified = False
+        if clean_email:
+            if user.otp and verify_otp_code(clean_email, user.otp, purpose="SIGNUP", consume=True):
+                otp_verified = True
+            elif is_otp_pre_verified(clean_email, purpose="SIGNUP"):
+                otp_verified = True
+
+        if not otp_verified:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email verification required! Please verify your 6-digit OTP before registration."
+            )
+
+    norm_gender = normalize_gender(user.gender)
     clean_reg_no = user.reg_no or (user.reg_no_email if "@" not in str(user.reg_no_email) else None)
+
+    # Hash password with bcrypt
+    hashed_pwd = get_password_hash(user.password)
 
     new_user = models.User(
         full_name=user.full_name,
         reg_no_email=user.reg_no_email,
         email=clean_email,
-        password=user.password,
+        password=hashed_pwd,
         role=user.role.lower(),
         gender=norm_gender,
         reg_no=clean_reg_no or user.reg_no_email,
         branch=user.branch if user.branch else None,
         semester=user.session or user.semester or "2024-27",
-        profile_completed=False
+        profile_completed=False,
+        room_number=None,
+        bed_code=None,
+        hostel_block=None,
+        hostel_id=None,
+        allotment_status="NONE",
+        is_year_back=False,
+        is_archived=False,
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow()
     )
 
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
 
+    # Invalidate registration OTP single-use immediately
+    invalidate_otp(ident)
+    if clean_email:
+        invalidate_otp(clean_email)
+
+    # Generate genuine signed JWT access token
+    access_token = create_access_token({
+        "sub": str(new_user.id),
+        "role": new_user.role,
+        "reg_no": new_user.reg_no,
+        "email": new_user.email
+    })
+
     return {
         "message": "Account successfully created!",
-        "user_id": new_user.id,
-        "gender": new_user.gender
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": serialize_user_dict(new_user, db)
     }
 
 @app.post("/login", tags=["Authentication"])
+@app.post("/api/auth/login", tags=["Authentication"])
 def login_user(user: schemas.UserLogin, db: Session = Depends(get_db)):
     ident = str(user.reg_no_email).strip().lower()
 
@@ -338,14 +631,24 @@ def login_user(user: schemas.UserLogin, db: Session = Depends(get_db)):
         )
     ).first()
 
-    if not db_user or db_user.password != user.password:
+    if not db_user or not verify_password(user.password, db_user.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid Registration No./Email or Password! Please verify."
         )
 
+    # Generate genuine signed JWT access token
+    access_token = create_access_token({
+        "sub": str(db_user.id),
+        "role": db_user.role,
+        "reg_no": db_user.reg_no,
+        "email": db_user.email
+    })
+
     return {
         "message": "Login successful!",
+        "access_token": access_token,
+        "token_type": "bearer",
         "user": serialize_user_dict(db_user, db)
     }
 
@@ -809,9 +1112,13 @@ def update_user_profile(profile: schemas.ProfileUpdate, db: Session = Depends(ge
 def seed_hostel_data(db: Session, force: bool = False):
     """Seed Boys (Birsa Munda & Dr. Rajendra Prasad) and Girls (Savitribai Phule) Hostels, Rooms & Beds matching Blueprints."""
     if not force:
-        existing_rooms_count = db.query(models.Room).count()
-        if existing_rooms_count >= 50:
-            return
+        boys_h = db.query(models.Hostel).filter(models.Hostel.gender_type.in_(["BOYS", "MALE"])).first()
+        girls_h = db.query(models.Hostel).filter(models.Hostel.gender_type.in_(["GIRLS", "FEMALE"])).first()
+        if boys_h and girls_h:
+            b_count = db.query(models.Room).filter(models.Room.hostel_id == boys_h.id).count()
+            g_count = db.query(models.Room).filter(models.Room.hostel_id == girls_h.id).count()
+            if b_count >= 60 and g_count >= 40:
+                return
 
     # 1. BOYS HOSTEL (BIRSA MUNDA & DR. RAJENDRA PRASAD)
     boys_hostel = db.query(models.Hostel).filter(models.Hostel.gender_type.in_(["BOYS", "MALE"])).first()
@@ -859,6 +1166,12 @@ def seed_hostel_data(db: Session, force: bool = False):
         {"block": "Dr. Rajendra Prasad", "floor": 1, "row": "BOTTOM", "rooms": ["106", "105"]},
     ]
 
+    # Pre-fetch existing rooms in a single query
+    existing_room_keys = {
+        (r.hostel_id, r.room_number, r.floor_number, r.wing): r.id
+        for r in db.query(models.Room.hostel_id, models.Room.room_number, models.Room.floor_number, models.Room.wing, models.Room.id).all()
+    }
+
     for cfg in boys_room_configs:
         block_name = cfg["block"]
         floor_num = cfg["floor"]
@@ -866,14 +1179,7 @@ def seed_hostel_data(db: Session, force: bool = False):
         wing_val = f"{'BIRSA' if 'Birsa' in block_name else 'RAJENDRA'}_{row_pos}"
 
         for r_num in cfg["rooms"]:
-            existing_room = db.query(models.Room).filter(
-                models.Room.hostel_id == boys_hostel.id,
-                models.Room.room_number == r_num,
-                models.Room.floor_number == floor_num,
-                models.Room.wing == wing_val
-            ).first()
-
-            if not existing_room:
+            if (boys_hostel.id, r_num, floor_num, wing_val) not in existing_room_keys:
                 new_room = models.Room(
                     hostel_id=boys_hostel.id,
                     room_number=r_num,
@@ -883,11 +1189,11 @@ def seed_hostel_data(db: Session, force: bool = False):
                     occupied_count=0
                 )
                 db.add(new_room)
-                db.commit()
-                db.refresh(new_room)
+                db.flush()
+                existing_room_keys[(boys_hostel.id, r_num, floor_num, wing_val)] = new_room.id
                 for bed_code in ['A', 'B', 'C']:
                     db.add(models.Bed(room_id=new_room.id, bed_code=bed_code, is_occupied=False))
-                db.commit()
+    db.commit()
 
     # 2. GIRLS HOSTEL (SAVITRIBAI PHULE GIRLS HOSTEL - DUAL-WING CORRIDOR: 2 FLOORS ONLY)
     girls_hostel = db.query(models.Hostel).filter(models.Hostel.gender_type.in_(["GIRLS", "FEMALE"])).first()
@@ -925,14 +1231,7 @@ def seed_hostel_data(db: Session, force: bool = False):
         floor_num = cfg["floor"]
         wing_val = cfg["wing"]
         for r_num in cfg["rooms"]:
-            existing_room = db.query(models.Room).filter(
-                models.Room.hostel_id == girls_hostel.id,
-                models.Room.room_number == r_num,
-                models.Room.floor_number == floor_num,
-                models.Room.wing == wing_val
-            ).first()
-
-            if not existing_room:
+            if (girls_hostel.id, r_num, floor_num, wing_val) not in existing_room_keys:
                 new_room = models.Room(
                     hostel_id=girls_hostel.id,
                     room_number=r_num,
@@ -942,19 +1241,19 @@ def seed_hostel_data(db: Session, force: bool = False):
                     occupied_count=0
                 )
                 db.add(new_room)
-                db.commit()
-                db.refresh(new_room)
+                db.flush()
+                existing_room_keys[(girls_hostel.id, r_num, floor_num, wing_val)] = new_room.id
                 for bed_code in ['A', 'B', 'C']:
                     db.add(models.Bed(room_id=new_room.id, bed_code=bed_code, is_occupied=False))
-                db.commit()
+    db.commit()
 
     # Ensure EVERY single room in DB across Boys & Girls hostels has beds 'A', 'B', 'C'
-    all_rooms_check = db.query(models.Room).all()
-    for r in all_rooms_check:
-        existing_codes = {b.bed_code for b in r.beds}
+    existing_beds_set = {(b.room_id, b.bed_code) for b in db.query(models.Bed.room_id, models.Bed.bed_code).all()}
+    all_room_ids = [r.id for r in db.query(models.Room.id).all()]
+    for rid in all_room_ids:
         for code in ['A', 'B', 'C']:
-            if code not in existing_codes:
-                db.add(models.Bed(room_id=r.id, bed_code=code, is_occupied=False))
+            if (rid, code) not in existing_beds_set:
+                db.add(models.Bed(room_id=rid, bed_code=code, is_occupied=False))
     db.commit()
 
     # Clean up any non-student or warden occupied beds
@@ -1001,6 +1300,9 @@ def get_hostel_layout(gender: str = Query("MALE"), student_id: Optional[str] = Q
     norm_gender = normalize_gender(gender)
     
     hostel = db.query(models.Hostel).filter(models.Hostel.gender_type.in_([norm_gender, "BOYS" if norm_gender == "MALE" else "GIRLS"])).first()
+    if not hostel:
+        seed_hostel_data(db, force=True)
+        hostel = db.query(models.Hostel).filter(models.Hostel.gender_type.in_([norm_gender, "BOYS" if norm_gender == "MALE" else "GIRLS"])).first()
     if not hostel:
         raise HTTPException(status_code=404, detail=f"Hostel for gender {gender} not found")
 
@@ -1070,6 +1372,29 @@ def get_hostel_layout(gender: str = Query("MALE"), student_id: Optional[str] = Q
         rooms=rooms_list
     )
 
+def resolve_specific_hostel_name(room_obj, user_gender=None):
+    """Resolves specific hostel name based on room wing and hostel definition."""
+    if not room_obj:
+        if user_gender and normalize_gender(user_gender) == "FEMALE":
+            return "Savitribai Phule Girls Hostel"
+        return "Birsa Munda Boys Hostel"
+    
+    if room_obj.hostel and normalize_gender(room_obj.hostel.gender_type) == "FEMALE":
+        return "Savitribai Phule Girls Hostel"
+    if user_gender and normalize_gender(user_gender) == "FEMALE":
+        return "Savitribai Phule Girls Hostel"
+
+    wing_upper = str(room_obj.wing or "").upper()
+    block_upper = str(getattr(room_obj, 'block_name', '') or "").upper()
+
+    if "RAJENDRA" in wing_upper or "RIGHT" in wing_upper or "RAJENDRA" in block_upper:
+        return "Dr. Rajendra Prasad Boys Hostel"
+    elif "BIRSA" in wing_upper or "LEFT" in wing_upper or "BIRSA" in block_upper:
+        return "Birsa Munda Boys Hostel"
+    elif room_obj.hostel and room_obj.hostel.name and "Birsa Munda & Dr. Rajendra Prasad" not in room_obj.hostel.name:
+        return room_obj.hostel.name
+    return "Birsa Munda Boys Hostel"
+
 def check_and_expire_allotment_requests(db: Session):
     """Auto-expires pending allotment requests that have exceeded the 24-hour review window."""
     now = datetime.utcnow()
@@ -1085,80 +1410,212 @@ def check_and_expire_allotment_requests(db: Session):
                 req.bed.current_student_id = None
     db.commit()
 
-@app.post("/request-bed", tags=["Hostel Allocation"])
-@app.post("/api/hostels/request-bed", tags=["Hostel Allocation"])
+@app.post("/request-bed", tags=["Hostel Allocation"], status_code=status.HTTP_201_CREATED)
+@app.post("/api/hostels/request-bed", tags=["Hostel Allocation"], status_code=status.HTTP_201_CREATED)
+@app.post("/api/allotment/request", tags=["Hostel Allocation"], status_code=status.HTTP_201_CREATED)
 def request_bed(payload: schemas.BedRequestCreate, db: Session = Depends(get_db)):
-    check_and_expire_allotment_requests(db)
+    try:
+        check_and_expire_allotment_requests(db)
 
-    student = resolve_student_user(payload.student_id, db)
-    if not student:
-        raise HTTPException(status_code=404, detail="Student record not found! Please check your registration ID.")
+        student = resolve_student_user(payload.student_id, db)
+        if not student:
+            raise HTTPException(status_code=404, detail="Student record not found! Please check your registration ID.")
 
-    # Check if student already has an approved allotment
-    existing_approved = db.query(models.AllotmentRequest).filter(
-        models.AllotmentRequest.student_id == student.id,
-        models.AllotmentRequest.status == "APPROVED"
-    ).first()
+        # 2. Resilient Room Resolution
+        room = None
+        if payload.room_id is not None:
+            if isinstance(payload.room_id, int) or (isinstance(payload.room_id, str) and str(payload.room_id).isdigit()):
+                room = db.query(models.Room).filter(models.Room.id == int(payload.room_id)).first()
+            if not room and isinstance(payload.room_id, str):
+                extracted_no = payload.room_id.split('_')[-1]
+                room = db.query(models.Room).filter(models.Room.room_number == extracted_no).first()
 
-    if existing_approved:
-        raise HTTPException(status_code=400, detail="You already have an approved room allotment! All features are unlocked.")
+        if not room and payload.hostel_id:
+            room = db.query(models.Room).filter(models.Room.hostel_id == payload.hostel_id).first()
 
-    bed = db.query(models.Bed).filter(models.Bed.id == payload.bed_id).first()
-    if not bed:
-        raise HTTPException(status_code=404, detail="Requested bed not found!")
-    if bed.is_occupied and bed.current_student_id != student.id:
-        raise HTTPException(status_code=400, detail="This bed is already occupied by another student!")
+        if not room or not room.hostel:
+            raise HTTPException(status_code=404, detail="Requested room or hostel block not found!")
 
-    # Check if bed has a pending request from another student
-    pending_bed_req = db.query(models.AllotmentRequest).filter(
-        models.AllotmentRequest.bed_id == payload.bed_id,
-        models.AllotmentRequest.student_id != student.id,
-        models.AllotmentRequest.status == "PENDING"
-    ).first()
-    if pending_bed_req:
-        raise HTTPException(status_code=400, detail="This bed currently has a pending request awaiting Warden review.")
+        # 3. Strict Gender Validation
+        student_gender = normalize_gender(student.gender)
+        hostel_gender = normalize_gender(room.hostel.gender_type)
+        if student_gender != hostel_gender:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Gender restriction: As a {student_gender} student, you can only select rooms in the {hostel_gender} Hostel!"
+            )
 
-    # Check if student already has an existing pending request: if so, gracefully update their room/bed choice!
-    existing_pending = db.query(models.AllotmentRequest).filter(
-        models.AllotmentRequest.student_id == student.id,
-        models.AllotmentRequest.status == "PENDING"
-    ).first()
+        # 4. Resilient Bed Resolution within Selected Room
+        raw_code = str(payload.bed_code or "")
+        if not raw_code and payload.bed_id:
+            raw_code = str(payload.bed_id)
+        
+        clean_code = "A"
+        raw_upper = raw_code.upper()
+        if "C" in raw_upper or raw_upper.endswith("C"):
+            clean_code = "C"
+        elif "B" in raw_upper or raw_upper.endswith("B"):
+            clean_code = "B"
+        elif "A" in raw_upper or raw_upper.endswith("A"):
+            clean_code = "A"
 
-    if existing_pending:
-        existing_pending.room_id = payload.room_id
-        existing_pending.bed_id = payload.bed_id
-        existing_pending.applied_at = datetime.utcnow()
-        existing_pending.remarks = "Updated bed selection by student"
+        bed = db.query(models.Bed).filter(
+            models.Bed.room_id == room.id,
+            models.Bed.bed_code == clean_code
+        ).first()
+
+        if not bed and payload.bed_id is not None:
+            if isinstance(payload.bed_id, int) or (isinstance(payload.bed_id, str) and str(payload.bed_id).isdigit()):
+                bed = db.query(models.Bed).filter(
+                    models.Bed.id == int(payload.bed_id),
+                    models.Bed.room_id == room.id
+                ).first()
+
+        if not bed:
+            existing_beds = db.query(models.Bed).filter(models.Bed.room_id == room.id).all()
+            if not existing_beds:
+                for code in ["A", "B", "C"]:
+                    new_b = models.Bed(
+                        room_id=room.id,
+                        bed_code=code,
+                        is_occupied=False
+                    )
+                    db.add(new_b)
+                db.commit()
+                bed = db.query(models.Bed).filter(
+                    models.Bed.room_id == room.id,
+                    models.Bed.bed_code == clean_code
+                ).first()
+            else:
+                bed = existing_beds[0]
+
+        if not bed:
+            raise HTTPException(status_code=404, detail="Requested bed not found in the selected room!")
+
+        # 3. Check if this is an UPGRADE or NEW request
+        existing_approved = db.query(models.AllotmentRequest).filter(
+            models.AllotmentRequest.student_id == student.id,
+            models.AllotmentRequest.status == "APPROVED"
+        ).first()
+
+        currently_occupied_bed = db.query(models.Bed).filter(models.Bed.current_student_id == student.id).first()
+
+        is_upgrade = (
+            payload.request_type == "UPGRADE" or
+            bool(existing_approved) or
+            bool(currently_occupied_bed) or
+            bool(student.room_number and student.bed_code)
+        )
+
+        # 4. Strict Vacancy Validation
+        if bed.is_occupied and bed.current_student_id != student.id:
+            if is_upgrade:
+                raise HTTPException(status_code=400, detail="Target bed is already occupied. Upgrade requires a vacant bed.")
+            else:
+                raise HTTPException(status_code=400, detail="This bed is already occupied by another student!")
+
+        # Check if this bed has a pending request from another student
+        pending_bed_req = db.query(models.AllotmentRequest).filter(
+            models.AllotmentRequest.bed_id == bed.id,
+            models.AllotmentRequest.student_id != student.id,
+            models.AllotmentRequest.status == "PENDING"
+        ).first()
+        if pending_bed_req:
+            raise HTTPException(status_code=400, detail="This bed currently has a pending request awaiting Warden review.")
+
+        # 5. Handle UPGRADE Workflow
+        if is_upgrade:
+            current_bed_id = currently_occupied_bed.id if currently_occupied_bed else (existing_approved.bed_id if existing_approved else None)
+            if current_bed_id == bed.id:
+                raise HTTPException(status_code=400, detail="You already occupy this exact bed! Please choose a different available bed to upgrade/change.")
+
+            existing_pending_upgrade = db.query(models.AllotmentRequest).filter(
+                models.AllotmentRequest.student_id == student.id,
+                models.AllotmentRequest.status == "PENDING"
+            ).first()
+
+            current_room_desc = f"Room {student.room_number or (existing_approved.room.room_number if existing_approved and existing_approved.room else '')} (Bed {student.bed_code or (existing_approved.bed.bed_code if existing_approved and existing_approved.bed else '')})"
+
+            if existing_pending_upgrade:
+                existing_pending_upgrade.room_id = room.id
+                existing_pending_upgrade.bed_id = bed.id
+                existing_pending_upgrade.request_type = "UPGRADE"
+                existing_pending_upgrade.status = "PENDING"
+                existing_pending_upgrade.applied_at = datetime.utcnow()
+                existing_pending_upgrade.remarks = f"UPGRADE REQUEST: Switch from {current_room_desc} to Room {room.room_number} (Bed {bed.bed_code})"
+                db.commit()
+                db.refresh(existing_pending_upgrade)
+                return {
+                    "message": f"Room upgrade request updated to Room {room.room_number} (Bed {bed.bed_code})! Current room remains valid until Warden approval. ⏳",
+                    "request_id": existing_pending_upgrade.id,
+                    "status": "PENDING",
+                    "request_type": "UPGRADE"
+                }
+
+            new_upgrade_req = models.AllotmentRequest(
+                student_id=student.id,
+                room_id=room.id,
+                bed_id=bed.id,
+                status="PENDING",
+                request_type="UPGRADE",
+                applied_at=datetime.utcnow(),
+                remarks=f"UPGRADE REQUEST: Switch from {current_room_desc} to Room {room.room_number} (Bed {bed.bed_code})"
+            )
+            db.add(new_upgrade_req)
+            db.commit()
+            db.refresh(new_upgrade_req)
+
+            return {
+                "message": f"Room upgrade request submitted for Room {room.room_number} (Bed {bed.bed_code})! Awaiting Warden approval. Your current room remains active. ⏳",
+                "request_id": new_upgrade_req.id,
+                "status": "PENDING",
+                "request_type": "UPGRADE"
+            }
+
+        # 6. Handle NEW Allotment Flow
+        existing_pending = db.query(models.AllotmentRequest).filter(
+            models.AllotmentRequest.student_id == student.id,
+            models.AllotmentRequest.status == "PENDING"
+        ).first()
+
+        if existing_pending:
+            raise HTTPException(
+                status_code=400,
+                detail="An allotment request is already active or pending for this account."
+            )
+
+        new_req = models.AllotmentRequest(
+            student_id=student.id,
+            room_id=room.id,
+            bed_id=bed.id,
+            status="PENDING",
+            request_type="NEW",
+            applied_at=datetime.utcnow(),
+            remarks="Initial hostel bed allotment request"
+        )
+        db.add(new_req)
         db.commit()
-        db.refresh(existing_pending)
+        db.refresh(new_req)
+
         return {
-            "message": f"Bed allotment request updated to Room {existing_pending.room.room_number if existing_pending.room else ''} (Bed {existing_pending.bed.bed_code if existing_pending.bed else ''})! Awaiting Warden approval (24-hour review window). ⏳",
-            "request_id": existing_pending.id,
-            "status": "PENDING_APPROVAL"
+            "message": f"Bed allotment request for Room {room.room_number} (Bed {bed.bed_code}) submitted successfully! Awaiting Warden approval. ⏳",
+            "request_id": new_req.id,
+            "status": "PENDING",
+            "request_type": "NEW"
         }
-
-    new_req = models.AllotmentRequest(
-        student_id=student.id,
-        room_id=payload.room_id,
-        bed_id=payload.bed_id,
-        status="PENDING",
-        applied_at=datetime.utcnow()
-    )
-    db.add(new_req)
-    db.commit()
-    db.refresh(new_req)
-
-    return {
-        "message": f"Bed allotment request submitted successfully! Awaiting Warden approval (24-hour review window). ⏳",
-        "request_id": new_req.id,
-        "status": "PENDING_APPROVAL"
-    }
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to submit allotment request: {str(e)}")
 
 # ---------------------------------------------------------
 # WARDEN WORKFLOW & ANALYTICS ENDPOINTS
 # ---------------------------------------------------------
 @app.get("/warden/pending-requests", response_model=List[schemas.AllotmentRequestResponse], tags=["Warden Workflow"])
 @app.get("/api/warden/allotments/pending", response_model=List[schemas.AllotmentRequestResponse], tags=["Warden Workflow"])
+@app.get("/api/allotment/pending", response_model=List[schemas.AllotmentRequestResponse], tags=["Warden Workflow"])
 def get_pending_allotment_requests(db: Session = Depends(get_db)):
     check_and_expire_allotment_requests(db)
     reqs = db.query(models.AllotmentRequest).options(
@@ -1171,18 +1628,18 @@ def get_pending_allotment_requests(db: Session = Depends(get_db)):
 
     for r in reqs:
         # Calculate time remaining out of 24 hours
-        elapsed_sec = (now - r.applied_at).total_seconds()
+        elapsed_sec = (now - r.applied_at).total_seconds() if r.applied_at else 0
         hours_left = max(0.0, round((86400 - elapsed_sec) / 3600.0, 1))
 
         # Calculate student distance & priority
-        dist_km = r.student.distance_km
-        district_name = r.student.home_district or "Bihar"
-        if dist_km is None and r.student.pincode:
+        dist_km = r.student.distance_km if r.student else None
+        district_name = (r.student.home_district if r.student else None) or "Bihar"
+        if dist_km is None and r.student and r.student.pincode:
             calc = compute_distance_and_priority(r.student.pincode, r.student.home_district, r.student.home_state)
             dist_km = calc["distance_km"]
             district_name = calc["district"]
         elif dist_km is None:
-            dist_km = 145.0  # Default demo distance for Bihar student
+            dist_km = 145.0
             district_name = "Patna / Arwal District"
 
         if dist_km >= 80.0:
@@ -1192,115 +1649,171 @@ def get_pending_allotment_requests(db: Session = Depends(get_db)):
         else:
             prio = f"{int(dist_km)} KM • Local Resident (<40 KM)"
 
+        hostel_name = resolve_specific_hostel_name(r.room, normalize_gender(r.student.gender if r.student else "MALE"))
+
         results.append(schemas.AllotmentRequestResponse(
             id=r.id,
-            student_id=r.student.id,
-            student_name=r.student.full_name,
-            student_gender=normalize_gender(r.student.gender),
-            student_branch=r.student.branch or "AI & ML",
-            student_roll=r.student.roll_no or "N/A",
-            student_reg=r.student.reg_no or r.student.reg_no_email,
-            student_mobile=r.student.mobile or r.student.guardian_contact or "N/A",
-            student_photo=r.student.profile_pic,
-            student_pincode=r.student.pincode or "804401",
+            student_id=r.student.id if r.student else 0,
+            student_name=r.student.full_name if r.student else "Unknown Student",
+            student_gender=normalize_gender(r.student.gender if r.student else "MALE"),
+            student_branch=(r.student.branch if r.student else None) or "AI & ML",
+            student_roll=(r.student.roll_no if r.student else None) or "N/A",
+            student_reg=(r.student.reg_no if r.student else None) or (r.student.reg_no_email if r.student else "N/A"),
+            student_mobile=(r.student.mobile if r.student else None) or (r.student.guardian_contact if r.student else "N/A"),
+            student_photo=r.student.profile_pic if r.student else None,
+            student_pincode=(r.student.pincode if r.student else None) or "804401",
             student_district=district_name,
             student_distance_km=float(dist_km),
             distance_priority=prio,
             hours_left=hours_left,
             is_expired=(elapsed_sec > 86400),
-            room_id=r.room.id,
-            room_number=r.room.room_number,
-            floor_number=r.room.floor_number,
-            wing=r.room.wing,
-            bed_id=r.bed.id,
-            bed_code=r.bed.bed_code,
+            room_id=r.room.id if r.room else 0,
+            room_number=r.room.room_number if r.room else "N/A",
+            floor_number=r.room.floor_number if r.room else 0,
+            wing=r.room.wing if r.room else "LEFT",
+            hostel_name=hostel_name,
+            bed_id=r.bed.id if r.bed else 0,
+            bed_code=r.bed.bed_code if r.bed else "A",
+            current_room_number=r.student.room_number if r.student else None,
+            current_bed_code=r.student.bed_code if r.student else None,
+            request_type=r.request_type or ("UPGRADE" if (r.student and r.student.room_number) else "NEW"),
             status=r.status,
-            applied_at=r.applied_at,
+            applied_at=r.applied_at or datetime.utcnow(),
             remarks=r.remarks
         ))
     return results
+
+@app.post("/api/allotment/approve/{request_id}", tags=["Warden Workflow"])
+@app.put("/api/allotment/approve/{request_id}", tags=["Warden Workflow"])
+def direct_approve_allotment(request_id: int, action_data: Optional[schemas.AllotmentActionRequest] = None, db: Session = Depends(get_db)):
+    if action_data is None:
+        action_data = schemas.AllotmentActionRequest(action="approve", remarks="Approved by Chief Warden.")
+    else:
+        action_data.action = "approve"
+    return action_allotment_request(request_id, action_data, db)
+
+@app.post("/api/allotment/reject/{request_id}", tags=["Warden Workflow"])
+@app.put("/api/allotment/reject/{request_id}", tags=["Warden Workflow"])
+def direct_reject_allotment(request_id: int, action_data: Optional[schemas.AllotmentActionRequest] = None, db: Session = Depends(get_db)):
+    if action_data is None:
+        action_data = schemas.AllotmentActionRequest(action="reject", remarks="Allotment request rejected by Chief Warden.")
+    else:
+        action_data.action = "reject"
+    return action_allotment_request(request_id, action_data, db)
 
 @app.post("/warden/allotment-action/{request_id}", tags=["Warden Workflow"])
 @app.post("/api/warden/allotments/{request_id}/action", tags=["Warden Workflow"])
 @app.put("/warden/allotment-action/{request_id}", tags=["Warden Workflow"])
 @app.put("/api/warden/allotments/{request_id}/action", tags=["Warden Workflow"])
-def action_allotment_request(request_id: int, action_data: schemas.AllotmentActionRequest, db: Session = Depends(get_db)):
-    req = db.query(models.AllotmentRequest).filter(models.AllotmentRequest.id == request_id).first()
-    if not req:
-        raise HTTPException(status_code=404, detail="Allotment request not found")
+def action_allotment_request(request_id: int, action_data: Optional[schemas.AllotmentActionRequest] = None, db: Session = Depends(get_db)):
+    try:
+        req = db.query(models.AllotmentRequest).filter(models.AllotmentRequest.id == request_id).first()
+        if not req:
+            raise HTTPException(status_code=404, detail="Allotment request not found")
 
-    action = action_data.action.lower()
-    if action not in ["approve", "reject", "cancel", "revoke"]:
-        raise HTTPException(status_code=400, detail="Invalid action. Must be 'approve', 'reject', or 'cancel'")
+        action = (action_data.action if action_data and action_data.action else "approve").lower()
+        if action not in ["approve", "reject", "cancel", "revoke"]:
+            raise HTTPException(status_code=400, detail="Invalid action. Must be 'approve', 'reject', or 'cancel'")
 
-    if action == "approve":
-        req.status = "APPROVED"
-        req.remarks = action_data.remarks or "Approved by Warden"
-        
-        # 1. Free any previous beds occupied by this student across the entire hostel
-        prev_beds = db.query(models.Bed).filter(models.Bed.current_student_id == req.student_id).all()
-        for pb in prev_beds:
-            pb.is_occupied = False
-            pb.current_student_id = None
-            if pb.room:
-                prev_occ = db.query(models.Bed).filter(models.Bed.room_id == pb.room_id, models.Bed.is_occupied == True).count()
-                pb.room.occupied_count = min(pb.room.capacity, prev_occ)
+        is_upgrade = (req.request_type == "UPGRADE")
 
-        # 2. Mark Bed as occupied
-        bed = req.bed
-        if bed:
-            bed.is_occupied = True
-            bed.current_student_id = req.student_id
-        
-        # 3. Update student user record
-        if req.student and req.room:
-            req.student.room_number = req.room.room_number
-            req.student.bed_code = bed.bed_code if bed else "A"
-            req.student.hostel_block = req.room.wing
+        if action == "approve":
+            # 1. If student previously occupied a bed, free it
+            prev_beds = db.query(models.Bed).filter(
+                models.Bed.current_student_id == req.student_id,
+                models.Bed.id != req.bed_id
+            ).all()
+            for pb in prev_beds:
+                pb.is_occupied = False
+                pb.current_student_id = None
+                if pb.room:
+                    prev_occ = db.query(models.Bed).filter(models.Bed.room_id == pb.room_id, models.Bed.is_occupied == True).count()
+                    pb.room.occupied_count = min(pb.room.capacity, prev_occ)
 
-        # 4. Update Room occupied count
-        room = req.room
-        if room:
-            active_occupied = db.query(models.Bed).filter(models.Bed.room_id == room.id, models.Bed.is_occupied == True).count()
-            room.occupied_count = min(room.capacity, active_occupied)
+            # 2. Mark any older approved/pending requests for this student as SUPERSEDED
+            db.query(models.AllotmentRequest).filter(
+                models.AllotmentRequest.student_id == req.student_id,
+                models.AllotmentRequest.id != req.id,
+                models.AllotmentRequest.status.in_(["APPROVED", "PENDING"])
+            ).update({"status": "SUPERSEDED"}, synchronize_session=False)
 
-        db.commit()
-        return {
-            "message": f"Approved! Bed {bed.bed_code if bed else ''} in Room {room.room_number if room else ''} allocated to {req.student.full_name if req.student else 'Student'}. Student features unlocked.",
-            "status": "APPROVED"
-        }
-    else:
-        req.status = "CANCELLED" if action in ["cancel", "revoke"] else "REJECTED"
-        req.remarks = action_data.remarks or ("Allotment cancelled/revoked by Chief Warden." if action in ["cancel", "revoke"] else "Request rejected by Warden. You may re-apply for another available bed.")
-        
-        # Clear student user room assignment
-        if req.student:
-            req.student.room_number = None
-            req.student.bed_code = None
-            req.student.hostel_block = None
+            # 3. Mark current request as APPROVED
+            req.status = "APPROVED"
+            req.remarks = (action_data.remarks if action_data and action_data.remarks else None) or ("Room upgrade approved by Chief Warden." if is_upgrade else "Approved by Chief Warden.")
 
-        # Free all beds occupied by this student
-        occupied_beds = db.query(models.Bed).filter(models.Bed.current_student_id == req.student_id).all()
-        for b in occupied_beds:
-            b.is_occupied = False
-            b.current_student_id = None
-            if b.room:
-                active_occupied = db.query(models.Bed).filter(models.Bed.room_id == b.room_id, models.Bed.is_occupied == True).count()
-                b.room.occupied_count = min(b.room.capacity, active_occupied)
+            # 4. Mark target Bed as occupied
+            bed = req.bed or db.query(models.Bed).filter(models.Bed.id == req.bed_id).first()
+            if bed:
+                bed.is_occupied = True
+                bed.current_student_id = req.student_id
+            
+            # 5. Update student user record
+            student = req.student or db.query(models.User).filter(models.User.id == req.student_id).first()
+            room = req.room or db.query(models.Room).filter(models.Room.id == req.room_id).first()
+            if student and room:
+                student.room_number = room.room_number
+                student.bed_code = bed.bed_code if bed else "A"
+                student.hostel_id = room.hostel_id
+                student.hostel_block = resolve_specific_hostel_name(room, student.gender)
+                student.allotment_status = "APPROVED"
+                student.allotment_date = datetime.utcnow()
 
-        bed = req.bed
-        if bed:
-            bed.is_occupied = False
-            bed.current_student_id = None
-            if bed.room:
-                active_occ = db.query(models.Bed).filter(models.Bed.room_id == bed.room_id, models.Bed.is_occupied == True).count()
-                bed.room.occupied_count = min(bed.room.capacity, active_occ)
-        
-        db.commit()
-        return {
-            "message": f"Allotment request for {req.student.full_name if req.student else 'Student'} has been {req.status.lower()} and bed is freed.",
-            "status": req.status
-        }
+            # 6. Update Room occupied count
+            if room:
+                active_occupied = db.query(models.Bed).filter(models.Bed.room_id == room.id, models.Bed.is_occupied == True).count()
+                room.occupied_count = min(room.capacity, active_occupied)
+
+            db.commit()
+            db.refresh(req)
+            if student:
+                db.refresh(student)
+
+            return {
+                "message": f"Approved! Bed {bed.bed_code if bed else ''} in Room {room.room_number if room else ''} {'upgraded & ' if is_upgrade else ''}allocated to {student.full_name if student else 'Student'}. All features unlocked.",
+                "status": "APPROVED",
+                "request_id": req.id
+            }
+        else:
+            # Rejection / Cancellation
+            req.status = "CANCELLED" if action in ["cancel", "revoke"] else "REJECTED"
+            req.remarks = (action_data.remarks if action_data and action_data.remarks else None) or ("Request cancelled by Chief Warden." if action in ["cancel", "revoke"] else ("Upgrade request rejected by Chief Warden. Existing room assignment remains retained." if is_upgrade else "Request rejected by Chief Warden. You may re-apply for another available bed."))
+            
+            # If it was NOT an UPGRADE request, clear any unapproved assignment
+            if not is_upgrade:
+                student = req.student or db.query(models.User).filter(models.User.id == req.student_id).first()
+                has_other_approved = db.query(models.AllotmentRequest).filter(
+                    models.AllotmentRequest.student_id == req.student_id,
+                    models.AllotmentRequest.id != req.id,
+                    models.AllotmentRequest.status == "APPROVED"
+                ).first()
+                if not has_other_approved and student:
+                    student.allotment_status = "REJECTED"
+                    student.room_number = None
+                    student.bed_code = None
+                    student.hostel_block = None
+
+                bed = req.bed or db.query(models.Bed).filter(models.Bed.id == req.bed_id).first()
+                if bed and bed.current_student_id == req.student_id:
+                    bed.is_occupied = False
+                    bed.current_student_id = None
+                    if bed.room:
+                        active_occ = db.query(models.Bed).filter(models.Bed.room_id == bed.room_id, models.Bed.is_occupied == True).count()
+                        bed.room.occupied_count = min(bed.room.capacity, active_occ)
+            
+            db.commit()
+            db.refresh(req)
+
+            return {
+                "message": f"{'Upgrade request' if is_upgrade else 'Allotment request'} for {req.student.full_name if req.student else 'Student'} has been {req.status.lower()}.",
+                "status": req.status,
+                "request_id": req.id
+            }
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to process allotment action: {str(e)}")
 
 @app.post("/api/warden/allotments/revoke-by-student/{student_id}", tags=["Warden Workflow"])
 @app.put("/api/warden/allotments/revoke-by-student/{student_id}", tags=["Warden Workflow"])
@@ -1336,76 +1849,181 @@ def revoke_student_allotment(student_id: int, payload: Optional[schemas.RevokeAl
     }
 
 
+@app.get("/api/auth/me", tags=["Authentication"])
+@app.get("/auth/me", tags=["Authentication"])
+def get_auth_me(
+    student_id: Optional[str] = Query(None),
+    reg_no: Optional[str] = Query(None),
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
+    user = None
+    if authorization and "Bearer " in authorization:
+        token = authorization.replace("Bearer ", "").strip()
+        t_data = decode_access_token(token)
+        if t_data and t_data.get("sub"):
+            sub_id = str(t_data["sub"])
+            user = db.query(models.User).filter(models.User.id == int(sub_id)).first() if sub_id.isdigit() else resolve_student_user(sub_id, db)
+
+    if not user and (student_id or reg_no):
+        ident = student_id or reg_no
+        user = resolve_student_user(str(ident), db)
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required. Invalid or expired session."
+        )
+
+    return serialize_user_dict(user, db)
+
 @app.get("/student/allotment-status/{student_id}", tags=["Hostel Allocation"])
 @app.get("/api/student/allotment-status/{student_id}", tags=["Hostel Allocation"])
-def get_student_allotment_status(student_id: str, db: Session = Depends(get_db)):
+@app.get("/api/allotment/my-status", tags=["Hostel Allocation"])
+def get_student_allotment_status(
+    student_id: Optional[str] = None,
+    student: Optional[str] = Query(None),
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
     check_and_expire_allotment_requests(db)
 
-    user = resolve_student_user(student_id, db)
+    target_id = student or student_id
+    if (not target_id or target_id.lower() in ["null", "undefined", "none", "me"]) and authorization and "Bearer " in authorization:
+        token = authorization.replace("Bearer ", "").strip()
+        t_data = decode_access_token(token)
+        if t_data and t_data.get("sub"):
+            target_id = str(t_data["sub"])
+
+    if not target_id:
+        return {"has_request": False, "status": "NONE", "fee_unlocked": False, "can_reapply": True}
+
+    user = resolve_student_user(str(target_id), db)
     if not user:
         return {"has_request": False, "status": "NONE", "fee_unlocked": False, "can_reapply": True}
 
-    req = db.query(models.AllotmentRequest).filter(
+    student_gender = user.gender
+
+    # Check for approved allotment request
+    approved_req = db.query(models.AllotmentRequest).filter(
+        models.AllotmentRequest.student_id == user.id,
+        models.AllotmentRequest.status == "APPROVED"
+    ).order_by(models.AllotmentRequest.applied_at.desc()).first()
+
+    # Check for pending request (initial or upgrade)
+    pending_req = db.query(models.AllotmentRequest).filter(
+        models.AllotmentRequest.student_id == user.id,
+        models.AllotmentRequest.status == "PENDING"
+    ).order_by(models.AllotmentRequest.applied_at.desc()).first()
+
+    # Check direct bed assignment
+    occupied_bed = db.query(models.Bed).filter(models.Bed.current_student_id == user.id).first()
+
+    # Case 1: Student is APPROVED and has a PENDING UPGRADE
+    if (approved_req or occupied_bed) and pending_req:
+        active_room = occupied_bed.room if occupied_bed else (approved_req.room if approved_req else None)
+        active_bed = occupied_bed if occupied_bed else (approved_req.bed if approved_req else None)
+        active_hostel = resolve_specific_hostel_name(active_room, student_gender)
+        
+        now = datetime.utcnow()
+        elapsed_sec = (now - pending_req.applied_at).total_seconds() if pending_req.applied_at else 0
+        upgrade_hours_left = max(0.0, round((86400 - elapsed_sec) / 3600.0, 1))
+
+        return {
+            "has_request": True,
+            "request_id": approved_req.id if approved_req else 0,
+            "status": "APPROVED",
+            "room_number": active_room.room_number if active_room else (user.room_number or ""),
+            "floor_number": active_room.floor_number if active_room else 0,
+            "wing": active_room.wing if active_room else (user.hostel_block or ""),
+            "bed_code": active_bed.bed_code if active_bed else (user.bed_code or "A"),
+            "hostel_name": active_hostel,
+            "block_name": active_hostel,
+            "applied_at": approved_req.applied_at if approved_req else None,
+            "remarks": approved_req.remarks if approved_req else "Allotment Approved",
+            "fee_unlocked": True,
+            "can_reapply": False,
+            "has_pending_upgrade": True,
+            "upgrade_request_id": pending_req.id,
+            "upgrade_room_number": pending_req.room.room_number if pending_req.room else "",
+            "upgrade_floor_number": pending_req.room.floor_number if pending_req.room else 0,
+            "upgrade_bed_code": pending_req.bed.bed_code if pending_req.bed else "",
+            "upgrade_hostel_name": resolve_specific_hostel_name(pending_req.room, student_gender),
+            "upgrade_hours_left": upgrade_hours_left,
+            "upgrade_applied_at": pending_req.applied_at
+        }
+
+    # Case 2: Only APPROVED
+    if approved_req or occupied_bed:
+        active_room = occupied_bed.room if occupied_bed else (approved_req.room if approved_req else None)
+        active_bed = occupied_bed if occupied_bed else (approved_req.bed if approved_req else None)
+        active_hostel = resolve_specific_hostel_name(active_room, student_gender)
+        return {
+            "has_request": True,
+            "request_id": approved_req.id if approved_req else 0,
+            "status": "APPROVED",
+            "room_number": active_room.room_number if active_room else (user.room_number or ""),
+            "floor_number": active_room.floor_number if active_room else 0,
+            "wing": active_room.wing if active_room else (user.hostel_block or ""),
+            "bed_code": active_bed.bed_code if active_bed else (user.bed_code or "A"),
+            "hostel_name": active_hostel,
+            "block_name": active_hostel,
+            "applied_at": approved_req.applied_at if approved_req else None,
+            "remarks": approved_req.remarks if approved_req else "Allotment Approved",
+            "fee_unlocked": True,
+            "can_reapply": False,
+            "has_pending_upgrade": False
+        }
+
+    # Case 3: Only PENDING initial request
+    if pending_req:
+        now = datetime.utcnow()
+        elapsed_sec = (now - pending_req.applied_at).total_seconds() if pending_req.applied_at else 0
+        hours_left = max(0.0, round((86400 - elapsed_sec) / 3600.0, 1))
+        req_hostel = resolve_specific_hostel_name(pending_req.room, student_gender)
+        return {
+            "has_request": True,
+            "request_id": pending_req.id,
+            "status": "PENDING",
+            "room_number": pending_req.room.room_number if pending_req.room else "",
+            "floor_number": pending_req.room.floor_number if pending_req.room else 0,
+            "wing": pending_req.room.wing if pending_req.room else "",
+            "bed_code": pending_req.bed.bed_code if pending_req.bed else "",
+            "hostel_name": req_hostel,
+            "block_name": req_hostel,
+            "applied_at": pending_req.applied_at,
+            "remarks": pending_req.remarks,
+            "fee_unlocked": False,
+            "can_reapply": False,
+            "hours_left": hours_left,
+            "has_pending_upgrade": False
+        }
+
+    # Case 4: Latest request was REJECTED, CANCELLED, or EXPIRED
+    latest_req = db.query(models.AllotmentRequest).filter(
         models.AllotmentRequest.student_id == user.id
     ).order_by(models.AllotmentRequest.applied_at.desc()).first()
 
-    def resolve_specific_hostel_name(room_obj):
-        if not room_obj:
-            return "Hostel Block"
-        wing_upper = str(room_obj.wing or "").upper()
-        if "RAJENDRA" in wing_upper or "RIGHT" in wing_upper:
-            return "Dr. Rajendra Prasad Boys Hostel"
-        elif "BIRSA" in wing_upper or "LEFT" in wing_upper:
-            return "Birsa Munda Boys Hostel"
-        elif room_obj.hostel and room_obj.hostel.gender_type in ["GIRLS", "FEMALE"]:
-            return "Savitribai Phule Girls Hostel"
-        elif room_obj.hostel and room_obj.hostel.name and "Birsa Munda & Dr. Rajendra Prasad" not in room_obj.hostel.name:
-            return room_obj.hostel.name
-        return "Birsa Munda Boys Hostel"
+    if latest_req:
+        req_hostel = resolve_specific_hostel_name(latest_req.room, student_gender)
+        return {
+            "has_request": True,
+            "request_id": latest_req.id,
+            "status": latest_req.status,
+            "room_number": latest_req.room.room_number if latest_req.room else "",
+            "floor_number": latest_req.room.floor_number if latest_req.room else 0,
+            "wing": latest_req.room.wing if latest_req.room else "",
+            "bed_code": latest_req.bed.bed_code if latest_req.bed else "",
+            "hostel_name": req_hostel,
+            "block_name": req_hostel,
+            "applied_at": latest_req.applied_at,
+            "remarks": latest_req.remarks,
+            "fee_unlocked": False,
+            "can_reapply": True,
+            "has_pending_upgrade": False
+        }
 
-    # If no explicit request record, check direct bed assignment
-    if not req:
-        occupied_bed = db.query(models.Bed).filter(models.Bed.current_student_id == user.id).first()
-        if occupied_bed:
-            specific_hostel = resolve_specific_hostel_name(occupied_bed.room)
-            return {
-                "has_request": True,
-                "request_id": 0,
-                "status": "APPROVED",
-                "room_number": occupied_bed.room.room_number if occupied_bed.room else "",
-                "floor_number": occupied_bed.room.floor_number if occupied_bed.room else 0,
-                "wing": occupied_bed.room.wing if occupied_bed.room else "",
-                "bed_code": occupied_bed.bed_code,
-                "hostel_name": specific_hostel,
-                "block_name": specific_hostel,
-                "applied_at": None,
-                "remarks": "Directly Allotted",
-                "fee_unlocked": True,
-                "can_reapply": False
-            }
-        return {"has_request": False, "status": "NONE", "fee_unlocked": False, "can_reapply": True}
-
-    now = datetime.utcnow()
-    elapsed_sec = (now - req.applied_at).total_seconds() if req.applied_at else 0
-    hours_left = max(0.0, round((86400 - elapsed_sec) / 3600.0, 1))
-
-    req_hostel = resolve_specific_hostel_name(req.room)
-    return {
-        "has_request": True,
-        "request_id": req.id,
-        "status": req.status,
-        "room_number": req.room.room_number if req.room else "",
-        "floor_number": req.room.floor_number if req.room else 0,
-        "wing": req.room.wing if req.room else "",
-        "bed_code": req.bed.bed_code if req.bed else "",
-        "hostel_name": req_hostel,
-        "block_name": req_hostel,
-        "applied_at": req.applied_at,
-        "remarks": req.remarks,
-        "fee_unlocked": (req.status == "APPROVED"),
-        "can_reapply": (req.status in ["REJECTED", "EXPIRED", "CANCELLED", "NONE"]),
-        "hours_left": hours_left if req.status == "PENDING" else 0.0
-    }
+    return {"has_request": False, "status": "NONE", "fee_unlocked": False, "can_reapply": True, "has_pending_upgrade": False}
 
 
 @app.get("/api/warden/analytics", response_model=schemas.WardenAnalyticsResponse, tags=["Warden Workflow"])
@@ -1477,18 +2095,20 @@ def get_warden_students(db: Session = Depends(get_db)):
             payment_map[p.reg_no] = [p]
 
     def resolve_specific_hostel_name(room_obj, user_gender):
+        if user_gender == "FEMALE":
+            return "Kasturba Girls Hostel (Savitribai Phule Block)"
         if not room_obj:
-            return "Birsa Munda Boys Hostel" if user_gender == "MALE" else "Savitribai Phule Girls Hostel"
+            return "Birsa Munda Boys Hostel"
         wing_upper = str(room_obj.wing or "").upper()
         if "RAJENDRA" in wing_upper or "RIGHT" in wing_upper:
             return "Dr. Rajendra Prasad Boys Hostel"
         elif "BIRSA" in wing_upper or "LEFT" in wing_upper:
             return "Birsa Munda Boys Hostel"
         elif room_obj.hostel and room_obj.hostel.gender_type in ["GIRLS", "FEMALE"]:
-            return "Savitribai Phule Girls Hostel"
+            return "Kasturba Girls Hostel (Savitribai Phule Block)"
         elif room_obj.hostel and room_obj.hostel.name:
             return room_obj.hostel.name
-        return "Birsa Munda Boys Hostel" if user_gender == "MALE" else "Savitribai Phule Girls Hostel"
+        return "Birsa Munda Boys Hostel"
 
     results = []
     for s in students:
@@ -1745,30 +2365,43 @@ def verify_payment_transaction(transaction_id: int, payload: schemas.PaymentVeri
 def reset_database():
     """
     Drop all database tables and recreate them cleanly for local development & testing.
-    Uses SQLAlchemy Base.metadata.drop_all(bind=engine) and Base.metadata.create_all(bind=engine).
-    Reseeds initial hostel structure and default fee configuration.
+    Uses PostgreSQL CASCADE drop or SQLite drop_all, then recreates and seeds cleanly.
     """
+    from sqlalchemy import text
     try:
-        # Drop all tables and recreate them cleanly
-        models.Base.metadata.drop_all(bind=engine)
-        models.Base.metadata.create_all(bind=engine)
-
-        # Run fresh seed using a new database session
         db = SessionLocal()
         try:
-            seed_hostel_data(db, force=True)
-        except Exception as e:
+            if "postgresql" in str(engine.url):
+                # Cleanly truncate dependent test transactions & attendance
+                db.execute(text("TRUNCATE TABLE mess_attendance, payment_transactions, transactions, allotment_requests CASCADE;"))
+                # Delete all registered student test accounts
+                db.execute(text("DELETE FROM users WHERE role = 'student' OR role IS NULL;"))
+                # Vacate all beds and reset room occupancy
+                db.execute(text("UPDATE beds SET is_occupied = FALSE, current_student_id = NULL;"))
+                db.execute(text("UPDATE rooms SET occupied_count = 0;"))
+                db.commit()
+            else:
+                db.execute(text("DELETE FROM mess_attendance;"))
+                db.execute(text("DELETE FROM payment_transactions;"))
+                db.execute(text("DELETE FROM transactions;"))
+                db.execute(text("DELETE FROM allotment_requests;"))
+                db.execute(text("DELETE FROM users WHERE role = 'student' OR role IS NULL;"))
+                db.execute(text("UPDATE beds SET is_occupied = 0, current_student_id = NULL;"))
+                db.execute(text("UPDATE rooms SET occupied_count = 0;"))
+                db.commit()
+        except Exception as err:
             db.rollback()
-
-            print(f"Warning during post-reset seed: {e}")
+            print("Purge database notice:", err)
+            raise err
         finally:
             db.close()
 
+        # Reseed official Chief Warden credentials if missing
         seed_default_users()
 
         return {
             "status": "success",
-            "message": "Database wiped and recreated cleanly! All tables dropped and re-initialized.",
+            "message": "Database wiped and recreated cleanly! All test data erased & fresh tables initialized.",
             "timestamp": datetime.utcnow().isoformat()
         }
     except Exception as e:
@@ -1811,7 +2444,11 @@ def get_daily_mess_qr_token():
     return payload
 
 @app.post("/api/mess/mark-attendance", response_model=schemas.MessAttendanceResponse, tags=["Mess Attendance & QR Token"])
-def mark_mess_attendance(payload: schemas.MessAttendanceMarkRequest, db: Session = Depends(get_db)):
+def mark_mess_attendance(
+    payload: schemas.MessAttendanceMarkRequest,
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
     """Validates student profile, checks duplicate meal scan for the date, and issues live digital meal token."""
     # 1. Resolve student
     student = None
@@ -1822,12 +2459,19 @@ def mark_mess_attendance(payload: schemas.MessAttendanceMarkRequest, db: Session
             (models.User.reg_no == payload.reg_no) | (models.User.reg_no_email == payload.reg_no)
         ).first()
 
+    if not student and authorization and "Bearer " in authorization:
+        token = authorization.replace("Bearer ", "").strip()
+        t_data = decode_access_token(token)
+        if t_data and t_data.get("sub"):
+            sub_id = str(t_data["sub"])
+            student = db.query(models.User).filter(models.User.id == int(sub_id)).first() if sub_id.isdigit() else resolve_student_user(sub_id, db)
+
     if not student:
         raise HTTPException(status_code=404, detail="Student profile not found. Please log in or verify Registration No.")
 
     # 2. Determine meal slot
     current_slot, current_slot_label = get_current_meal_slot()
-    meal_type = payload.meal_type.upper() if payload.meal_type and payload.meal_type.upper() != "AUTO" else current_slot
+    meal_type = payload.meal_type.upper() if payload.meal_type and payload.meal_type.upper() not in ["AUTO", "ALL_MEALS"] else current_slot
 
     meal_labels = {
         "BREAKFAST": "Morning Breakfast (Breakfast Token)",
@@ -1864,7 +2508,8 @@ def mark_mess_attendance(payload: schemas.MessAttendanceMarkRequest, db: Session
     # 5. Generate secure digital token code
     clean_reg = (student.reg_no or str(student.id)).replace(" ", "").upper()
     random_suffix = secrets.token_hex(2).upper()
-    token_code = f"MEAL-{today_str.replace('-', '')}-{meal_type[:2]}-{clean_reg[-4:]}-{random_suffix}"
+    token_code = payload.token_code or f"MEAL-{today_str.replace('-', '')}-{meal_type[:2]}-{clean_reg[-4:]}-{random_suffix}"
+    token_number = payload.token_number or payload.token_code or token_code
 
     new_attendance = models.MessAttendance(
         student_id=student.id,
@@ -1872,11 +2517,19 @@ def mark_mess_attendance(payload: schemas.MessAttendanceMarkRequest, db: Session
         meal_type=meal_type,
         scanned_at=datetime.utcnow(),
         token_code=token_code,
+        token_number=token_number,
         status="VERIFIED"
     )
-    db.add(new_attendance)
-    db.commit()
-    db.refresh(new_attendance)
+    try:
+        db.add(new_attendance)
+        db.commit()
+        db.refresh(new_attendance)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Duplicate attendance punch prevented for {meal_type} on {today_str}."
+        )
 
     return schemas.MessAttendanceResponse(
         id=new_attendance.id,
@@ -1891,6 +2544,7 @@ def mark_mess_attendance(payload: schemas.MessAttendanceMarkRequest, db: Session
         date=today_str,
         scanned_at=new_attendance.scanned_at,
         token_code=token_code,
+        token_number=token_number,
         status="VERIFIED",
         message=f"Digital Meal Pass verified! Enjoy your {meal_label}."
     )
