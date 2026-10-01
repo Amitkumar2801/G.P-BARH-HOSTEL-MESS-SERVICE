@@ -1,0 +1,34 @@
+# Environments & Secrets
+.env
+.env.*
+*.env
+*.local
+
+# Python Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local SQLite Database Files & WAL Artifacts
+*.db
+*.db-shm
+*.db-wal
+hostel.db
+hostel.db-wal
+hostel.db-shm
+
+# IDE & Editor Configs
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
