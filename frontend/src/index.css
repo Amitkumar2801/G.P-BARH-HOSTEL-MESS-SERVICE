@@ -55,6 +55,25 @@
   scrollbar-width: none;
 }
 
+/* Custom Sleek Sidebar Scroll */
+.custom-sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 9999px;
+}
+.custom-sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
+}
+.custom-sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.2) transparent;
+}
+
 /* Printable PDF Dossier Styles */
 @media print {
   body * {
