@@ -278,8 +278,36 @@ def send_email_otp(to_email: str, otp: str, purpose: str = "SIGNUP") -> Dict[str
     Official college avatar icon is provided natively by the sender Google Account.
     """
     clean_purpose = purpose.strip().upper()
-    purpose_label = "Student Registration & Account Creation" if clean_purpose == "SIGNUP" else "Account Password Recovery"
-    subject = f"Govt. Polytechnic Barh - Portal Verification Code: {otp}"
+    is_reset = clean_purpose in ("FORGOT_PASSWORD", "RESET_PASSWORD")
+
+    if is_reset:
+        subject = f"[Password Reset OTP] Govt. Polytechnic Barh: {otp}"
+        header_sub = "HOSTEL &amp; MESS MANAGEMENT SYSTEM • PASSWORD RECOVERY"
+        badge_text = "🔑 PASSWORD RESET OTP • पासवर्ड रीसेट"
+        badge_bg = "#fef3c7"
+        badge_border = "#fcd34d"
+        badge_color = "#92400e"
+        action_title = "Password Reset Request (पासवर्ड रीसेट अनुरोध)"
+        salutation = "Dear Student / User,"
+        purpose_explanation = "We received a request to <strong>reset the password</strong> for your Govt. Polytechnic Barh Hostel &amp; Mess Portal account. Use the single-use 6-digit OTP below to proceed with setting a new password:"
+        security_note = "This Password Reset OTP is strictly confidential. Govt. Polytechnic Barh authorities will never ask for your code."
+        warning_note = "If you did NOT request a password reset, please ignore this email or notify the warden office immediately. Valid for strictly 5 minutes."
+        text_purpose = "PURPOSE: PASSWORD RESET OTP (पासवर्ड रीसेट कोड)"
+        text_instruction = "We received a request to reset the password for your Govt. Polytechnic Barh Hostel & Mess Portal account. Use the 6-digit OTP below to set your new password:"
+    else:
+        subject = f"[Create Account OTP] Govt. Polytechnic Barh: {otp}"
+        header_sub = "HOSTEL &amp; MESS MANAGEMENT SYSTEM • STUDENT REGISTRATION"
+        badge_text = "📝 CREATE ACCOUNT OTP • नया खाता पंजीकरण"
+        badge_bg = "#eff6ff"
+        badge_border = "#bfdbfe"
+        badge_color = "#1e40af"
+        action_title = "New Student Account Registration (नया खाता पंजीकरण)"
+        salutation = "Dear Student / Applicant,"
+        purpose_explanation = "Thank you for registering on the Govt. Polytechnic Barh Hostel &amp; Mess Portal! Use the single-use 6-digit OTP below to verify your email address and <strong>complete your new student account creation</strong>:"
+        security_note = "This Account Creation OTP is strictly confidential. Govt. Polytechnic Barh authorities will never ask for your code."
+        warning_note = "This OTP confirms your student account creation. Valid for strictly 5 minutes. Do not forward or share this code with anyone."
+        text_purpose = "PURPOSE: CREATE ACCOUNT OTP (नया खाता पंजीकरण कोड)"
+        text_instruction = "Thank you for registering on the Govt. Polytechnic Barh Hostel & Mess Portal. Use the 6-digit OTP below to verify your email and complete your new account creation:"
 
     html_content = f"""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -299,31 +327,34 @@ def send_email_otp(to_email: str, otp: str, purpose: str = "SIGNUP") -> Dict[str
           <tr>
             <td align="center" bgcolor="#800000" style="background: #800000; border-radius: 12px 12px 0 0; padding: 24px; text-align: center;">
               <h1 style="color: #ffffff; font-size: 20px; font-weight: 800; margin: 0; font-family: sans-serif;">Government Polytechnic, Barh</h1>
-              <p style="color: #fde047; font-size: 13px; font-weight: 600; margin: 4px 0 0 0; letter-spacing: 1px;">HOSTEL &amp; MESS MANAGEMENT SYSTEM</p>
+              <p style="color: #fde047; font-size: 12px; font-weight: 700; margin: 6px 0 0 0; letter-spacing: 0.8px;">{header_sub}</p>
             </td>
           </tr>
 
           <!-- 2. REFINED BODY UI/UX -->
           <tr>
-            <td style="padding: 32px 28px 24px 28px; text-align: left; background-color: #ffffff;">
+            <td style="padding: 30px 28px 24px 28px; text-align: left; background-color: #ffffff;">
               
-              <!-- Clean Security Verification Badge -->
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto 18px auto;">
+              <!-- Distinct Purpose Badge (Create Account vs Reset Password) -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto 16px auto;">
                 <tr>
                   <td align="center">
-                    <div style="display: inline-block; background-color: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 20px; padding: 6px 18px; font-size: 12px; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: 0.5px; font-family: sans-serif;">
-                      🛡️ Official Verification Code
+                    <div style="display: inline-block; background-color: {badge_bg}; border: 1px solid {badge_border}; border-radius: 20px; padding: 7px 20px; font-size: 13px; font-weight: 800; color: {badge_color}; letter-spacing: 0.3px; font-family: sans-serif;">
+                      {badge_text}
                     </div>
                   </td>
                 </tr>
               </table>
 
-              <!-- Student Salutation -->
-              <p style="color: #0f172a; font-size: 15px; font-weight: 700; margin: 0 0 6px 0; font-family: sans-serif;">
-                Dear Student / Applicant,
+              <!-- Action Title & Greeting -->
+              <h2 style="color: #0f172a; font-size: 16.5px; font-weight: 800; margin: 0 0 8px 0; text-align: center; font-family: sans-serif;">
+                {action_title}
+              </h2>
+              <p style="color: #0f172a; font-size: 14.5px; font-weight: 700; margin: 16px 0 6px 0; font-family: sans-serif;">
+                {salutation}
               </p>
               <p style="color: #475569; font-size: 13.5px; margin: 0 0 22px 0; line-height: 1.6; font-family: sans-serif;">
-                Use the single-use 6-digit authentication PIN below to complete your <strong>{purpose_label}</strong> on the official Govt. Polytechnic Barh portal:
+                {purpose_explanation}
               </p>
 
               <!-- CRISP 6-DIGIT OTP CONTAINER -->
@@ -345,10 +376,10 @@ def send_email_otp(to_email: str, otp: str, purpose: str = "SIGNUP") -> Dict[str
                       🔒 Security PIN • Single-use only
                     </div>
                     <div style="color: #991b1b; font-size: 12.5px; font-weight: 600; line-height: 1.5; font-family: sans-serif;">
-                      This OTP is strictly confidential. Govt. Polytechnic Barh authorities will never ask for your code.
+                      {security_note}
                     </div>
                     <div style="color: #b91c1c; font-size: 11.5px; margin-top: 4px; font-family: sans-serif;">
-                      Valid for strictly 5 minutes. Do not forward or share this code with anyone.
+                      {warning_note}
                     </div>
                   </td>
                 </tr>
@@ -381,14 +412,17 @@ def send_email_otp(to_email: str, otp: str, purpose: str = "SIGNUP") -> Dict[str
 """
 
     text_content = f"""Government Polytechnic, Barh
-HOSTEL & MESS MANAGEMENT SYSTEM
+{header_sub.replace('&amp;', '&')}
 ======================================================
-PURPOSE: {purpose_label}
+{text_purpose}
 
 OFFICIAL 6-DIGIT OTP: {otp}
+
+{text_instruction}
+
 🔒 Security PIN • Single-use only
-This OTP is strictly confidential. Govt. Polytechnic Barh authorities will never ask for your code.
-Valid for strictly 5 minutes. Do not forward or share this code with anyone.
+{security_note}
+{warning_note}
 
 ------------------------------------------------------
 Chief Warden Office • Central Hostel & Dining Administration
