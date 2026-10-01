@@ -1,5 +1,5 @@
 # backend/models.py
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Boolean, Text
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Boolean, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from database import Base
@@ -13,6 +13,14 @@ class User(Base):
     email = Column(String, nullable=True, index=True)
     password = Column(String)
     role = Column(String, default="student") # Roles: student, warden
+
+    @property
+    def hashed_password(self):
+        return self.password
+
+    @hashed_password.setter
+    def hashed_password(self, value):
+        self.password = value
 
     # Profile completion fields
     gender = Column(String, default="MALE") # 'MALE' or 'FEMALE' (or 'BOYS'/'GIRLS')
@@ -35,6 +43,15 @@ class User(Base):
     room_number = Column(String, nullable=True)
     bed_code = Column(String, nullable=True)
     hostel_block = Column(String, nullable=True)
+    hostel_id = Column(Integer, ForeignKey("hostels.id"), nullable=True)
+    allotment_status = Column(String, default="NONE")
+    allotment_date = Column(DateTime, nullable=True)
+
+    # Academic Session & Clearance Segregation
+    is_year_back = Column(Boolean, default=False)
+    is_archived = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     transactions = relationship("Transaction", back_populates="owner")
     allotment_requests = relationship("AllotmentRequest", back_populates="student", foreign_keys="[AllotmentRequest.student_id]")
@@ -97,7 +114,8 @@ class AllotmentRequest(Base):
     student_id = Column(Integer, ForeignKey("users.id"))
     room_id = Column(Integer, ForeignKey("rooms.id"))
     bed_id = Column(Integer, ForeignKey("beds.id"))
-    status = Column(String, default="PENDING") # 'PENDING', 'APPROVED', 'REJECTED'
+    status = Column(String, default="PENDING") # 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'EXPIRED'
+    request_type = Column(String, default="NEW") # 'NEW' or 'UPGRADE'
     applied_at = Column(DateTime, default=datetime.utcnow)
     remarks = Column(String, nullable=True)
 
@@ -144,9 +162,14 @@ class MessAttendance(Base):
     meal_type = Column(String, index=True) # 'BREAKFAST', 'LUNCH', 'DINNER', 'SNACKS'
     scanned_at = Column(DateTime, default=datetime.utcnow)
     token_code = Column(String, unique=True, index=True) # Unique token hash/code
+    token_number = Column(String, nullable=True, index=True) # Explicit numeric/formatted token identifier
     status = Column(String, default="VERIFIED") # 'VERIFIED', 'MANUAL_OVERRIDE'
 
     student = relationship("User", foreign_keys=[student_id])
+
+    __table_args__ = (
+        UniqueConstraint('student_id', 'date', 'meal_type', name='uq_mess_attendance_student_date_meal'),
+    )
 
 class PublicDocument(Base):
     __tablename__ = "public_documents"

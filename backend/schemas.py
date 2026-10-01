@@ -36,10 +36,47 @@ class UserCreate(UserBase):
     password: str
     reg_no: Optional[str] = None
     email: Optional[str] = None
+    otp: Optional[str] = None
 
 class UserLogin(BaseModel):
-    reg_no_email: str # Accepts either Registration Number (e.g. 1554424049) OR Email Address
+    reg_no_email: str # Accepts either Registration Number OR Email Address
     password: str
+
+class SendOTPRequest(BaseModel):
+    email: Optional[str] = None
+    identifier: Optional[str] = None
+    purpose: Optional[str] = "SIGNUP" # 'SIGNUP' or 'FORGOT_PASSWORD'
+
+    def get_email(self) -> str:
+        val = (self.email or self.identifier or "").strip().lower()
+        return val
+
+class VerifyOTPRequest(BaseModel):
+    email: Optional[str] = None
+    identifier: Optional[str] = None
+    otp: str
+    purpose: Optional[str] = "SIGNUP"
+
+    def get_email(self) -> str:
+        val = (self.email or self.identifier or "").strip().lower()
+        return val
+
+class ForgotPasswordRequest(BaseModel):
+    email: Optional[str] = None
+    identifier: Optional[str] = None
+    otp: str
+    new_password: str
+
+    def get_email(self) -> str:
+        val = (self.email or self.identifier or "").strip().lower()
+        return val
+
+class ResetPasswordRequest(ForgotPasswordRequest):
+    pass
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
 
 class ProfileUpdate(BaseModel):
     user_id: int
@@ -87,6 +124,13 @@ class UserProfileResponse(BaseModel):
     home_state: Optional[str] = "Bihar"
     distance_km: Optional[float] = None
     distance_verified: Optional[bool] = False
+    room_number: Optional[str] = None
+    bed_code: Optional[str] = None
+    hostel_block: Optional[str] = None
+    allotment_status: Optional[str] = "NONE"
+    fee_unlocked: Optional[bool] = False
+    is_year_back: Optional[bool] = False
+    is_archived: Optional[bool] = False
 
     class Config:
         from_attributes = True
@@ -142,10 +186,13 @@ class HostelLayoutSchema(BaseModel):
 class BedRequestCreate(BaseModel):
     student_id: Union[int, str]
     room_id: int
-    bed_id: int
+    bed_id: Optional[Union[int, str]] = None
+    bed_code: Optional[str] = None
+    hostel_id: Optional[Union[int, str]] = None
+    request_type: Optional[str] = "NEW" # 'NEW' or 'UPGRADE'
 
 class AllotmentActionRequest(BaseModel):
-    action: str # 'approve' or 'reject'
+    action: Optional[str] = "approve" # 'approve' or 'reject'
     remarks: Optional[str] = ""
 
 class RevokeAllotmentRequest(BaseModel):
@@ -172,8 +219,12 @@ class AllotmentRequestResponse(BaseModel):
     room_number: str
     floor_number: int
     wing: Optional[str] = "LEFT"
+    hostel_name: Optional[str] = None
     bed_id: int
     bed_code: str
+    current_room_number: Optional[str] = None
+    current_bed_code: Optional[str] = None
+    request_type: Optional[str] = "NEW"
     status: str
     applied_at: datetime
     remarks: Optional[str] = None
@@ -296,6 +347,8 @@ class MessAttendanceMarkRequest(BaseModel):
     reg_no: Optional[str] = None
     meal_type: Optional[str] = "AUTO" # 'BREAKFAST', 'LUNCH', 'DINNER', 'SNACKS', or 'AUTO'
     qr_payload: Optional[str] = None
+    token_number: Optional[str] = None
+    token_code: Optional[str] = None
 
 class MessAttendanceResponse(BaseModel):
     id: int
@@ -310,6 +363,7 @@ class MessAttendanceResponse(BaseModel):
     date: str
     scanned_at: datetime
     token_code: str
+    token_number: Optional[str] = None
     status: str
     message: str
 
@@ -420,3 +474,42 @@ class PublicDocumentResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+# ==========================================
+# WARDEN BATCH MANAGEMENT & CLEARANCE SCHEMAS
+# ==========================================
+class MarkYearBackRequest(BaseModel):
+    student_id: int
+    is_year_back: bool = True
+
+class BatchClearRequest(BaseModel):
+    session: str # e.g. "2024-2027" or "2024-27"
+    exclude_year_back: bool = True
+    hostel_id: Optional[int] = None
+
+class BatchStudentItem(BaseModel):
+    id: int
+    full_name: str
+    reg_no: Optional[str] = None
+    branch: Optional[str] = None
+    session: Optional[str] = None
+    gender: str
+    mobile: Optional[str] = None
+    email: Optional[str] = None
+    room_number: Optional[str] = None
+    bed_code: Optional[str] = None
+    hostel_block: Optional[str] = None
+    hostel_id: Optional[int] = None
+    allotment_status: Optional[str] = "NONE"
+    is_year_back: bool = False
+    is_archived: bool = False
+
+    class Config:
+        from_attributes = True
+
+class BatchClearResponse(BaseModel):
+    message: str
+    session: str
+    cleared_count: int
+    beds_vacated: int
+    retained_year_back_count: int
