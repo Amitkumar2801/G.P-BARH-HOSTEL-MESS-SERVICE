@@ -1179,7 +1179,7 @@ function Login() {
                         type="text"
                         value={forgotInput}
                         onChange={(e) => setForgotInput(e.target.value)}
-                        placeholder="e.g. 1554424049 or student@gpbarh.in"
+                        placeholder="e.g. 1554424049 or amitkumar.gpb.ai@gmail.com"
                         className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-sm font-medium outline-none focus:border-slate-900 dark:focus:border-slate-300 focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-white/10 transition-all placeholder-slate-400"
                         autoFocus
                       />

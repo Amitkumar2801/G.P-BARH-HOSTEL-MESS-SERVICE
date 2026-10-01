@@ -419,7 +419,7 @@ function Signup() {
                           setEmail(e.target.value);
                           if (isOtpVerified) setIsOtpVerified(false);
                         }}
-                        placeholder="e.g. amit.kumar@gpbarh.ac.in"
+                        placeholder="e.g. amitkumar.gpb.ai@gmail.com"
                         className={`${inputClass} flex-1`}
                       />
                       <button
@@ -542,7 +542,7 @@ function Signup() {
                         </span>
                       ) : otpSent ? (
                         <span>
-                          6-digit OTP sent to <strong>{email}</strong>. Please check your inbox / spam folder.
+                          6-digit OTP sent to <strong>{email || 'your email'}</strong>. Please check your inbox / spam folder.
                         </span>
                       ) : (
                         <span>
