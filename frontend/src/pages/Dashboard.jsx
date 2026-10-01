@@ -160,7 +160,7 @@ function Dashboard() {
                   <span className="bg-white/20 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest mb-2 inline-block">
                     {currentRole === 'boy' ? 'Boys Hostel Wing' : 'Girls Hostel Wing'}
                   </span>
-                  <h2 className="text-3xl font-black">Hello, {currentRole === 'boy' ? 'Amit Sharma' : 'ANUSHKA'}</h2>
+                  <h2 className="text-3xl font-black">Hello, {currentRole === 'boy' ? 'AMIT KUMAR' : 'ANUSHKA'}</h2>
                   <p className="opacity-90 mt-1">Room No. {currentRole === 'boy' ? '102' : '205'} | Reg: 15544240{currentRole === 'boy' ? '49' : '50'}</p>
                 </div>
                 <div className="hidden md:block text-6xl opacity-20">
@@ -289,7 +289,7 @@ function Dashboard() {
                       {/* Student 1 */}
                       <tr className="hover:bg-gray-50 border-b border-gray-100 transition-colors">
                         <td className="p-4 font-mono text-xs text-gray-600">1554424049</td>
-                        <td className="p-4 font-bold text-gray-800">Amit Sharma</td>
+                        <td className="p-4 font-bold text-gray-800">AMIT KUMAR</td>
                         <td className="p-4 font-medium text-gray-600">102</td>
                         <td className="p-4">
                           <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded-full flex items-center w-fit"><span className="h-1.5 w-1.5 bg-green-500 rounded-full mr-1.5"></span>In Hostel</span>

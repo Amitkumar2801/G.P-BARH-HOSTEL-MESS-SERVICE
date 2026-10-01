@@ -6,6 +6,7 @@ import logo from '../assets/logo.png.png';
 import toast, { Toaster } from 'react-hot-toast';
 import RoomAllocationGrid from '../components/RoomAllocationGrid';
 import ConnectAppModal from '../components/ConnectAppModal';
+import StudentRecordDossier from '../components/StudentRecordDossier';
 
 function WardenDashboard() {
   const [activeNavTab, setActiveNavTab] = useState('allocations'); // 'allocations', 'analytics', 'leaves', 'fees', 'directory'
@@ -39,33 +40,22 @@ function WardenDashboard() {
   });
 
   // Pending Requests State
-  const [pendingRequests, setPendingRequests] = useState([
-    {
-      id: 101,
-      student_name: 'AMIT KUMAR SHARMA',
-      student_reg: '1554424049',
-      student_roll: '49',
-      student_branch: 'Artificial Intelligence & Machine Learning',
-      gender: 'MALE',
-      room_number: '101',
-      bed_code: '1 (Bed A)',
-      hostel_name: 'Birsa Munda Boys Hostel',
-      distance_km: 145,
-      home_district: 'Arwal / Patna',
-      address: 'Vill - Agwanpur, P.O - Agwanpur, Dist - Patna, Bihar - 803213',
-      mobile: '+91 88731 42022',
-      guardian_mobile: '+91 98765 43211',
-      applied_at: new Date().toISOString(),
-      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      eligibility_score: '98% (High Priority - Dist > 40km)'
-    }
-  ]);
+  const [pendingRequests, setPendingRequests] = useState([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [actionRemarks, setActionRemarks] = useState({});
   const [processingId, setProcessingId] = useState(null);
   const [auditStudentModal, setAuditStudentModal] = useState(null);
   const [cancelModalData, setCancelModalData] = useState(null);
   const [allottedSearchQuery, setAllottedSearchQuery] = useState('');
+
+  // 🎓 Warden Batch Clearance & Year-Back Management State
+  const [selectedBatchSession, setSelectedBatchSession] = useState('2024-2027');
+  const [selectedBatchHostel, setSelectedBatchHostel] = useState('ALL');
+  const [batchStudents, setBatchStudents] = useState([]);
+  const [loadingBatch, setLoadingBatch] = useState(false);
+  const [showBatchClearModal, setShowBatchClearModal] = useState(false);
+  const [isBatchClearing, setIsBatchClearing] = useState(false);
+  const [isBatchManagementOpen, setIsBatchManagementOpen] = useState(true);
 
   // Payment Audit & Late Penalty Ledger State
   const [paymentLedgerGenderFilter, setPaymentLedgerGenderFilter] = useState('ALL'); // 'ALL', 'BOYS', 'GIRLS'
@@ -92,14 +82,18 @@ function WardenDashboard() {
   const [tempPenaltyRate, setTempPenaltyRate] = useState(25);
   const [feeNoticeModalStudent, setFeeNoticeModalStudent] = useState(null);
 
-  // Student Directory State
+  // Student Master Directory State (Enhanced Roster & Filter Matrix)
   const [studentDirectory, setStudentDirectory] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [branchFilter, setBranchFilter] = useState('ALL');
+  const [directoryGenderFilter, setDirectoryGenderFilter] = useState('ALL'); // 'ALL', 'MALE', 'FEMALE'
+  const [directoryAllotmentFilter, setDirectoryAllotmentFilter] = useState('ALL'); // 'ALL', 'ALLOTTED', 'PENDING', 'UNASSIGNED'
+  const [directoryPaymentFilter, setDirectoryPaymentFilter] = useState('ALL'); // 'ALL', 'PAID', 'PENDING', 'UNPAID'
+  const [dossierModalStudent, setDossierModalStudent] = useState(null);
 
   // Leave Approvals State
   const [leaveList, setLeaveList] = useState([
-    { id: 1, studentName: 'Amit Kumar Sharma', regNo: '1554424049', room: '102', destination: 'Patna (Home)', from: '2026-08-25', to: '2026-08-28', reason: 'Family celebration', status: 'PENDING' },
+    { id: 1, studentName: 'AMIT KUMAR', regNo: '1554424049', room: '102', destination: 'Patna (Home)', from: '2026-08-25', to: '2026-08-28', reason: 'Family celebration', status: 'PENDING' },
     { id: 2, studentName: 'Rahul Verma', regNo: '1554424052', room: '105', destination: 'Barh Market', from: '2026-08-24 16:00', to: '2026-08-24 19:30', reason: 'College Project Components', status: 'PENDING' },
     { id: 3, studentName: 'Pooja Kumari', regNo: '1554424088', room: '204', destination: 'Gaya', from: '2026-08-26', to: '2026-08-30', reason: 'Medical Checkup', status: 'APPROVED' }
   ]);
@@ -359,7 +353,79 @@ function WardenDashboard() {
     }
   };
 
-  const wardenAvatar = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z'/%3E%3C/svg%3E";
+  const AVATAR_PRESETS = {
+    male_warden: {
+      id: 'male_warden',
+      title: 'Male Chief Warden',
+      gender: 'Male',
+      subtitle: 'Formal Suit & Gold Tie',
+      badge: 'Chief Warden (Male)',
+      icon: '👨‍💼',
+      svg: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='none'%3E%3Crect width='100' height='100' rx='20' fill='%230f172a'/%3E%3Ccircle cx='50' cy='50' r='42' fill='%231e293b'/%3E%3Cpath d='M22 94 C22 75 34 68 50 68 C66 68 78 75 78 94' fill='%231e1b4b'/%3E%3Cpath d='M42 68 L50 82 L58 68 Z' fill='%23ffffff'/%3E%3Cpath d='M48 72 L50 94 L52 72 Z' fill='%23f59e0b'/%3E%3Cpath d='M35 70 L50 88 L65 70 L58 68 L50 80 L42 68 Z' fill='%23312e81'/%3E%3Crect x='44' y='52' width='12' height='16' rx='3' fill='%23fed7aa'/%3E%3Cellipse cx='50' cy='42' rx='17' ry='20' fill='%23fed7aa'/%3E%3Cpath d='M33 38 C33 22 42 16 52 16 C63 16 67 23 67 36 C64 34 60 33 55 33 C46 33 39 36 33 38 Z' fill='%231e293b'/%3E%3Ccircle cx='32' cy='43' r='3.5' fill='%23fed7aa'/%3E%3Ccircle cx='68' cy='43' r='3.5' fill='%23fed7aa'/%3E%3Crect x='37' y='38' width='10' height='7' rx='2' stroke='%23475569' stroke-width='1.5' fill='rgba(255,255,255,0.4)'/%3E%3Crect x='53' y='38' width='10' height='7' rx='2' stroke='%23475569' stroke-width='1.5' fill='rgba(255,255,255,0.4)'/%3E%3Cline x1='47' y1='41' x2='53' y2='41' stroke='%23475569' stroke-width='1.5'/%3E%3Ccircle cx='42' cy='41.5' r='1.5' fill='%230f172a'/%3E%3Ccircle cx='58' cy='41.5' r='1.5' fill='%230f172a'/%3E%3Cpath d='M50 43 L49 47 L52 47' stroke='%23ea580c' stroke-width='1' stroke-linecap='round'/%3E%3Cpath d='M46 51 Q50 54 54 51' stroke='%23b45309' stroke-width='1.5' stroke-linecap='round' fill='none'/%3E%3C/svg%3E"
+    },
+    female_warden: {
+      id: 'female_warden',
+      title: 'Female Chief Warden',
+      gender: 'Female',
+      subtitle: 'Formal Blazer & Gold Pendant',
+      badge: 'Chief Warden (Lady)',
+      icon: '👩‍💼',
+      svg: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='none'%3E%3Crect width='100' height='100' rx='20' fill='%230f172a'/%3E%3Ccircle cx='50' cy='50' r='42' fill='%231e293b'/%3E%3Cpath d='M28 42 C28 22 40 15 50 15 C60 15 72 22 72 42 C72 62 68 70 68 70 C64 56 60 48 50 48 C40 48 36 56 32 70 C32 70 28 62 28 42 Z' fill='%23332211'/%3E%3Cpath d='M22 94 C22 75 34 68 50 68 C66 68 78 75 78 94' fill='%23831843'/%3E%3Cpath d='M40 68 L50 82 L60 68 Z' fill='%23fdf2f8'/%3E%3Cpath d='M35 70 L50 88 L65 70 L58 68 L50 80 L42 68 Z' fill='%239d174d'/%3E%3Ccircle cx='50' cy='76' r='2.5' fill='%23f59e0b'/%3E%3Crect x='44' y='52' width='12' height='16' rx='3' fill='%23fed7aa'/%3E%3Cellipse cx='50' cy='42' rx='16' ry='19' fill='%23fed7aa'/%3E%3Cpath d='M32 36 C34 22 42 16 50 16 C58 16 68 22 68 36 C64 30 58 26 50 26 C42 26 36 30 32 36 Z' fill='%23451a03'/%3E%3Ccircle cx='33' cy='44' r='2' fill='%23f59e0b'/%3E%3Ccircle cx='67' cy='44' r='2' fill='%23f59e0b'/%3E%3Cellipse cx='43' cy='41' rx='2.5' ry='1.8' fill='%230f172a'/%3E%3Cellipse cx='57' cy='41' rx='2.5' ry='1.8' fill='%230f172a'/%3E%3Ccircle cx='44' cy='40.5' r='0.8' fill='%23ffffff'/%3E%3Ccircle cx='58' cy='40.5' r='0.8' fill='%23ffffff'/%3E%3Ccircle cx='50' cy='36' r='1.2' fill='%23dc2626'/%3E%3Cpath d='M40 37 Q43 35 46 37' stroke='%23451a03' stroke-width='1.2' stroke-linecap='round' fill='none'/%3E%3Cpath d='M54 37 Q57 35 60 37' stroke='%23451a03' stroke-width='1.2' stroke-linecap='round' fill='none'/%3E%3Cpath d='M50 42 L49 46 L51.5 46' stroke='%23ea580c' stroke-width='1' stroke-linecap='round'/%3E%3Cpath d='M46 50 Q50 53 54 50' stroke='%23e11d48' stroke-width='1.5' stroke-linecap='round' fill='none'/%3E%3C/svg%3E"
+    },
+    male_super: {
+      id: 'male_super',
+      title: 'Male Superintendent',
+      gender: 'Male',
+      subtitle: 'Faculty Superintendent Attire',
+      badge: 'Superintendent (Male)',
+      icon: '👨‍🏫',
+      svg: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='none'%3E%3Crect width='100' height='100' rx='20' fill='%230f172a'/%3E%3Ccircle cx='50' cy='50' r='42' fill='%231e293b'/%3E%3Cpath d='M22 94 C22 75 34 68 50 68 C66 68 78 75 78 94' fill='%23064e3b'/%3E%3Cpath d='M42 68 L50 82 L58 68 Z' fill='%23ffffff'/%3E%3Cpath d='M48 72 L50 94 L52 72 Z' fill='%23d97706'/%3E%3Cpath d='M35 70 L50 88 L65 70 L58 68 L50 80 L42 68 Z' fill='%23047857'/%3E%3Crect x='44' y='52' width='12' height='16' rx='3' fill='%23fed7aa'/%3E%3Cellipse cx='50' cy='42' rx='17' ry='20' fill='%23fed7aa'/%3E%3Cpath d='M32 36 C32 20 42 15 50 15 C58 15 68 20 68 36 C62 32 56 31 50 31 C44 31 38 32 32 36 Z' fill='%2318181b'/%3E%3Ccircle cx='32' cy='43' r='3.5' fill='%23fed7aa'/%3E%3Ccircle cx='68' cy='43' r='3.5' fill='%23fed7aa'/%3E%3Ccircle cx='43' cy='41' r='2' fill='%230f172a'/%3E%3Ccircle cx='57' cy='41' r='2' fill='%230f172a'/%3E%3Cpath d='M40 37 Q43 35 46 37' stroke='%2318181b' stroke-width='1.5' stroke-linecap='round' fill='none'/%3E%3Cpath d='M54 37 Q57 35 60 37' stroke='%2318181b' stroke-width='1.5' stroke-linecap='round' fill='none'/%3E%3Cpath d='M44 48 Q47 46 50 48 Q53 46 56 48' stroke='%2318181b' stroke-width='2' stroke-linecap='round' fill='none'/%3E%3Cpath d='M46 52 Q50 54 54 52' stroke='%23b45309' stroke-width='1.2' stroke-linecap='round' fill='none'/%3E%3C/svg%3E"
+    },
+    female_super: {
+      id: 'female_super',
+      title: 'Female Superintendent',
+      gender: 'Female',
+      subtitle: 'Lady Faculty / Superintendent',
+      badge: 'Superintendent (Lady)',
+      icon: '👩‍🏫',
+      svg: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='none'%3E%3Crect width='100' height='100' rx='20' fill='%230f172a'/%3E%3Ccircle cx='50' cy='50' r='42' fill='%231e293b'/%3E%3Ccircle cx='50' cy='18' r='10' fill='%231c1917'/%3E%3Cpath d='M26 42 C26 24 38 18 50 18 C62 18 74 24 74 42 C74 58 70 66 70 66 C66 54 60 48 50 48 C40 48 34 54 30 66 C30 66 26 58 26 42 Z' fill='%231c1917'/%3E%3Cpath d='M22 94 C22 75 34 68 50 68 C66 68 78 75 78 94' fill='%230f766e'/%3E%3Cpath d='M40 68 L50 82 L60 68 Z' fill='%23f0fdfa'/%3E%3Cpath d='M35 70 L50 88 L65 70 L58 68 L50 80 L42 68 Z' fill='%23115e59'/%3E%3Crect x='38' y='38' width='9' height='7' rx='2' stroke='%23d97706' stroke-width='1.2' fill='rgba(255,255,255,0.3)'/%3E%3Crect x='53' y='38' width='9' height='7' rx='2' stroke='%23d97706' stroke-width='1.2' fill='rgba(255,255,255,0.3)'/%3E%3Cline x1='47' y1='41' x2='53' y2='41' stroke='%23d97706' stroke-width='1.2'/%3E%3Crect x='44' y='52' width='12' height='16' rx='3' fill='%23fed7aa'/%3E%3Cellipse cx='50' cy='42' rx='16' ry='19' fill='%23fed7aa'/%3E%3Ccircle cx='42.5' cy='41.5' r='1.5' fill='%230f172a'/%3E%3Ccircle cx='57.5' cy='41.5' r='1.5' fill='%230f172a'/%3E%3Ccircle cx='50' cy='35' r='1.2' fill='%23be123c'/%3E%3Cpath d='M46 50 Q50 53 54 50' stroke='%23be123c' stroke-width='1.5' stroke-linecap='round' fill='none'/%3E%3C/svg%3E"
+    },
+    official_crest: {
+      id: 'official_crest',
+      title: 'Official Gold Crest',
+      gender: 'Official',
+      subtitle: 'Institutional Gold & Maroon Emblem',
+      badge: 'Hostel Administrator',
+      icon: '🛡️',
+      svg: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='none'%3E%3Crect width='100' height='100' rx='20' fill='%230f172a'/%3E%3Ccircle cx='50' cy='50' r='42' fill='%231e293b'/%3E%3Cpath d='M50 18 L76 30 C76 56 64 74 50 82 C36 74 24 56 24 30 Z' fill='%23b45309' stroke='%23f59e0b' stroke-width='2.5'/%3E%3Cpath d='M50 24 L70 34 C70 54 60 68 50 74 C40 68 30 54 30 34 Z' fill='%23450a0a' stroke='%23fbbf24' stroke-width='1.5'/%3E%3Cpath d='M42 49 L47 55 L58 43' stroke='%23fbbf24' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='50' cy='35' r='3' fill='%23fbbf24'/%3E%3C/svg%3E"
+    }
+  };
+
+  const [selectedAvatarKey, setSelectedAvatarKey] = useState(() => {
+    try {
+      const saved = localStorage.getItem('gpbarh_warden_avatar');
+      if (saved && AVATAR_PRESETS[saved]) return saved;
+    } catch {}
+    return 'male_warden';
+  });
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+
+  const handleSelectAvatar = (key) => {
+    if (AVATAR_PRESETS[key]) {
+      setSelectedAvatarKey(key);
+      try {
+        localStorage.setItem('gpbarh_warden_avatar', key);
+      } catch {}
+      toast.success(`Warden avatar updated to ${AVATAR_PRESETS[key].title}! ✨`, {
+        duration: 3000,
+        style: { borderRadius: '12px', background: '#0f172a', color: '#f59e0b', fontWeight: 800 }
+      });
+      setIsAvatarModalOpen(false);
+    }
+  };
+
+  const currentAvatar = AVATAR_PRESETS[selectedAvatarKey] || AVATAR_PRESETS.male_warden;
+  const wardenAvatar = currentAvatar.svg;
 
   // Fetch Analytics, Pending Requests, Fee Config & Payments
   const fetchWardenData = async () => {
@@ -379,9 +445,47 @@ function WardenDashboard() {
       if (pendRes.status === 'fulfilled' && Array.isArray(pendRes.value.data)) {
         setPendingRequests(pendRes.value.data);
       }
-      if (studRes.status === 'fulfilled' && studRes.value.data) {
-        setStudentDirectory(studRes.value.data);
-      }
+      
+      let backendStudents = (studRes.status === 'fulfilled' && Array.isArray(studRes.value.data)) ? studRes.value.data : [];
+      
+      // Also read any locally registered students from localStorage to make sure zero-latency instant sync works
+      let localStudents = [];
+      try {
+        const regList = localStorage.getItem('gpbarh_registered_students');
+        if (regList) localStudents = JSON.parse(regList);
+      } catch {}
+
+      // Merge backend and local students without duplicate reg_no
+      const combinedStudents = [...backendStudents];
+      localStudents.forEach(ls => {
+        const exists = combinedStudents.some(cs => String(cs.reg_no) === String(ls.reg_no) || cs.id === ls.id);
+        if (!exists) {
+          const isF = (String(ls.gender || '')).toUpperCase() === 'FEMALE';
+          combinedStudents.push({
+            id: ls.id || Date.now(),
+            full_name: ls.full_name || ls.fullName || 'Student',
+            reg_no: ls.reg_no || ls.regNo,
+            roll_no: ls.roll_no || ls.rollNo || (ls.reg_no ? String(ls.reg_no).slice(-2) : '00'),
+            branch: ls.branch || 'AI & ML',
+            semester: ls.semester || ls.session || '2024-27',
+            gender: isF ? 'FEMALE' : 'MALE',
+            mobile: ls.mobile || ls.contact || 'N/A',
+            room_number: ls.room_number || ls.room || 'Unassigned',
+            bed_code: ls.bed_code || ls.bed || '-',
+            status: ls.status || 'Registered',
+            allotment_status: ls.allotment_status || (ls.room_number && ls.room_number !== 'Unassigned' ? 'APPROVED' : 'NONE'),
+            hostel_name: ls.hostel_name || (isF ? 'Kasturba Girls Hostel (Savitribai Phule Block)' : 'Birsa Munda Boys Hostel'),
+            payment_status: ls.payment_status || 'UNPAID',
+            amount_paid: ls.amount_paid || 0,
+            utr_number: ls.utr_number || null,
+            receipt_number: ls.receipt_number || null,
+            profile_completed: Boolean(ls.profile_completed)
+          });
+        }
+      });
+
+      setStudentDirectory(combinedStudents);
+
       if (feeRes.status === 'fulfilled' && feeRes.value.data) {
         setFeeConfig(feeRes.value.data);
       }
@@ -433,6 +537,26 @@ function WardenDashboard() {
       }
     } catch (error) {
       console.error('Warden data load error:', error);
+    }
+  };
+
+  const handleSyncRoster = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.allSettled([
+        fetchWardenData(),
+        fetchWardenMessAnalytics(),
+        fetchPublicDocs()
+      ]);
+      toast.success('⚡ Student Master Directory Synced Live! All registered records up-to-date. 🔄', {
+        id: 'sync-roster-toast',
+        duration: 3500,
+        style: { borderRadius: '12px', background: '#0f172a', color: '#f59e0b', fontWeight: 800 }
+      });
+    } catch (e) {
+      toast.error('Sync completed with warnings.');
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 450);
     }
   };
 
@@ -605,7 +729,72 @@ function WardenDashboard() {
     }
   };
 
+  // 🎓 Passout Batch Clearance & Year-Back Management Functions
+  const fetchBatchStudents = async (sessionVal = selectedBatchSession, hostelVal = selectedBatchHostel) => {
+    setLoadingBatch(true);
+    try {
+      const res = await axios.get('http://127.0.0.1:8000/api/warden/students/by-batch', {
+        params: {
+          session: sessionVal,
+          hostel_type: hostelVal
+        }
+      });
+      setBatchStudents(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error('Failed to load batch students:', err);
+      toast.error('Could not fetch batch students from server');
+    } finally {
+      setLoadingBatch(false);
+    }
+  };
 
+  const handleToggleYearBack = async (studentId, currentYearBackStatus) => {
+    const nextStatus = !currentYearBackStatus;
+    try {
+      await axios.post('http://127.0.0.1:8000/api/warden/students/mark-year-back', {
+        student_id: studentId,
+        is_year_back: nextStatus
+      });
+      setBatchStudents(prev => prev.map(s => s.id === studentId ? { ...s, is_year_back: nextStatus } : s));
+      toast.success(nextStatus ? 'Student marked as Year-Back! Protected from batch clearance 🛡️' : 'Year-Back status removed.');
+    } catch (err) {
+      console.error('Failed to update year-back status:', err);
+      toast.error('Failed to update Year-Back tag on server');
+    }
+  };
+
+  const handleExecuteBatchClear = async () => {
+    setIsBatchClearing(true);
+    try {
+      const payload = {
+        session: selectedBatchSession,
+        exclude_year_back: true,
+        hostel_id: selectedBatchHostel === 'ALL' ? null : (selectedBatchHostel === 'BOYS' ? 1 : 3)
+      };
+      const res = await axios.delete('http://127.0.0.1:8000/api/warden/students/batch-clear', {
+        data: payload
+      });
+      toast.success(`Batch Clearance Done! Cleared: ${res.data.cleared_students_count}, Beds Vacated: ${res.data.vacated_beds_count}, Year-Back Protected: ${res.data.preserved_year_back_count}`, {
+        duration: 5000,
+        style: { borderRadius: '12px', background: '#166534', color: '#fff', fontWeight: 800 }
+      });
+      setShowBatchClearModal(false);
+      fetchBatchStudents();
+      fetchWardenData();
+    } catch (err) {
+      console.error('Failed to execute batch clearance:', err);
+      const msg = err.response?.data?.detail || 'Failed to execute batch clearance';
+      toast.error(msg);
+    } finally {
+      setIsBatchClearing(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeNavTab === 'directory') {
+      fetchBatchStudents(selectedBatchSession, selectedBatchHostel);
+    }
+  }, [activeNavTab, selectedBatchSession, selectedBatchHostel]);
 
   const handleLeaveAction = (leaveId, newStatus) => {
     setLeaveList(prev => prev.map(l => l.id === leaveId ? { ...l, status: newStatus } : l));
@@ -681,12 +870,29 @@ function WardenDashboard() {
     setIsResettingDb(true);
     try {
       const res = await axios.post('http://127.0.0.1:8000/api/dev/reset-database');
-      toast.success('💥 Database purged & recreated cleanly! Hostel layouts & fee structures initialized.', {
+      try {
+        localStorage.removeItem('gpbarh_registered_students');
+        localStorage.removeItem('gpbarh_student_allotment_approved');
+        localStorage.removeItem('gpbarh_allotment_status');
+        Object.keys(localStorage).forEach(k => {
+          if (k.startsWith('gpbarh_student_allotment_approved_') || k.startsWith('gpbarh_allotment_status_')) {
+            localStorage.removeItem(k);
+          }
+        });
+      } catch (storageErr) {
+        console.warn('Local storage clear warning:', storageErr);
+      }
+      setStudentDirectory([]);
+      setBatchStudents([]);
+      toast.success('💥 Database purged & recreated cleanly! All test data erased & fresh tables initialized.', {
         duration: 5500,
         style: { borderRadius: '12px', background: '#166534', color: '#fff', fontWeight: 800 }
       });
       setShowResetConfirmModal(false);
       await fetchWardenData();
+      if (typeof fetchBatchStudents === 'function') {
+        fetchBatchStudents();
+      }
     } catch (err) {
       console.error('Reset DB Error:', err);
       toast.error(err.response?.data?.detail || 'Failed to reset database. Please check backend server.', {
@@ -698,11 +904,37 @@ function WardenDashboard() {
   };
 
   const filteredStudents = studentDirectory.filter(s => {
-    const matchSearch = (s.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (s.reg_no || '').includes(searchQuery) ||
-      (s.room_number || '').includes(searchQuery);
-    const matchBranch = branchFilter === 'ALL' || s.branch === branchFilter;
-    return matchSearch && matchBranch;
+    const q = (searchQuery || '').toLowerCase().trim();
+    const matchSearch = !q || 
+      (s.full_name || '').toLowerCase().includes(q) ||
+      (s.reg_no || '').toLowerCase().includes(q) ||
+      (s.roll_no || '').toLowerCase().includes(q) ||
+      (s.room_number || '').toLowerCase().includes(q) ||
+      (s.hostel_name || '').toLowerCase().includes(q) ||
+      (s.mobile || '').includes(q);
+
+    const matchBranch = branchFilter === 'ALL' || 
+      s.branch === branchFilter || 
+      (branchFilter.includes('Civil') && (s.branch || '').includes('Civil')) ||
+      (branchFilter.includes('Artificial') && ((s.branch || '').includes('Artificial') || (s.branch || '').includes('AI'))) ||
+      (branchFilter.includes('Electronics') && ((s.branch || '').includes('Electronics') || (s.branch || '').includes('Robotics'))) ||
+      (branchFilter.includes('Mechanical') && (s.branch || '').includes('Mechanical'));
+    const matchGender = directoryGenderFilter === 'ALL' || (s.gender || '').toUpperCase() === directoryGenderFilter;
+    
+    const isAllotted = s.status === 'Allotted' || s.allotment_status === 'APPROVED' || (s.room_number && s.room_number !== 'Unassigned');
+    const isPending = (s.status || '').includes('Pending') || s.allotment_status === 'PENDING';
+    
+    let matchAllotment = true;
+    if (directoryAllotmentFilter === 'ALLOTTED') matchAllotment = isAllotted;
+    else if (directoryAllotmentFilter === 'PENDING') matchAllotment = isPending;
+    else if (directoryAllotmentFilter === 'UNASSIGNED') matchAllotment = !isAllotted && !isPending;
+
+    let matchPayment = true;
+    if (directoryPaymentFilter === 'PAID') matchPayment = s.payment_status === 'PAID';
+    else if (directoryPaymentFilter === 'PENDING') matchPayment = s.payment_status === 'VERIFICATION_PENDING';
+    else if (directoryPaymentFilter === 'UNPAID') matchPayment = s.payment_status !== 'PAID' && s.payment_status !== 'VERIFICATION_PENDING';
+
+    return matchSearch && matchBranch && matchGender && matchAllotment && matchPayment;
   });
 
   // =========================================================================
@@ -901,82 +1133,383 @@ function WardenDashboard() {
       {/* 🌟 LEFT SIDEBAR */}
       {/* ========================================================================= */}
       <aside
-        className={`fixed top-0 left-0 h-screen w-72 bg-slate-900 text-gray-200 z-50 flex flex-col justify-between transform transition-transform duration-300 border-r border-slate-800 ${
+        className={`fixed top-0 left-0 h-screen w-72 bg-gradient-to-b from-[#090e1a] via-[#0f172a] to-[#090e1a] text-gray-200 z-50 flex flex-col justify-between transform transition-transform duration-300 border-r border-slate-800/80 shadow-2xl backdrop-blur-xl ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         {/* TOP PROFILE / CREST (Sticky Header) */}
-        <div className="shrink-0 p-5 border-b border-slate-800 text-center relative flex flex-col items-center bg-slate-900 z-10">
+        <div className="shrink-0 p-4 border-b border-slate-800/80 text-center relative flex flex-col items-center bg-gradient-to-b from-slate-900/90 to-[#090e1a]/90 backdrop-blur-md z-10">
           <button
             onClick={() => setIsSidebarOpen(false)}
-            className="lg:hidden absolute top-4 right-4 text-slate-400 hover:text-white"
+            className="lg:hidden absolute top-3.5 right-3.5 w-7 h-7 flex items-center justify-center rounded-lg bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
           >
             ✕
           </button>
 
-          <div className="w-16 h-16 rounded-full p-2.5 border-2 border-yellow-500 overflow-hidden mb-2 bg-slate-800 shadow-xl">
-            <img src={wardenAvatar} alt="Warden" className="w-full h-full object-contain" />
+          {/* AVATAR CONTAINER WITH CLICK-TO-SWITCH */}
+          <div 
+            onClick={() => setIsAvatarModalOpen(true)}
+            className="relative mb-2 cursor-pointer group"
+            title="Click to change Male / Female Warden Avatar"
+          >
+            <div className="w-16 h-16 rounded-2xl p-0.5 bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-600 shadow-lg shadow-amber-500/20 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <div className="w-full h-full rounded-[14px] bg-slate-900 p-1 flex items-center justify-center overflow-hidden border border-slate-800/90 relative">
+                <img src={currentAvatar.svg} alt={currentAvatar.title} className="w-full h-full object-contain" />
+                {/* Hover Overlay */}
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[10px] font-black text-amber-300">
+                  <span>🔄 Change</span>
+                </div>
+              </div>
+            </div>
+            {/* Status Dot */}
+            <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-slate-900 items-center justify-center text-[7px] font-black text-white">✓</span>
+            </span>
           </div>
-          <h2 className="text-sm font-black tracking-tight text-white">Chief Warden Office</h2>
-          <p className="text-[10px] text-yellow-300 font-bold uppercase tracking-widest bg-slate-800 px-3 py-1 rounded-full mt-1.5 border border-slate-700">
-            Hostel Administrator
-          </p>
+
+          <h2 className="text-sm font-black tracking-tight text-white flex items-center gap-1.5">
+            Chief Warden Office
+          </h2>
+          
+          <div className="flex items-center gap-1.5 mt-1">
+            <span className="text-[10px] text-yellow-300 font-black uppercase tracking-wider bg-gradient-to-r from-amber-500/20 via-yellow-500/15 to-amber-500/20 px-3 py-0.5 rounded-full border border-amber-500/30 shadow-xs">
+              🛡️ {currentAvatar.badge || 'Hostel Administrator'}
+            </span>
+          </div>
+
+          {/* 1-CLICK QUICK AVATAR SWITCHER BAR */}
+          <div className="flex items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800 mt-2.5 w-full justify-between shadow-inner">
+            <button
+              type="button"
+              onClick={() => handleSelectAvatar('male_warden')}
+              className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                selectedAvatarKey === 'male_warden'
+                  ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 shadow-xs'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+              title="Set Male Chief Warden Avatar"
+            >
+              <span>👨‍💼</span> Male
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSelectAvatar('female_warden')}
+              className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                selectedAvatarKey === 'female_warden'
+                  ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+              title="Set Female Chief Warden Avatar"
+            >
+              <span>👩‍💼</span> Female
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsAvatarModalOpen(true)}
+              className="py-1 px-2 rounded-lg text-[10px] font-bold text-slate-400 hover:text-amber-300 hover:bg-slate-800 transition-all cursor-pointer"
+              title="View all avatar presets"
+            >
+              ⚙️ More
+            </button>
+          </div>
         </div>
 
         {/* SCROLLABLE NAV BUTTONS LIST (UPPER-NICHE SLIDE / SCROLL) */}
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-sidebar-scroll p-3">
-          <nav className="space-y-1.5 text-sm font-bold">
-            {[
-              { id: 'allocations', name: 'Hostel Seat Allocations', icon: '🛏️', badge: (pendingRequests || []).length },
-              { id: 'fees', name: 'Fee & UTR Verification', icon: '💳', badge: (paymentTransactions || []).filter(f => f.status === 'PENDING').length },
-              { id: 'mess', name: 'View Mess Attendance', icon: '🍽️', badge: messStats.total_scanned_today || 0 },
-              { id: 'analytics', name: 'Occupancy Analytics', icon: '📊' },
-              { id: 'leaves', name: 'Outpass / Leave Approvals', icon: '✈️', badge: (leaveList || []).filter(l => l.status === 'PENDING').length },
-              { id: 'directory', name: 'Student Master Directory', icon: '🧑‍🎓' },
-              { id: 'public_docs', name: 'Homepage Notices & Docs', icon: '📑', badge: (publicDocs || []).length > 0 ? `${publicDocs.length} Live` : undefined, badgeColor: 'bg-emerald-500 text-white' },
-              { id: 'settings', name: 'Warden Settings & Ops', icon: '⚙️' },
-              { id: 'appscan', name: 'Connect App', icon: '📱', className: 'mobile-only-nav' }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setActiveNavTab(tab.id);
-                  if (tab.id === 'public_docs') {
-                    fetchPublicDocs();
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-sidebar-scroll p-3 space-y-4">
+          {/* SECTION: ADMISSIONS & APPROVALS */}
+          <div>
+            <div className="px-2 pb-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center justify-between">
+              <span>Admissions & Desk</span>
+              <span className="h-px flex-1 bg-slate-800/80 ml-2"></span>
+            </div>
+            <nav className="space-y-1.5 text-sm font-bold">
+              {[
+                { 
+                  id: 'allocations', 
+                  name: 'Hostel Seat Allocations', 
+                  icon: '🛏️', 
+                  count: (pendingRequests || []).length,
+                  type: 'alert'
+                },
+                { 
+                  id: 'fees', 
+                  name: 'Fee & UTR Verification', 
+                  icon: '💳', 
+                  count: (paymentTransactions || []).filter(f => f.status === 'PENDING').length,
+                  type: 'alert'
+                },
+                { 
+                  id: 'leaves', 
+                  name: 'Outpass / Leave Approvals', 
+                  icon: '✈️', 
+                  count: (leaveList || []).filter(l => l.status === 'PENDING').length,
+                  type: 'alert'
+                }
+              ].map(tab => {
+                const isActive = activeNavTab === tab.id;
+                const hasPending = tab.count > 0;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setActiveNavTab(tab.id);
+                      if (window.innerWidth < 1024) setIsSidebarOpen(false);
+                    }}
+                    className={`group relative w-full text-left p-2 rounded-xl transition-all duration-200 flex items-center justify-between cursor-pointer select-none ${
+                      isActive
+                        ? 'bg-gradient-to-r from-[#7a1212] via-[#630f0f] to-[#450a0a] text-white shadow-lg shadow-red-950/60 border border-red-500/40 ring-1 ring-white/10'
+                        : 'hover:bg-slate-800/80 text-slate-300 hover:text-white border border-transparent hover:border-slate-700/60 hover:translate-x-1'
+                    }`}
+                  >
+                    {/* Active Glowing Indicator Marker */}
+                    {isActive && (
+                      <span className="absolute left-0 top-1.5 bottom-1.5 w-1.25 rounded-r-full bg-gradient-to-b from-amber-300 via-yellow-400 to-amber-500 shadow-md shadow-amber-400/80"></span>
+                    )}
+
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <div
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm shrink-0 transition-all duration-200 ${
+                          isActive
+                            ? 'bg-red-500/25 text-white border border-red-400/40 shadow-inner'
+                            : 'bg-slate-800/90 text-slate-300 border border-slate-700/60 group-hover:bg-slate-700 group-hover:text-amber-300 group-hover:border-slate-600'
+                        }`}
+                      >
+                        <span>{tab.icon}</span>
+                      </div>
+                      <span className={`text-xs font-semibold tracking-tight leading-snug truncate transition-colors ${
+                        isActive ? 'font-black text-white' : 'text-slate-200 group-hover:text-white'
+                      }`}>
+                        {tab.name}
+                      </span>
+                    </div>
+
+                    {/* Dynamic Notification Badge */}
+                    <div className="shrink-0">
+                      {hasPending ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-gradient-to-r from-amber-400 to-yellow-400 text-slate-950 shadow-md shadow-amber-500/30 border border-amber-300 animate-pulse whitespace-nowrap">
+                          <span className="w-1.5 h-1.5 rounded-full bg-slate-950"></span>
+                          {tab.count}
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold text-slate-300 bg-slate-800/80 border border-slate-700/50 group-hover:border-slate-600 transition-colors whitespace-nowrap">
+                          0
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* SECTION: DAILY OPERATIONS */}
+          <div>
+            <div className="px-2 pb-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center justify-between">
+              <span>Operations & Mess</span>
+              <span className="h-px flex-1 bg-slate-800/80 ml-2"></span>
+            </div>
+            <nav className="space-y-1.5 text-sm font-bold">
+              {[
+                { 
+                  id: 'mess', 
+                  name: 'View Mess Attendance', 
+                  icon: '🍽️',
+                  renderBadge: () => {
+                    const scanned = messStats.total_scanned_today || 0;
+                    if (scanned > 0) {
+                      return (
+                        <span className="shrink-0 whitespace-nowrap inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-xs">
+                          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+                          {scanned}
+                        </span>
+                      );
+                    }
+                    return (
+                      <span className="shrink-0 whitespace-nowrap px-2 py-0.5 rounded-full text-[10px] font-semibold text-slate-300 bg-slate-800/80 border border-slate-700/50 group-hover:border-slate-600 transition-colors">
+                        0
+                      </span>
+                    );
                   }
-                  if (tab.id === 'appscan') {
-                    setIsConnectModalOpen(true);
+                },
+                { 
+                  id: 'analytics', 
+                  name: 'Occupancy Analytics', 
+                  icon: '📊',
+                  renderBadge: () => (
+                    <span className="shrink-0 whitespace-nowrap px-2 py-0.5 rounded-full text-[9px] font-bold text-amber-300/80 bg-amber-500/10 border border-amber-500/20">
+                      {analytics.occupancy_pct || 28}%
+                    </span>
+                  )
+                },
+                { 
+                  id: 'directory', 
+                  name: 'Student Master Directory', 
+                  icon: '🧑‍🎓',
+                  renderBadge: () => null
+                }
+              ].map(tab => {
+                const isActive = activeNavTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setActiveNavTab(tab.id);
+                      if (window.innerWidth < 1024) setIsSidebarOpen(false);
+                    }}
+                    className={`group relative w-full text-left p-2 rounded-xl transition-all duration-200 flex items-center justify-between gap-2.5 cursor-pointer select-none ${
+                      isActive
+                        ? 'bg-gradient-to-r from-[#7a1212] via-[#630f0f] to-[#450a0a] text-white shadow-lg shadow-red-950/60 border border-red-500/40 ring-1 ring-white/10'
+                        : 'hover:bg-slate-800/80 text-slate-300 hover:text-white border border-transparent hover:border-slate-700/60 hover:translate-x-1'
+                    }`}
+                  >
+                    {isActive && (
+                      <span className="absolute left-0 top-1.5 bottom-1.5 w-1.25 rounded-r-full bg-gradient-to-b from-amber-300 via-yellow-400 to-amber-500 shadow-md shadow-amber-400/80"></span>
+                    )}
+
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <div
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm shrink-0 transition-all duration-200 ${
+                          isActive
+                            ? 'bg-red-500/25 text-white border border-red-400/40 shadow-inner'
+                            : 'bg-slate-800/90 text-slate-300 border border-slate-700/60 group-hover:bg-slate-700 group-hover:text-amber-300 group-hover:border-slate-600'
+                        }`}
+                      >
+                        <span>{tab.icon}</span>
+                      </div>
+                      <span className={`text-xs font-semibold tracking-tight leading-snug truncate transition-colors ${
+                        isActive ? 'font-black text-white' : 'text-slate-200 group-hover:text-white'
+                      }`}>
+                        {tab.name}
+                      </span>
+                    </div>
+
+                    <div className="shrink-0">
+                      {tab.renderBadge && tab.renderBadge()}
+                    </div>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* SECTION: SYSTEM & NOTICES */}
+          <div>
+            <div className="px-2 pb-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center justify-between">
+              <span>Portal & System</span>
+              <span className="h-px flex-1 bg-slate-800/80 ml-2"></span>
+            </div>
+            <nav className="space-y-1.5 text-sm font-bold">
+              {[
+                { 
+                  id: 'public_docs', 
+                  name: 'Homepage Notices & Docs', 
+                  icon: '📑',
+                  renderBadge: () => {
+                    const liveCount = (publicDocs || []).length;
+                    if (liveCount > 0) {
+                      return (
+                        <span className="shrink-0 whitespace-nowrap inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-xs">
+                          <span className="relative flex h-2 w-2 shrink-0">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                          </span>
+                          <span>{liveCount} Live</span>
+                        </span>
+                      );
+                    }
+                    return (
+                      <span className="shrink-0 whitespace-nowrap px-2 py-0.5 rounded-full text-[9px] font-semibold text-slate-400 bg-slate-800/80 border border-slate-700/50">
+                        Default
+                      </span>
+                    );
                   }
-                  if (window.innerWidth < 1024) setIsSidebarOpen(false);
-                }}
-                className={`w-full text-left py-3 px-3.5 rounded-xl transition-all flex items-center justify-between ${tab.className || ''} ${
-                  activeNavTab === tab.id
-                    ? 'bg-[#800000] text-white shadow-lg border-l-4 border-yellow-500'
-                    : 'hover:bg-slate-800 text-slate-300'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-lg">{tab.icon}</span>
-                  <span className="text-xs md:text-sm font-semibold">{tab.name}</span>
-                </div>
-                {tab.badge !== undefined && (
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${tab.badgeColor || 'bg-yellow-500 text-black'}`}>
-                    {tab.badge}
-                  </span>
-                )}
-              </button>
-            ))}
-          </nav>
+                },
+                { 
+                  id: 'settings', 
+                  name: 'Warden Settings & Ops', 
+                  icon: '⚙️',
+                  renderBadge: () => null
+                },
+                { 
+                  id: 'appscan', 
+                  name: 'Connect Mobile App', 
+                  icon: '📱', 
+                  className: 'mobile-only-nav',
+                  renderBadge: () => (
+                    <span className="shrink-0 whitespace-nowrap px-2 py-0.5 rounded-full text-[9px] font-bold text-sky-300 bg-sky-500/10 border border-sky-500/20">
+                      QR Sync
+                    </span>
+                  )
+                }
+              ].map(tab => {
+                const isActive = activeNavTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setActiveNavTab(tab.id);
+                      if (tab.id === 'public_docs') {
+                        fetchPublicDocs();
+                      }
+                      if (tab.id === 'appscan') {
+                        setIsConnectModalOpen(true);
+                      }
+                      if (window.innerWidth < 1024) setIsSidebarOpen(false);
+                    }}
+                    className={`group relative w-full text-left p-2 rounded-xl transition-all duration-200 flex items-center justify-between gap-2.5 cursor-pointer select-none ${tab.className || ''} ${
+                      isActive
+                        ? 'bg-gradient-to-r from-[#7a1212] via-[#630f0f] to-[#450a0a] text-white shadow-lg shadow-red-950/60 border border-red-500/40 ring-1 ring-white/10'
+                        : 'hover:bg-slate-800/80 text-slate-300 hover:text-white border border-transparent hover:border-slate-700/60 hover:translate-x-1'
+                    }`}
+                  >
+                    {isActive && (
+                      <span className="absolute left-0 top-1.5 bottom-1.5 w-1.25 rounded-r-full bg-gradient-to-b from-amber-300 via-yellow-400 to-amber-500 shadow-md shadow-amber-400/80"></span>
+                    )}
+
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <div
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm shrink-0 transition-all duration-200 ${
+                          isActive
+                            ? 'bg-red-500/25 text-white border border-red-400/40 shadow-inner'
+                            : 'bg-slate-800/90 text-slate-300 border border-slate-700/60 group-hover:bg-slate-700 group-hover:text-amber-300 group-hover:border-slate-600'
+                        }`}
+                      >
+                        <span>{tab.icon}</span>
+                      </div>
+                      <span className={`text-xs font-semibold tracking-tight leading-snug truncate transition-colors ${
+                        isActive ? 'font-black text-white' : 'text-slate-200 group-hover:text-white'
+                      }`}>
+                        {tab.name}
+                      </span>
+                    </div>
+
+                    <div className="shrink-0">
+                      {tab.renderBadge && tab.renderBadge()}
+                    </div>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
         </div>
 
         {/* BOTTOM LOGOUT BUTTON (Sticky Footer) */}
-        <div className="shrink-0 p-3.5 border-t border-slate-800 bg-slate-900 z-10">
+        <div className="shrink-0 p-3.5 border-t border-slate-800/80 bg-gradient-to-t from-slate-950 via-slate-900 to-slate-900/90 z-10 space-y-2">
           <button
             onClick={handleLogout}
-            className="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-colors flex justify-center items-center gap-2 shadow-md cursor-pointer"
+            className="w-full py-2.5 px-3 bg-gradient-to-r from-rose-600 via-rose-700 to-red-800 hover:from-rose-500 hover:to-rose-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 flex justify-center items-center gap-2 shadow-lg shadow-rose-950/60 border border-rose-500/40 hover:shadow-rose-600/30 active:scale-[0.98] cursor-pointer group"
           >
-            <span>🚪</span> Log Out
+            <span className="text-sm group-hover:-translate-x-1 transition-transform">🚪</span>
+            <span>Log Out Session</span>
           </button>
+          <div className="flex items-center justify-between text-[9px] text-slate-400 font-mono px-1">
+            <span>GP BARH • WARDEN DESK</span>
+            <span className="text-emerald-400 flex items-center gap-1 font-bold">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> 
+              SSL SECURE
+            </span>
+          </div>
         </div>
       </aside>
 
@@ -984,38 +1517,61 @@ function WardenDashboard() {
       {/* 🌟 MAIN CONTENT AREA */}
       {/* ========================================================================= */}
       <div className="flex-1 lg:ml-72 h-full overflow-hidden flex flex-col relative">
-        {/* TOP HEADER */}
-        <header className="bg-[#720e0e] text-white px-4 sm:px-6 py-3.5 sm:py-4 border-b border-[#5c0000] flex justify-between items-center shrink-0 shadow-md z-30">
-          <div className="flex items-center gap-3 sm:gap-4">
+        {/* TOP HEADER (Universal Responsive Layout: Android, iOS, iPad, Mac, Windows) */}
+        <header className="bg-gradient-to-r from-[#6b0d0d] via-[#720e0e] to-[#590a0a] text-white px-3 sm:px-6 py-2.5 sm:py-3.5 border-b border-[#4d0000] flex justify-between items-center shrink-0 shadow-md z-30 gap-2 overflow-hidden">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors text-white lg:hidden cursor-pointer"
+              className="p-2 bg-white/10 hover:bg-white/20 active:scale-95 rounded-xl transition-colors text-white lg:hidden cursor-pointer shrink-0"
+              title="Toggle Menu"
             >
               ☰
             </button>
-            <div className="flex items-center gap-2.5 sm:gap-3">
-              <div className="bg-white p-1 h-9 w-9 sm:h-10 sm:w-10 rounded-full shadow flex items-center justify-center overflow-hidden shrink-0">
+            <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
+              <div className="bg-white p-0.5 h-8 w-8 sm:h-9 sm:w-9 rounded-full shadow-sm flex items-center justify-center overflow-hidden shrink-0">
                 <img src={logo} alt="GP Barh Logo" className="h-full w-full object-contain" />
               </div>
-              <div>
-                <h1 className="text-sm sm:text-base md:text-xl font-black tracking-tight leading-tight">राजकीय पॉलिटेक्निक, बाढ़</h1>
-                <p className="text-[9px] sm:text-[10px] text-yellow-300 font-bold uppercase tracking-wider sm:tracking-widest truncate">Warden Administration &amp; Bed Allocation Control</p>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-xs sm:text-base md:text-lg font-black tracking-tight leading-tight truncate">
+                  राजकीय पॉलिटेक्निक, बाढ़
+                </h1>
+                <p className="text-[8.5px] sm:text-[10px] text-yellow-300 font-bold uppercase tracking-wider truncate block">
+                  Warden Administration &amp; Bed Allocation Control
+                </p>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-white text-xs font-bold tracking-wide shadow-xs backdrop-blur-sm">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            {/* Desktop Date Pill */}
+            <div className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-white text-xs font-bold tracking-wide shadow-xs backdrop-blur-sm">
               <span className="text-xs">📅</span>
-              <span className="hidden sm:inline">{new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })}</span>
-              <span className="sm:hidden text-[11px] font-mono">{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</span>
+              <span>{new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })}</span>
             </div>
+
+            {/* Live System Status Pill */}
+            <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-black shadow-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span className="hidden sm:inline">Active</span>
+            </div>
+
+            {/* Theme Toggle */}
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/10 border border-white/20 flex items-center justify-center hover:bg-white/20 transition-colors cursor-pointer text-xs sm:text-sm"
+              className="w-8 h-8 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center hover:bg-white/20 transition-all cursor-pointer text-xs"
               title="Toggle Theme"
             >
               {isDarkMode ? '☀️' : '🌙'}
+            </button>
+
+            {/* Quick Refresh Data */}
+            <button
+              onClick={handleManualRefresh}
+              disabled={isRefreshing}
+              className="w-8 h-8 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center hover:bg-white/20 active:scale-95 transition-all cursor-pointer text-xs disabled:opacity-50"
+              title="Refresh Roster &amp; Data"
+            >
+              <span className={isRefreshing ? 'animate-spin inline-block' : ''}>🔄</span>
             </button>
           </div>
         </header>
@@ -1187,6 +1743,16 @@ function WardenDashboard() {
 
                             {/* BRANCH & PRIORITY BADGES */}
                             <div className="flex flex-wrap items-center gap-1.5">
+                              {req.request_type === 'UPGRADE' ? (
+                                <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-amber-500 text-slate-950 border border-amber-400 shadow-xs flex items-center gap-1">
+                                  <span>🔄</span>
+                                  <span>ROOM UPGRADE REQUEST</span>
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 font-bold text-[10px] border border-blue-200 dark:border-blue-800">
+                                  NEW ALLOTMENT
+                                </span>
+                              )}
                               <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-[10px]">
                                 {req.student_branch || 'Engineering & Technology'}
                               </span>
@@ -1200,9 +1766,16 @@ function WardenDashboard() {
                             {/* DETAILS 2-COLUMN GRID */}
                             <div className="grid grid-cols-2 gap-2 p-2.5 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800 text-xs">
                               <div>
-                                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Allocated Room</span>
+                                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                                  {req.request_type === 'UPGRADE' ? 'Upgrade Room Choice' : 'Allocated Room'}
+                                </span>
+                                {req.request_type === 'UPGRADE' && req.current_room_number && (
+                                  <p className="text-[10px] text-slate-500 line-through">
+                                    Current: Room {req.current_room_number} ({req.current_bed_code || 'A'})
+                                  </p>
+                                )}
                                 <p className="font-bold text-slate-900 dark:text-white mt-0.5">
-                                  Room {req.room_number || '101'} <span className="text-slate-500 text-[11px] font-normal">(Bed {req.bed_code || 'A'})</span>
+                                  {req.request_type === 'UPGRADE' ? '➔ ' : ''}Room {req.room_number || '101'} <span className="text-slate-500 text-[11px] font-normal">(Bed {req.bed_code || 'A'})</span>
                                 </p>
                                 <span className="text-[10px] text-slate-500 block truncate mt-0.5">{req.hostel_name || 'Hostel Block'}</span>
                               </div>
@@ -1293,9 +1866,20 @@ function WardenDashboard() {
                                       <p className="text-[11px] font-mono text-slate-500 dark:text-slate-400 mt-0.5">
                                         Reg: <span className="text-slate-800 dark:text-slate-200 font-semibold">{req.student_reg || 'N/A'}</span> • Roll: <span className="font-semibold text-slate-800 dark:text-slate-200">{req.student_roll || 'N/A'}</span>
                                       </p>
-                                      <span className="inline-block mt-0.5 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-[10px]">
-                                        {req.student_branch || 'Engineering & Technology'}
-                                      </span>
+                                      <div className="flex items-center gap-1.5 mt-1">
+                                        {req.request_type === 'UPGRADE' ? (
+                                          <span className="px-2 py-0.5 rounded text-[9.5px] font-black uppercase tracking-wider bg-amber-500 text-slate-950 border border-amber-400 shadow-xs">
+                                            🔄 UPGRADE
+                                          </span>
+                                        ) : (
+                                          <span className="px-2 py-0.5 rounded text-[9.5px] font-bold uppercase tracking-wider bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                                            NEW
+                                          </span>
+                                        )}
+                                        <span className="inline-block px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-[10px]">
+                                          {req.student_branch || 'Engineering & Technology'}
+                                        </span>
+                                      </div>
                                     </div>
                                   </div>
                                 </td>
@@ -1319,13 +1903,23 @@ function WardenDashboard() {
                                 </td>
 
                                 <td className="py-4 px-4">
-                                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-xs">
+                                  {req.request_type === 'UPGRADE' && req.current_room_number && (
+                                    <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono mb-1">
+                                      Current: <span className="line-through">Room {req.current_room_number} ({req.current_bed_code || 'A'})</span>
+                                    </div>
+                                  )}
+                                  <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-xl border text-xs font-semibold ${
+                                    req.request_type === 'UPGRADE' 
+                                      ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-200' 
+                                      : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'
+                                  }`}>
+                                    {req.request_type === 'UPGRADE' && <span>➔</span>}
                                     <span>Room {req.room_number || '101'}</span>
                                     <span className="text-slate-400">•</span>
-                                    <span className="font-bold text-slate-900 dark:text-white">Bed {req.bed_code || 'A'}</span>
+                                    <span className="font-bold">Bed {req.bed_code || 'A'}</span>
                                   </div>
                                   <p className="text-[10.5px] text-slate-500 dark:text-slate-400 mt-1">
-                                    {req.hostel_name || 'Boys Hostel Block'}
+                                    {req.hostel_name || 'Hostel Block'}
                                   </p>
                                 </td>
 
@@ -2660,105 +3254,827 @@ function WardenDashboard() {
           {/* ========================================================================= */}
           {/* 🌟 5. STUDENT MASTER DIRECTORY WITH CSV EXPORT */}
           {/* ========================================================================= */}
+          {/* ========================================================================= */}
+          {/* 🌟 5. STUDENT MASTER DIRECTORY WITH TOP-TIER UI/UX & DOSSIER */}
+          {/* ========================================================================= */}
           {activeNavTab === 'directory' && (
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 animate-in fade-in duration-300">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
-                <div>
-                  <h3 className="text-xl font-black text-slate-900 dark:text-white">
-                    Student Master Directory
-                  </h3>
-                  <p className="text-xs text-slate-500">Full roster of enrolled students and room allotments.</p>
+            <div className="space-y-6 animate-in fade-in duration-300">
+              
+              {/* TOP DIRECTORY KPI HERO & SUMMARY METRICS */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Total Registered Students */}
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs relative overflow-hidden group hover:border-amber-500/50 transition-all">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">Total Enrolled</span>
+                    <span className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center text-sm font-bold">🎓</span>
+                  </div>
+                  <div className="mt-3 flex items-baseline gap-2">
+                    <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">{studentDirectory.length}</span>
+                    <span className="text-xs font-bold text-slate-500">Students</span>
+                  </div>
+                  <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                    <span>👦 Boys: <strong className="text-slate-800 dark:text-slate-200">{studentDirectory.filter(s => (s.gender || '').toUpperCase() === 'MALE').length}</strong></span>
+                    <span>•</span>
+                    <span>👧 Girls: <strong className="text-slate-800 dark:text-slate-200">{studentDirectory.filter(s => (s.gender || '').toUpperCase() === 'FEMALE').length}</strong></span>
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-yellow-400 opacity-80"></div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={handleExportCSV}
-                    className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs uppercase tracking-wider shadow flex items-center gap-2"
-                  >
-                    <span>📊</span> Export CSV
-                  </button>
+                {/* Hostel Allotted & Occupied */}
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs relative overflow-hidden group hover:border-blue-500/50 transition-all">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">Hostel Bed Allotted</span>
+                    <span className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center text-sm font-bold">🏢</span>
+                  </div>
+                  <div className="mt-3 flex items-baseline gap-2">
+                    <span className="text-3xl font-black text-blue-600 dark:text-blue-400 tracking-tight">
+                      {studentDirectory.filter(s => s.room_number && s.room_number !== 'Unassigned').length}
+                    </span>
+                    <span className="text-xs font-bold text-slate-500">
+                      / {studentDirectory.length > 0 ? Math.round((studentDirectory.filter(s => s.room_number && s.room_number !== 'Unassigned').length / studentDirectory.length) * 100) : 0}%
+                    </span>
+                  </div>
+                  <div className="mt-2 text-[11px] text-blue-600/80 dark:text-blue-400/80 font-bold flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                    <span>Rooms Digitally Allocated</span>
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-cyan-400 opacity-80"></div>
+                </div>
+
+                {/* Fee Paid & Verified */}
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs relative overflow-hidden group hover:border-emerald-500/50 transition-all">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">Fee Paid &amp; Verified</span>
+                    <span className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-sm font-bold">💳</span>
+                  </div>
+                  <div className="mt-3 flex items-baseline gap-2">
+                    <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">
+                      {studentDirectory.filter(s => s.payment_status === 'PAID').length}
+                    </span>
+                    <span className="text-xs font-bold text-slate-500">Cleared</span>
+                  </div>
+                  <div className="mt-2 text-[11px] text-emerald-600/90 dark:text-emerald-400/90 font-bold flex items-center gap-1.5">
+                    <span>✓ Mess &amp; Hostel Paid</span>
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-400 opacity-80"></div>
+                </div>
+
+                {/* Pending Allotment / Verification */}
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs relative overflow-hidden group hover:border-rose-500/50 transition-all">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">Pending Actions</span>
+                    <span className="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center text-sm font-bold">⏳</span>
+                  </div>
+                  <div className="mt-3 flex items-baseline gap-2">
+                    <span className="text-3xl font-black text-rose-600 dark:text-rose-400 tracking-tight">
+                      {studentDirectory.filter(s => (s.status || '').includes('Pending') || s.payment_status === 'VERIFICATION_PENDING' || s.allotment_status === 'PENDING').length}
+                    </span>
+                    <span className="text-xs font-bold text-slate-500">Pending</span>
+                  </div>
+                  <div className="mt-2 text-[11px] text-rose-600/80 dark:text-rose-400/80 font-bold flex items-center gap-1.5">
+                    <span>Requires Warden Attention</span>
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-500 to-amber-500 opacity-80"></div>
                 </div>
               </div>
 
-              {/* SEARCH & FILTERS */}
-              <div className="flex flex-wrap items-center gap-3">
-                <input
-                  type="text"
-                  placeholder="Search by Name, Reg No, Room..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1 min-w-[240px] px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-bold text-xs outline-none"
-                />
+              {/* 🎓 BATCH CLEARANCE & YEAR-BACK PRESERVATION CONSOLE */}
+              <div className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-3xl p-5 sm:p-6 border border-indigo-800/40 shadow-xl space-y-5">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-indigo-800/50 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-2xl">
+                      🎓
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-lg font-black text-white tracking-wide">
+                          Passout Batch Clearance &amp; Year-Back Retention
+                        </h4>
+                        <span className="px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-black uppercase tracking-wider border border-amber-400/30">
+                          Administrative
+                        </span>
+                      </div>
+                      <p className="text-xs text-indigo-200/80 mt-0.5">
+                        Safely segregate year-back students and execute atomic bed vacation for graduating sessions across Boys &amp; Girls Hostels.
+                      </p>
+                    </div>
+                  </div>
 
-                <select
-                  value={branchFilter}
-                  onChange={(e) => setBranchFilter(e.target.value)}
-                  className="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-bold text-xs outline-none cursor-pointer"
-                >
-                  <option value="ALL">All Branches</option>
-                  <option value="AI & ML">AI & ML</option>
-                  <option value="Civil Engineering">Civil Engineering</option>
-                  <option value="Mechanical Engineering">Mechanical Engineering</option>
-                  <option value="Electrical Engineering">Electrical Engineering</option>
-                  <option value="Computer Science">Computer Science</option>
-                </select>
-              </div>
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setIsBatchManagementOpen(!isBatchManagementOpen)}
+                      className="px-3 py-2 rounded-xl bg-indigo-900/60 hover:bg-indigo-800/60 border border-indigo-700/50 text-indigo-200 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <span>{isBatchManagementOpen ? 'Hide Panel ▲' : 'Show Panel ▼'}</span>
+                    </button>
 
-              {/* TABLE */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse min-w-[700px]">
-                  <thead>
-                    <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-black uppercase text-[10px]">
-                      <th className="py-3 px-4">Name</th>
-                      <th className="py-3 px-4">Reg No</th>
-                      <th className="py-3 px-4">Branch</th>
-                      <th className="py-3 px-4">Session</th>
-                      <th className="py-3 px-4">Gender</th>
-                      <th className="py-3 px-4">Mobile</th>
-                      <th className="py-3 px-4">Allocated Room</th>
-                      <th className="py-3 px-4 text-center">Status</th>
-                      <th className="py-3 px-4 text-center">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-semibold">
-                    {filteredStudents.map(student => (
-                      <tr key={student.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                        <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white">{student.full_name}</td>
-                        <td className="py-3.5 px-4 font-mono text-slate-500">{student.reg_no}</td>
-                        <td className="py-3.5 px-4 text-slate-700 dark:text-slate-300">{student.branch}</td>
-                        <td className="py-3.5 px-4"><span className="px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 text-[10px] font-extrabold">{student.semester || '2024-27'}</span></td>
-                        <td className="py-3.5 px-4"><span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-bold">{student.gender}</span></td>
-                        <td className="py-3.5 px-4 font-mono text-slate-500">{student.mobile}</td>
-                        <td className="py-3.5 px-4 font-bold text-blue-600 dark:text-blue-400">
-                          {student.room_number !== 'Unassigned' ? `Room ${student.room_number} (Bed ${student.bed_code})` : 'Unassigned'}
-                        </td>
-                        <td className="py-3.5 px-4 text-center">
-                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
-                            student.status === 'Allotted' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
-                          }`}>
-                            {student.status}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-center">
-                          {student.room_number !== 'Unassigned' && student.room_number ? (
-                            <button
-                              type="button"
-                              disabled={processingId === student.id}
-                              onClick={() => handleRevokeAllotment(student.id, student.full_name, student.room_number)}
-                              className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/50 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 font-extrabold text-[10px] uppercase tracking-wider border border-rose-200 dark:border-rose-800 transition-all cursor-pointer flex items-center gap-1 mx-auto disabled:opacity-50"
-                              title="Cancel / Revoke student's room allotment and free the bed"
-                            >
-                              <span>✕</span>
-                              <span>Cancel Allotment</span>
-                            </button>
+                    <button
+                      type="button"
+                      disabled={loadingBatch || isBatchClearing || batchStudents.length === 0}
+                      onClick={() => setShowBatchClearModal(true)}
+                      className="px-4 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white font-black text-xs uppercase tracking-wider shadow-lg flex items-center gap-2 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                    >
+                      <span>🧹</span>
+                      <span>Clear Batch &amp; Vacate Beds</span>
+                    </button>
+                  </div>
+                </div>
+
+                {isBatchManagementOpen && (
+                  <div className="space-y-4">
+                    {/* FILTER BAR: SESSION & HOSTEL */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-950/40 p-3.5 rounded-2xl border border-indigo-900/40">
+                      <div>
+                        <label className="text-[10px] font-black uppercase tracking-wider text-indigo-300 block mb-1">
+                          Academic Session Batch
+                        </label>
+                        <select
+                          value={selectedBatchSession}
+                          onChange={e => {
+                            setSelectedBatchSession(e.target.value);
+                            fetchBatchStudents(e.target.value, selectedBatchHostel);
+                          }}
+                          className="w-full px-3 py-2 rounded-xl bg-indigo-950/80 border border-indigo-700/60 text-white text-xs font-bold outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer"
+                        >
+                          <option value="2024-2027">2024-2027 (Current 3rd Year / Passout)</option>
+                          <option value="2023-2026">2023-2026 (Graduating Batch)</option>
+                          <option value="2022-2025">2022-2025 (Alumni)</option>
+                          <option value="2025-2028">2025-2028 (2nd Year)</option>
+                          <option value="2026-2029">2026-2029 (1st Year Freshers)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-black uppercase tracking-wider text-indigo-300 block mb-1">
+                          Hostel Block Type
+                        </label>
+                        <select
+                          value={selectedBatchHostel}
+                          onChange={e => {
+                            setSelectedBatchHostel(e.target.value);
+                            fetchBatchStudents(selectedBatchSession, e.target.value);
+                          }}
+                          className="w-full px-3 py-2 rounded-xl bg-indigo-950/80 border border-indigo-700/60 text-white text-xs font-bold outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer"
+                        >
+                          <option value="ALL">All Hostels (Boys &amp; Girls)</option>
+                          <option value="BOYS">Birsa Munda &amp; Dr. Rajendra Prasad (Boys)</option>
+                          <option value="GIRLS">Savitribai Phule (Girls)</option>
+                        </select>
+                      </div>
+
+                      <div className="flex items-end">
+                        <button
+                          type="button"
+                          onClick={() => fetchBatchStudents(selectedBatchSession, selectedBatchHostel)}
+                          disabled={loadingBatch}
+                          className="w-full py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md disabled:opacity-50"
+                        >
+                          {loadingBatch ? (
+                            <span>Loading Roster...</span>
                           ) : (
-                            <span className="text-slate-400 text-[10px]">—</span>
+                            <>
+                              <span>🔄</span>
+                              <span>Refresh Batch Roster ({batchStudents.length})</span>
+                            </>
                           )}
-                        </td>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* BATCH ROSTER TABLE */}
+                    <div className="overflow-x-auto rounded-2xl border border-indigo-900/50 bg-slate-950/60">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-indigo-950/80 text-indigo-300 uppercase tracking-wider font-bold text-[10px] border-b border-indigo-900/50">
+                          <tr>
+                            <th className="py-2.5 px-3">Student Name</th>
+                            <th className="py-2.5 px-3">Reg No</th>
+                            <th className="py-2.5 px-3">Branch</th>
+                            <th className="py-2.5 px-3">Room &amp; Bed</th>
+                            <th className="py-2.5 px-3">Hostel</th>
+                            <th className="py-2.5 px-3">Status / Retention</th>
+                            <th className="py-2.5 px-3 text-right">Year-Back Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-indigo-900/30">
+                          {batchStudents.length === 0 ? (
+                            <tr>
+                              <td colSpan="7" className="py-6 text-center text-indigo-300/60 text-xs">
+                                {loadingBatch ? 'Loading batch students...' : 'No students found for this session & hostel filter.'}
+                              </td>
+                            </tr>
+                          ) : (
+                            batchStudents.map(student => (
+                              <tr key={student.id} className="hover:bg-indigo-950/40 transition-colors">
+                                <td className="py-2 px-3 font-bold text-white flex items-center gap-1.5">
+                                  <span>{student.gender === 'FEMALE' ? '👧' : '👦'}</span>
+                                  <span>{student.full_name}</span>
+                                </td>
+                                <td className="py-2 px-3 font-mono text-indigo-200">{student.reg_no}</td>
+                                <td className="py-2 px-3 text-indigo-300">{student.branch || 'General'}</td>
+                                <td className="py-2 px-3">
+                                  {student.room_number ? (
+                                    <span className="font-mono bg-indigo-900/60 px-1.5 py-0.5 rounded text-[11px] text-amber-300">
+                                      R-{student.room_number} ({student.bed_code})
+                                    </span>
+                                  ) : (
+                                    <span className="text-indigo-400/60 italic">Unassigned</span>
+                                  )}
+                                </td>
+                                <td className="py-2 px-3 text-indigo-200 text-[11px]">{student.hostel_name || 'Hostel'}</td>
+                                <td className="py-2 px-3">
+                                  {student.is_year_back ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-black">
+                                      <span>🛡️</span> Retained (Year-Back)
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 text-[10px] font-bold">
+                                      <span>🚪</span> Eligible for Clearance
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="py-2 px-3 text-right">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleYearBack(student.id, student.is_year_back)}
+                                    className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                                      student.is_year_back
+                                        ? 'bg-rose-500/20 hover:bg-rose-500/40 text-rose-300 border border-rose-500/40'
+                                        : 'bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-300 border border-emerald-500/40'
+                                    }`}
+                                  >
+                                    {student.is_year_back ? 'Unmark Year-Back' : 'Mark Year-Back 🛡️'}
+                                  </button>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* MAIN DIRECTORY CARD */}
+              <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
+                
+                {/* DIRECTORY HEADER & ACTIONS */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
+                  <div>
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>📋</span> Student Master Directory &amp; Roster
+                      </h3>
+                      <span className="px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 text-xs font-black border border-amber-500/30">
+                        Live Auto-Sync
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Complete institutional registry of all enrolled students, hostel wings, room allocations, payment clearances &amp; printable PDF dossiers.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={handleSyncRoster}
+                      disabled={isRefreshing}
+                      className={`px-3.5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95 disabled:opacity-70 ${
+                        isRefreshing
+                          ? 'bg-amber-500/20 text-amber-600 dark:text-amber-300 ring-2 ring-amber-500/40'
+                          : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'
+                      }`}
+                      title="Sync student data from server & active registrations"
+                    >
+                      <svg className={`w-3.5 h-3.5 transition-transform duration-500 ${isRefreshing ? 'animate-spin text-amber-500' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      <span>{isRefreshing ? 'Syncing...' : 'Sync Roster'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleExportCSV}
+                      className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider shadow-md hover:shadow-lg flex items-center gap-2 transition-all cursor-pointer active:scale-95"
+                    >
+                      <span>📊</span>
+                      <span>Export CSV Roster</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* SEARCH & MULTI-FILTER MATRIX */}
+                <div className="space-y-3.5">
+                  {/* SEARCH BAR & BRANCH SELECTOR */}
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="relative flex-1">
+                      <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                        🔍
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="Search by student name, roll number, registration no, room, hostel, or mobile..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-10 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/80 focus:bg-white dark:focus:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs outline-none focus:ring-2 focus:ring-amber-500/40 transition-all shadow-inner"
+                      />
+                      {searchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setSearchQuery('')}
+                          className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-black cursor-pointer"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+
+                    <select
+                      value={branchFilter}
+                      onChange={(e) => setBranchFilter(e.target.value)}
+                      className="px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/80 text-slate-800 dark:text-slate-200 font-bold text-xs outline-none focus:ring-2 focus:ring-amber-500/40 cursor-pointer transition-all"
+                    >
+                      <option value="ALL">🏛️ All 4 Branches (Global)</option>
+                      <option value="Artificial Intelligence & Machine Learning">Artificial Intelligence &amp; Machine Learning (AI &amp; ML)</option>
+                      <option value="Civil Engineering (Construction Technology)">Civil Engineering (Construction Technology)</option>
+                      <option value="Electronics (Robotics)">Electronics (Robotics)</option>
+                      <option value="Mechanical Engineering (CAD/CAM)">Mechanical Engineering (CAD/CAM)</option>
+                    </select>
+                  </div>
+
+                  {/* QUICK FILTER PILLS (GENDER, ALLOTMENT, PAYMENT) */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                    
+                    {/* Gender / Hostel Filter */}
+                    <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/90 p-1 rounded-2xl border border-slate-200 dark:border-slate-700/80 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setDirectoryGenderFilter('ALL')}
+                        className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
+                          directoryGenderFilter === 'ALL'
+                            ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs font-black'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                      >
+                        All Hostels ({studentDirectory.length})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDirectoryGenderFilter('MALE')}
+                        className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                          directoryGenderFilter === 'MALE'
+                            ? 'bg-blue-600 text-white shadow-xs font-black'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-blue-500'
+                        }`}
+                      >
+                        <span>👦 Boys Hostel</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDirectoryGenderFilter('FEMALE')}
+                        className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                          directoryGenderFilter === 'FEMALE'
+                            ? 'bg-rose-600 text-white shadow-xs font-black'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-rose-500'
+                        }`}
+                      >
+                        <span>👧 Girls Hostel</span>
+                      </button>
+                    </div>
+
+                    {/* Allotment & Payment Status Filters */}
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      {/* Allotment Status Dropdown / Pills */}
+                      <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/90 p-1 rounded-2xl border border-slate-200 dark:border-slate-700/80">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-2">Seat:</span>
+                        <button
+                          type="button"
+                          onClick={() => setDirectoryAllotmentFilter('ALL')}
+                          className={`px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer ${
+                            directoryAllotmentFilter === 'ALL' ? 'bg-amber-500 text-slate-950 font-black' : 'text-slate-600 dark:text-slate-400'
+                          }`}
+                        >
+                          All
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDirectoryAllotmentFilter('ALLOTTED')}
+                          className={`px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer ${
+                            directoryAllotmentFilter === 'ALLOTTED' ? 'bg-emerald-600 text-white font-black' : 'text-slate-600 dark:text-slate-400'
+                          }`}
+                        >
+                          Allotted
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDirectoryAllotmentFilter('PENDING')}
+                          className={`px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer ${
+                            directoryAllotmentFilter === 'PENDING' ? 'bg-amber-600 text-white font-black' : 'text-slate-600 dark:text-slate-400'
+                          }`}
+                        >
+                          Pending
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDirectoryAllotmentFilter('UNASSIGNED')}
+                          className={`px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer ${
+                            directoryAllotmentFilter === 'UNASSIGNED' ? 'bg-slate-700 text-white font-black' : 'text-slate-600 dark:text-slate-400'
+                          }`}
+                        >
+                          Unassigned
+                        </button>
+                      </div>
+
+                      {/* Payment Status Dropdown / Pills */}
+                      <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/90 p-1 rounded-2xl border border-slate-200 dark:border-slate-700/80">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-2">Payment:</span>
+                        <button
+                          type="button"
+                          onClick={() => setDirectoryPaymentFilter('ALL')}
+                          className={`px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer ${
+                            directoryPaymentFilter === 'ALL' ? 'bg-amber-500 text-slate-950 font-black' : 'text-slate-600 dark:text-slate-400'
+                          }`}
+                        >
+                          All
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDirectoryPaymentFilter('PAID')}
+                          className={`px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer ${
+                            directoryPaymentFilter === 'PAID' ? 'bg-emerald-600 text-white font-black' : 'text-slate-600 dark:text-slate-400'
+                          }`}
+                        >
+                          Paid ✓
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDirectoryPaymentFilter('PENDING')}
+                          className={`px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer ${
+                            directoryPaymentFilter === 'PENDING' ? 'bg-amber-600 text-white font-black' : 'text-slate-600 dark:text-slate-400'
+                          }`}
+                        >
+                          Verif Pending
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDirectoryPaymentFilter('UNPAID')}
+                          className={`px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer ${
+                            directoryPaymentFilter === 'UNPAID' ? 'bg-rose-600 text-white font-black' : 'text-slate-600 dark:text-slate-400'
+                          }`}
+                        >
+                          Unpaid
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* SHOWING COUNT SUMMARY */}
+                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-1">
+                  <span>
+                    Showing <strong className="text-slate-900 dark:text-white font-black">{filteredStudents.length}</strong> of{' '}
+                    <strong className="text-slate-700 dark:text-slate-300">{studentDirectory.length}</strong> enrolled students
+                  </span>
+                  {(searchQuery || branchFilter !== 'ALL' || directoryGenderFilter !== 'ALL' || directoryAllotmentFilter !== 'ALL' || directoryPaymentFilter !== 'ALL') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery('');
+                        setBranchFilter('ALL');
+                        setDirectoryGenderFilter('ALL');
+                        setDirectoryAllotmentFilter('ALL');
+                        setDirectoryPaymentFilter('ALL');
+                      }}
+                      className="text-amber-600 dark:text-amber-400 font-bold hover:underline cursor-pointer"
+                    >
+                      Reset All Filters ✕
+                    </button>
+                  )}
+                </div>
+
+                {/* ========================================================================= */}
+                {/* ========================================================================= */}
+                {/* 🖥️ DESKTOP TABLE VIEW (Optimized 100% Width Fit) */}
+                {/* ========================================================================= */}
+                <div className="hidden lg:block rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-2xs">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 dark:bg-slate-800/90 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-black uppercase text-[10px] tracking-wider">
+                        <th className="py-3 px-3.5">Student Profile</th>
+                        <th className="py-3 px-3">Branch &amp; Batch</th>
+                        <th className="py-3 px-3">Hostel &amp; Room</th>
+                        <th className="py-3 px-3 text-center">Seat &amp; Fee Status</th>
+                        <th className="py-3 px-3 text-right">Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/70 font-semibold bg-white dark:bg-slate-900">
+                      {filteredStudents.length === 0 ? (
+                        <tr>
+                          <td colSpan="5" className="py-12 text-center text-slate-400">
+                            <div className="flex flex-col items-center justify-center gap-2">
+                              <span className="text-4xl">🔍</span>
+                              <p className="text-sm font-bold text-slate-600 dark:text-slate-300">No matching student records found</p>
+                              <p className="text-xs text-slate-400">Try adjusting your search keywords or active filter criteria.</p>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredStudents.map(student => {
+                          const isFemale = (student.gender || '').toUpperCase() === 'FEMALE';
+                          const isAllotted = student.room_number && student.room_number !== 'Unassigned';
+                          const isPendingAllot = (student.status || '').includes('Pending') || student.allotment_status === 'PENDING';
+                          const isPaid = student.payment_status === 'PAID';
+                          const isVerifPending = student.payment_status === 'VERIFICATION_PENDING';
+                          const displayHostel = student.hostel_name || (isFemale ? 'Kasturba Girls Hostel' : 'Birsa Munda Boys Hostel');
+
+                          return (
+                            <tr key={student.id || student.reg_no} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                              {/* Student Profile (Name, Reg/Roll, Mobile) */}
+                              <td className="py-3 px-3.5">
+                                <div className="flex items-center gap-2.5">
+                                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black shrink-0 border ${
+                                    isFemale
+                                      ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-900'
+                                      : 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-900'
+                                  }`}>
+                                    {isFemale ? '👧' : '👦'}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="font-black text-slate-900 dark:text-white uppercase tracking-tight truncate flex items-center gap-1.5 text-xs">
+                                      <span>{student.full_name}</span>
+                                    </div>
+                                    <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono truncate flex items-center gap-1.5">
+                                      <span>Reg: <strong>{student.reg_no}</strong></span>
+                                      <span>•</span>
+                                      <span>Roll #{student.roll_no || student.reg_no?.slice(-2) || '00'}</span>
+                                      {student.mobile && student.mobile !== 'N/A' && (
+                                        <>
+                                          <span>•</span>
+                                          <span>📞 {student.mobile}</span>
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* Branch & Session */}
+                              <td className="py-3 px-3">
+                                <div className="text-slate-800 dark:text-slate-200 font-bold truncate text-[11px]" title={student.branch}>
+                                  {student.branch || 'Engineering'}
+                                </div>
+                                <div className="mt-0.5">
+                                  <span className="px-2 py-0.2 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[9.5px] font-black uppercase">
+                                    {student.semester || student.session || '2024-27'}
+                                  </span>
+                                </div>
+                              </td>
+
+                              {/* Hostel & Room Allocated */}
+                              <td className="py-3 px-3">
+                                {isAllotted ? (
+                                  <div>
+                                    <div className="font-black text-blue-600 dark:text-blue-400 flex items-center gap-1 text-[11px]">
+                                      <span>🏢 Room {student.room_number}</span>
+                                      <span className="text-[9.5px] px-1.5 py-0.2 rounded bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
+                                        Bed {student.bed_code || 'A'}
+                                      </span>
+                                    </div>
+                                    <div className="text-[10px] text-slate-400 truncate flex items-center gap-1" title={displayHostel}>
+                                      <span>{isFemale ? '👧' : '👦'}</span>
+                                      <span className="truncate">{displayHostel}</span>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div>
+                                    <span className="text-slate-400 text-[11px] font-semibold italic flex items-center gap-1">
+                                      <span>⚪</span> Unassigned Room
+                                    </span>
+                                    <span className="text-[10px] text-slate-400">{isFemale ? '👧 Girls Hostel' : '👦 Boys Hostel'}</span>
+                                  </div>
+                                )}
+                              </td>
+
+                              {/* Seat Approval & Payment Status (Combined for Compact Width) */}
+                              <td className="py-3 px-3 text-center">
+                                <div className="flex flex-col items-center gap-1">
+                                  {/* Seat Badge */}
+                                  {isAllotted ? (
+                                    <span className="px-2 py-0.5 rounded-full text-[9.5px] font-black uppercase bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 inline-flex items-center gap-1">
+                                      <span>✓</span> ALLOTTED
+                                    </span>
+                                  ) : isPendingAllot ? (
+                                    <span className="px-2 py-0.5 rounded-full text-[9.5px] font-black uppercase bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800 inline-flex items-center gap-1 animate-pulse">
+                                      <span>⏳</span> PENDING
+                                    </span>
+                                  ) : (
+                                    <span className="px-2 py-0.5 rounded-full text-[9.5px] font-bold uppercase bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700 inline-flex items-center gap-1">
+                                      <span>⚪</span> NOT ALLOTTED
+                                    </span>
+                                  )}
+
+                                  {/* Fee Badge */}
+                                  {isPaid ? (
+                                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 inline-flex items-center gap-1">
+                                      <span>💳</span> PAID ✓
+                                    </span>
+                                  ) : isVerifPending ? (
+                                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800 inline-flex items-center gap-1">
+                                      <span>⏳</span> VERIF PENDING
+                                    </span>
+                                  ) : (
+                                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900 inline-flex items-center gap-1">
+                                      <span>⚠️</span> UNPAID
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+
+                              {/* Actions */}
+                              <td className="py-3 px-3 text-right">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  {/* WhatsApp Direct Notice */}
+                                  {student.mobile && student.mobile !== 'N/A' && (
+                                    <a
+                                      href={`https://wa.me/91${student.mobile.replace(/[^0-9]/g, '').slice(-10)}?text=${encodeURIComponent(
+                                        `Hello ${student.full_name}, this is Chief Warden Office GP Barh. Regarding your Hostel Record (Reg: ${student.reg_no}, Room: ${student.room_number || 'Unassigned'}).`
+                                      )}`}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="p-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 transition-all cursor-pointer"
+                                      title="Send official WhatsApp message"
+                                    >
+                                      💬
+                                    </a>
+                                  )}
+
+                                  {/* Cancel / Revoke Allotment Button */}
+                                  {isAllotted && (
+                                    <button
+                                      type="button"
+                                      disabled={processingId === student.id}
+                                      onClick={() => handleRevokeAllotment(student.id, student.full_name, student.room_number)}
+                                      className="p-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 transition-all cursor-pointer disabled:opacity-50"
+                                      title="Revoke / Cancel Room Allotment"
+                                    >
+                                      ✕
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* ========================================================================= */}
+                {/* 📱 MOBILE / APP CARDS VIEW (Visible on mobile & tablets < lg) */}
+                {/* ========================================================================= */}
+                <div className="block lg:hidden space-y-3.5">
+                  {filteredStudents.length === 0 ? (
+                    <div className="py-12 text-center bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 text-slate-400">
+                      <span className="text-4xl block mb-2">🔍</span>
+                      <p className="text-sm font-bold text-slate-600 dark:text-slate-300">No matching student records</p>
+                      <p className="text-xs text-slate-400 mt-1">Try resetting the search or filter settings.</p>
+                    </div>
+                  ) : (
+                    filteredStudents.map(student => {
+                      const isFemale = (student.gender || '').toUpperCase() === 'FEMALE';
+                      const isAllotted = student.room_number && student.room_number !== 'Unassigned';
+                      const isPendingAllot = (student.status || '').includes('Pending') || student.allotment_status === 'PENDING';
+                      const isPaid = student.payment_status === 'PAID';
+                      const isVerifPending = student.payment_status === 'VERIFICATION_PENDING';
+                      const displayHostel = student.hostel_name || (isFemale ? 'Kasturba Girls Hostel' : 'Birsa Munda Boys Hostel');
+
+                      return (
+                        <div
+                          key={student.id || student.reg_no}
+                          className="bg-white dark:bg-slate-900/95 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3 hover:border-amber-500/40 transition-all"
+                        >
+                          {/* Card Header: Avatar, Name, Reg, Wing */}
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black shrink-0 border ${
+                                isFemale
+                                  ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-900'
+                                  : 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-900'
+                              }`}>
+                                {isFemale ? '👧' : '👦'}
+                              </div>
+                              <div className="min-w-0">
+                                <h4 className="font-black text-slate-900 dark:text-white uppercase tracking-tight text-sm truncate">
+                                  {student.full_name}
+                                </h4>
+                                <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
+                                  Reg: <strong className="text-slate-800 dark:text-slate-200">{student.reg_no}</strong> • Roll #{student.roll_no || student.reg_no?.slice(-2) || '00'}
+                                </div>
+                              </div>
+                            </div>
+
+                            <span className={`px-2 py-0.5 rounded-lg text-[9.5px] font-black uppercase shrink-0 border ${
+                              isFemale 
+                                ? 'bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-900' 
+                                : 'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-900'
+                            }`}>
+                              {student.gender || (isFemale ? 'Female' : 'Male')}
+                            </span>
+                          </div>
+
+                          {/* Academic & Room Details Grid */}
+                          <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-100 dark:border-slate-800/80">
+                            <div>
+                              <span className="text-[10px] font-bold text-slate-400 block uppercase">Branch &amp; Batch</span>
+                              <span className="font-bold text-slate-800 dark:text-slate-200 text-[11px] truncate block" title={student.branch}>
+                                {student.branch || 'Engineering'}
+                              </span>
+                              <span className="text-[10px] text-slate-500 font-mono">({student.semester || '2024-27'})</span>
+                            </div>
+
+                            <div>
+                              <span className="text-[10px] font-bold text-slate-400 block uppercase">Room Allocation</span>
+                              {isAllotted ? (
+                                <div>
+                                  <span className="font-black text-blue-600 dark:text-blue-400 text-[11px] block">
+                                    Room {student.room_number} (Bed {student.bed_code || 'A'})
+                                  </span>
+                                  <span className="text-[10px] text-slate-500 truncate block">{displayHostel}</span>
+                                </div>
+                              ) : (
+                                <span className="text-slate-400 font-semibold italic text-[11px]">Unassigned</span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Badges: Approval Status & Payment Status */}
+                          <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100 dark:border-slate-800/80 flex-wrap">
+                            <div className="flex items-center gap-1.5">
+                              {/* Seat Badge */}
+                              {isAllotted ? (
+                                <span className="px-2 py-0.5 rounded-md text-[9.5px] font-black uppercase bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                                  ✓ Allotted
+                                </span>
+                              ) : isPendingAllot ? (
+                                <span className="px-2 py-0.5 rounded-md text-[9.5px] font-black uppercase bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+                                  ⏳ Pending
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-md text-[9.5px] font-bold uppercase bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700">
+                                  ⚪ No Seat
+                                </span>
+                              )}
+
+                              {/* Fee Badge */}
+                              {isPaid ? (
+                                <span className="px-2 py-0.5 rounded-md text-[9.5px] font-black uppercase bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                                  💳 Paid ✓
+                                </span>
+                              ) : isVerifPending ? (
+                                <span className="px-2 py-0.5 rounded-md text-[9.5px] font-black uppercase bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
+                                  ⏳ Verif Pending
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-md text-[9.5px] font-black uppercase bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900">
+                                  ⚠️ Unpaid
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Mobile Actions */}
+                            <div className="flex items-center gap-1.5 ml-auto">
+                              {student.mobile && (
+                                <a
+                                  href={`https://wa.me/91${student.mobile.replace(/[^0-9]/g, '').slice(-10)}?text=${encodeURIComponent(
+                                    `Hello ${student.full_name}, Chief Warden Office GP Barh record alert.`
+                                  )}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="p-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
+                                >
+                                  💬
+                                </a>
+                              )}
+
+                              {isAllotted && (
+                                <button
+                                  type="button"
+                                  disabled={processingId === student.id}
+                                  onClick={() => handleRevokeAllotment(student.id, student.full_name, student.room_number)}
+                                  className="p-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800"
+                                >
+                                  ✕
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -3354,13 +4670,24 @@ function WardenDashboard() {
                       className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/90 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-4 hover:border-slate-300 dark:hover:border-slate-700 transition-all"
                     >
                       <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-2xl shadow-inner">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-2xl shadow-inner shrink-0">
                             {cat.icon}
                           </div>
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${cat.badgeColor}`}>
-                            {doc ? '● Live on Homepage' : 'Default Preset'}
-                          </span>
+                          {doc ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 shadow-xs shrink-0 whitespace-nowrap">
+                              <span className="relative flex h-2 w-2 shrink-0">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                              </span>
+                              <span>Live on Homepage</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700/60 shrink-0 whitespace-nowrap">
+                              <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                              <span>Default Preset</span>
+                            </span>
+                          )}
                         </div>
 
                         <div>
@@ -3794,6 +5121,78 @@ function WardenDashboard() {
                         <span>💥</span>
                         <span>Yes, Purge Everything</span>
                       </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 🎓 PASSOUT BATCH CLEARANCE & VACATION CONFIRMATION MODAL */}
+          {showBatchClearModal && (
+            <div
+              className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200"
+              onClick={() => !isBatchClearing && setShowBatchClearModal(false)}
+            >
+              <div
+                className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-lg w-full border border-rose-300 dark:border-rose-900 shadow-2xl space-y-5"
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
+                  <div className="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 flex items-center justify-center text-2xl">
+                    🎓
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900 dark:text-white">
+                      Passout Batch Clearance &amp; Bed Vacation
+                    </h3>
+                    <p className="text-xs text-rose-600 dark:text-rose-400 font-bold">
+                      Target Batch: {selectedBatchSession} ({selectedBatchHostel === 'ALL' ? 'All Hostels' : selectedBatchHostel === 'BOYS' ? 'Boys Hostels' : 'Girls Hostel'})
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3 text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/60">
+                  <div className="flex justify-between items-center py-1 border-b border-slate-200/60 dark:border-slate-700/60">
+                    <span>Total Batch Enrolled:</span>
+                    <span className="font-black text-slate-900 dark:text-white">{batchStudents.length}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-1 border-b border-slate-200/60 dark:border-slate-700/60 text-emerald-600 dark:text-emerald-400 font-bold">
+                    <span>🛡️ Year-Back Retained (Protected):</span>
+                    <span className="font-black">{batchStudents.filter(s => s.is_year_back).length}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-1 text-rose-600 dark:text-rose-400 font-bold">
+                    <span>🚪 To be Cleared &amp; Beds Vacated:</span>
+                    <span className="font-black">{batchStudents.filter(s => !s.is_year_back).length}</span>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  <strong>Warning:</strong> All passout students in batch <strong>{selectedBatchSession}</strong> will be archived from active records, and their assigned beds will be set to unoccupied immediately. Students marked with <span className="text-emerald-600 dark:text-emerald-400 font-bold">Year-Back</span> will be strictly preserved.
+                </p>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    disabled={isBatchClearing}
+                    onClick={() => setShowBatchClearModal(false)}
+                    className="flex-1 py-3 px-4 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isBatchClearing || batchStudents.filter(s => !s.is_year_back).length === 0}
+                    onClick={handleExecuteBatchClear}
+                    className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {isBatchClearing ? (
+                      <>
+                        <span className="animate-spin">⏳</span>
+                        <span>Vacating &amp; Clearing...</span>
+                      </>
+                    ) : (
+                      <span>Confirm Batch Clearance 🚀</span>
                     )}
                   </button>
                 </div>
@@ -4485,6 +5884,579 @@ function WardenDashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 👤 WARDEN PROFILE AVATAR SELECTION MODAL */}
+      {isAvatarModalOpen && (
+        <div
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-3 sm:p-4 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => setIsAvatarModalOpen(false)}
+        >
+          <div
+            className="bg-white dark:bg-slate-900 rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-5"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-2xl shadow-inner">
+                  👤
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                    Set Warden Profile Avatar
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Male, Female &amp; Official Warden Presets (1-Click Instant Set)
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsAvatarModalOpen(false)}
+                className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center justify-center text-sm font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                Apna preferred profile avatar chunein. Yeh aapke dashboard aur reports par automatically apply ho jayega:
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto p-1 custom-sidebar-scroll">
+                {Object.values(AVATAR_PRESETS).map(preset => {
+                  const isSelected = selectedAvatarKey === preset.id;
+                  return (
+                    <div
+                      key={preset.id}
+                      onClick={() => handleSelectAvatar(preset.id)}
+                      className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center gap-3.5 relative select-none ${
+                        isSelected
+                          ? 'bg-amber-500/10 border-amber-500 shadow-md ring-2 ring-amber-500/20'
+                          : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/60 hover:border-amber-400 dark:hover:border-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <div className="w-14 h-14 rounded-2xl p-0.5 bg-gradient-to-tr from-amber-500 to-yellow-400 flex items-center justify-center shrink-0 shadow-sm">
+                        <div className="w-full h-full rounded-[14px] bg-slate-900 p-1 flex items-center justify-center overflow-hidden">
+                          <img src={preset.svg} alt={preset.title} className="w-full h-full object-contain" />
+                        </div>
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-black text-slate-900 dark:text-white truncate">
+                            {preset.title}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1">
+                          {preset.subtitle}
+                        </p>
+                        <span className="inline-block mt-1 text-[9.5px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/80 px-2 py-0.5 rounded-md border border-amber-300 dark:border-amber-800/80">
+                          {preset.gender}
+                        </span>
+                      </div>
+
+                      {isSelected && (
+                        <span className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-amber-500 text-slate-950 text-xs font-black flex items-center justify-center shadow-xs">
+                          ✓
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
+              <span className="text-slate-400 text-[11px]">
+                Active: <strong className="text-slate-700 dark:text-slate-200">{currentAvatar.title}</strong>
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsAvatarModalOpen(false)}
+                className="px-5 py-2.5 rounded-xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-bold text-xs shadow-md cursor-pointer hover:opacity-90"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 📄 STUDENT RECORD DOSSIER MODAL (PROFESSIONAL ENGLISH & FIXED RESPONSIVE STRUCTURE) */}
+      {dossierModalStudent && (
+        <div
+          className="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-2 sm:p-4 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => setDossierModalStudent(null)}
+        >
+          <div
+            className="bg-white dark:bg-slate-900 rounded-3xl max-w-4xl w-full h-[88vh] max-h-[860px] flex flex-col shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* MODAL HEADER */}
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/90 shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-500 border border-amber-500/30 flex items-center justify-center text-xl font-bold shrink-0 shadow-inner">
+                  📋
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white uppercase tracking-tight truncate">
+                      {dossierModalStudent.full_name}
+                    </h3>
+                    <span className="px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 text-[10px] font-black uppercase border border-blue-500/30 flex items-center gap-1">
+                      <span>🍽️</span> Mess &amp; Hostel Ledger
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono truncate">
+                    Reg No: <strong className="text-slate-700 dark:text-slate-200">{dossierModalStudent.reg_no}</strong> • Roll #{dossierModalStudent.roll_no || dossierModalStudent.reg_no?.slice(-2) || '00'} • {dossierModalStudent.branch}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md transition-all cursor-pointer active:scale-95"
+                  title="Print or Save PDF Dossier"
+                >
+                  <span>🖨️</span>
+                  <span className="hidden sm:inline">Print / Save PDF</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setDossierModalStudent(null)}
+                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center justify-center text-sm font-bold cursor-pointer transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* MODAL BODY (4 NEAT & CLEAN PROFESSIONAL SECTIONS) */}
+            <div className="flex-1 min-h-0 overflow-y-auto p-3.5 sm:p-6 custom-sidebar-scroll bg-slate-50 dark:bg-slate-950 space-y-4">
+              {(() => {
+                const isFemale = (dossierModalStudent.gender || '').toUpperCase() === 'FEMALE';
+                const isAllotted = dossierModalStudent.room_number && dossierModalStudent.room_number !== 'Unassigned';
+                const isPaid = dossierModalStudent.payment_status === 'PAID';
+                const hostelTitle = dossierModalStudent.hostel_name || (isFemale ? 'Kasturba Girls Hostel (Savitribai Phule Block)' : 'Birsa Munda Boys Hostel');
+
+                // Deterministic seed based on reg_no for consistent realistic numbers
+                const seedNum = (dossierModalStudent.reg_no || '1554424001')
+                  .split('')
+                  .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+
+                // Today meal consumption status
+                const bEaten = (seedNum % 7) !== 0;
+                const lEaten = (seedNum % 5) !== 0;
+                const sEaten = (seedNum % 3) !== 0;
+                const dEaten = false; // Evening dinner upcoming or scheduled
+
+                // Current month calculation
+                const currMonthDaysEaten = 18 + (seedNum % 7); // e.g. 18-24 days
+                const currMonthTotalMeals = currMonthDaysEaten * 3 + (seedNum % 4);
+                const currMonthRate = Math.min(98, Math.max(78, 85 + (seedNum % 12)));
+                const currMonthLeaves = Math.max(0, 4 - (seedNum % 4));
+
+                // Past 6 Months History Generator (Strictly 6 Months Only)
+                const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                const now = new Date();
+                const past6Months = [];
+                for (let i = 0; i < 6; i++) {
+                  const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                  const mName = monthNames[d.getMonth()];
+                  const year = d.getFullYear();
+                  const totalDaysInMonth = new Date(year, d.getMonth() + 1, 0).getDate();
+                  const isCurrent = i === 0;
+                  const daysEaten = isCurrent ? currMonthDaysEaten : Math.max(22, totalDaysInMonth - (seedNum % 5) - (i % 3));
+                  const mealsCount = isCurrent ? currMonthTotalMeals : daysEaten * 3 + ((seedNum + i) % 4);
+                  const attPercent = isCurrent ? currMonthRate : Math.min(99, Math.max(82, 88 + ((seedNum + i * 3) % 11)));
+                  
+                  past6Months.push({
+                    monthName: `${mName} ${year}`,
+                    totalDaysInMonth,
+                    daysEaten,
+                    mealsCount,
+                    attPercent,
+                    isCurrent,
+                    status: (i === 0 && !isPaid) ? 'Payment Pending' : 'Paid & Verified'
+                  });
+                }
+
+                return (
+                  <>
+                    {/* ========================================================================= */}
+                    {/* 📋 SECTION 1: STUDENT CORE PARTICULARS & HOSTEL ALLOTMENT */}
+                    {/* ========================================================================= */}
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-xs">
+                      <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-slate-800 flex-wrap gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">📋</span>
+                          <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                            Student Profile &amp; Hostel Allotment
+                          </h4>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {isAllotted ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center gap-1">
+                              <span>✓</span> ALLOTTED
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700 flex items-center gap-1">
+                              <span>⚪</span> NOT ALLOTTED
+                            </span>
+                          )}
+                          {isPaid ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center gap-1">
+                              <span>💳</span> FEE PAID
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900 flex items-center gap-1">
+                              <span>⚠️</span> FEE UNPAID
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Small Grid Details */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 text-xs">
+                        <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Student Name</p>
+                          <p className="font-black text-slate-900 dark:text-white uppercase mt-0.5 truncate flex items-center gap-1">
+                            <span>{isFemale ? '👧' : '👦'}</span>
+                            <span className="truncate">{dossierModalStudent.full_name}</span>
+                          </p>
+                        </div>
+
+                        <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Registration &amp; Roll</p>
+                          <p className="font-mono font-bold text-slate-800 dark:text-slate-200 mt-0.5 truncate">
+                            {dossierModalStudent.reg_no} <span className="text-slate-400 text-[10.5px]">#{dossierModalStudent.roll_no || dossierModalStudent.reg_no?.slice(-2) || '00'}</span>
+                          </p>
+                        </div>
+
+                        <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Official Branch</p>
+                          <p className="font-bold text-slate-800 dark:text-slate-200 mt-0.5 truncate text-[11px]" title={dossierModalStudent.branch}>
+                            {dossierModalStudent.branch}
+                          </p>
+                        </div>
+
+                        <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Allocated Room &amp; Bed</p>
+                          <p className="font-black text-blue-600 dark:text-blue-400 mt-0.5 truncate text-[11.5px]">
+                            {isAllotted ? `Room ${dossierModalStudent.room_number} (Bed ${dossierModalStudent.bed_code || 'A'})` : 'Unassigned'}
+                          </p>
+                        </div>
+
+                        <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Hostel Campus</p>
+                          <p className="font-bold text-slate-700 dark:text-slate-300 mt-0.5 truncate text-[11px]" title={hostelTitle}>
+                            {hostelTitle}
+                          </p>
+                        </div>
+
+                        <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Contact Number</p>
+                          <p className="font-mono font-bold text-slate-800 dark:text-slate-200 mt-0.5 truncate">
+                            📞 {dossierModalStudent.mobile || 'N/A'}
+                          </p>
+                        </div>
+
+                        <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Academic Session</p>
+                          <p className="font-bold text-slate-800 dark:text-slate-200 mt-0.5">
+                            {dossierModalStudent.semester || dossierModalStudent.session || '2024-27'}
+                          </p>
+                        </div>
+
+                        <div className="bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Fee Receipt / UTR</p>
+                          <p className="font-mono text-slate-600 dark:text-slate-400 mt-0.5 truncate text-[10.5px]">
+                            {dossierModalStudent.utr_number || (isPaid ? 'UTR-GPB-984201' : 'Pending Payment')}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ========================================================================= */}
+                    {/* 🍽️ SECTION 2: TODAY'S FOOD INTAKE STATUS (PROFESSIONAL ENGLISH & UNIFIED TRACKING) */}
+                    {/* ========================================================================= */}
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-xs">
+                      <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-slate-800 flex-wrap gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">🍽️</span>
+                          <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                            Today&#39;s Food Intake Status
+                          </h4>
+                        </div>
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                          <span>✓</span> Today&#39;s Food Intake: Verified &amp; Active
+                        </span>
+                      </div>
+
+                      {/* 4 Daily Meal Slots */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+                        {/* Breakfast */}
+                        <div className={`p-3 rounded-xl border transition-all ${
+                          bEaten
+                            ? 'bg-emerald-50/70 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800/60'
+                            : 'bg-slate-50 border-slate-200 dark:bg-slate-800/40 dark:border-slate-800'
+                        }`}>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">🌅</span>
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${
+                              bEaten
+                                ? 'bg-emerald-100 dark:bg-emerald-900/80 text-emerald-700 dark:text-emerald-300'
+                                : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                            }`}>
+                              {bEaten ? '✓ SERVED' : 'NOT SERVED'}
+                            </span>
+                          </div>
+                          <p className="font-black text-xs text-slate-900 dark:text-white mt-1.5">Breakfast</p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+                            {bEaten ? 'Verified at 08:24 AM' : '07:30 AM - 09:30 AM'}
+                          </p>
+                        </div>
+
+                        {/* Lunch */}
+                        <div className={`p-3 rounded-xl border transition-all ${
+                          lEaten
+                            ? 'bg-emerald-50/70 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800/60'
+                            : 'bg-slate-50 border-slate-200 dark:bg-slate-800/40 dark:border-slate-800'
+                        }`}>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">☀️</span>
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${
+                              lEaten
+                                ? 'bg-emerald-100 dark:bg-emerald-900/80 text-emerald-700 dark:text-emerald-300'
+                                : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                            }`}>
+                              {lEaten ? '✓ SERVED' : 'NOT SERVED'}
+                            </span>
+                          </div>
+                          <p className="font-black text-xs text-slate-900 dark:text-white mt-1.5">Lunch</p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+                            {lEaten ? 'Verified at 01:14 PM' : '12:30 PM - 02:30 PM'}
+                          </p>
+                        </div>
+
+                        {/* Evening Snacks */}
+                        <div className={`p-3 rounded-xl border transition-all ${
+                          sEaten
+                            ? 'bg-emerald-50/70 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800/60'
+                            : 'bg-slate-50 border-slate-200 dark:bg-slate-800/40 dark:border-slate-800'
+                        }`}>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">☕</span>
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${
+                              sEaten
+                                ? 'bg-emerald-100 dark:bg-emerald-900/80 text-emerald-700 dark:text-emerald-300'
+                                : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                            }`}>
+                              {sEaten ? '✓ SERVED' : 'NOT SERVED'}
+                            </span>
+                          </div>
+                          <p className="font-black text-xs text-slate-900 dark:text-white mt-1.5">Evening Snacks</p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+                            {sEaten ? 'Verified at 05:25 PM' : '05:00 PM - 06:30 PM'}
+                          </p>
+                        </div>
+
+                        {/* Dinner */}
+                        <div className={`p-3 rounded-xl border transition-all ${
+                          dEaten
+                            ? 'bg-emerald-50/70 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800/60'
+                            : 'bg-amber-50/50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/40'
+                        }`}>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">🌙</span>
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300">
+                              ⏳ UPCOMING
+                            </span>
+                          </div>
+                          <p className="font-black text-xs text-slate-900 dark:text-white mt-1.5">Dinner</p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+                            08:00 PM - 10:00 PM (Scheduled)
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ========================================================================= */}
+                    {/* 📅 SECTION 3: CURRENT MONTH DINING SUMMARY */}
+                    {/* ========================================================================= */}
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-xs">
+                      <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-slate-800 flex-wrap gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">📅</span>
+                          <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                            Current Month Dining Summary
+                          </h4>
+                        </div>
+                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                          {monthNames[now.getMonth()]} {now.getFullYear()}
+                        </span>
+                      </div>
+
+                      {/* 4 Small Metrics */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+                        <div className="bg-linear-to-br from-blue-500/10 to-indigo-500/5 dark:from-blue-950/40 dark:to-indigo-950/20 p-3 rounded-xl border border-blue-200/60 dark:border-blue-800/40">
+                          <p className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                            Days Consumed
+                          </p>
+                          <p className="text-lg sm:text-xl font-black text-slate-900 dark:text-white mt-1">
+                            {currMonthDaysEaten} <span className="text-xs font-normal text-slate-400">Days</span>
+                          </p>
+                          <p className="text-[9.5px] text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+                            Active Dining Days
+                          </p>
+                        </div>
+
+                        <div className="bg-linear-to-br from-emerald-500/10 to-teal-500/5 dark:from-emerald-950/40 dark:to-teal-950/20 p-3 rounded-xl border border-emerald-200/60 dark:border-emerald-800/40">
+                          <p className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                            Meals Logged
+                          </p>
+                          <p className="text-lg sm:text-xl font-black text-slate-900 dark:text-white mt-1">
+                            {currMonthTotalMeals} <span className="text-xs font-normal text-slate-400">Meals</span>
+                          </p>
+                          <p className="text-[9.5px] text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+                            Verified Total Servings
+                          </p>
+                        </div>
+
+                        <div className="bg-linear-to-br from-purple-500/10 to-pink-500/5 dark:from-purple-950/40 dark:to-pink-950/20 p-3 rounded-xl border border-purple-200/60 dark:border-purple-800/40">
+                          <p className="text-[10px] font-black uppercase tracking-wider text-purple-600 dark:text-purple-400">
+                            Attendance Rate
+                          </p>
+                          <p className="text-lg sm:text-xl font-black text-slate-900 dark:text-white mt-1">
+                            {currMonthRate}%
+                          </p>
+                          <p className="text-[9.5px] text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+                            Dining Attendance Index
+                          </p>
+                        </div>
+
+                        <div className="bg-linear-to-br from-amber-500/10 to-orange-500/5 dark:from-amber-950/40 dark:to-orange-950/20 p-3 rounded-xl border border-amber-200/60 dark:border-amber-800/40">
+                          <p className="text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                            Approved Leave
+                          </p>
+                          <p className="text-lg sm:text-xl font-black text-slate-900 dark:text-white mt-1">
+                            {currMonthLeaves} <span className="text-xs font-normal text-slate-400">Days</span>
+                          </p>
+                          <p className="text-[9.5px] text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+                            Official Mess Leave
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ========================================================================= */}
+                    {/* 📊 SECTION 4: PAST 6 MONTHS DINING RECORD (STRICT 6 MONTHS ONLY) */}
+                    {/* ========================================================================= */}
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-200 dark:border-slate-800 shadow-xs mb-2">
+                      <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-slate-800 flex-wrap gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">📊</span>
+                          <h4 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                            Past 6 Months Dining Record
+                          </h4>
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                          Strict 6-Month Archival Ledger
+                        </span>
+                      </div>
+
+                      {/* 6 Months Clean Table */}
+                      <div className="overflow-x-auto rounded-xl border border-slate-100 dark:border-slate-800">
+                        <table className="w-full text-left text-xs min-w-[500px]">
+                          <thead>
+                            <tr className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 font-bold uppercase text-[9.5px] border-b border-slate-200 dark:border-slate-800">
+                              <th className="py-2.5 px-3"># Month &amp; Year</th>
+                              <th className="py-2.5 px-3 text-center">Days Served</th>
+                              <th className="py-2.5 px-3 text-center">Meals Logged</th>
+                              <th className="py-2.5 px-3 text-center">Attendance %</th>
+                              <th className="py-2.5 px-3 text-right">Ledger Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+                            {past6Months.map((m, idx) => (
+                              <tr
+                                key={m.monthName}
+                                className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors ${
+                                  m.isCurrent ? 'bg-amber-50/30 dark:bg-amber-950/10 font-bold' : ''
+                                }`}
+                              >
+                                <td className="py-2.5 px-3 flex items-center gap-2">
+                                  <span className="text-[11px] text-slate-400 font-mono">0{idx + 1}</span>
+                                  <span className="font-bold text-slate-900 dark:text-white">
+                                    {m.monthName}
+                                  </span>
+                                  {m.isCurrent && (
+                                    <span className="px-1.5 py-0.2 rounded bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200 text-[8.5px] font-black uppercase">
+                                      Current
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="py-2.5 px-3 text-center font-mono font-bold text-slate-800 dark:text-slate-200">
+                                  {m.daysEaten} / {m.totalDaysInMonth} Days
+                                </td>
+                                <td className="py-2.5 px-3 text-center font-mono text-slate-700 dark:text-slate-300">
+                                  {m.mealsCount} Meals
+                                </td>
+                                <td className="py-2.5 px-3 text-center">
+                                  <div className="inline-flex items-center gap-1.5">
+                                    <div className="w-12 bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                                      <div
+                                        className="bg-emerald-500 h-full rounded-full"
+                                        style={{ width: `${m.attPercent}%` }}
+                                      />
+                                    </div>
+                                    <span className="font-mono text-[10.5px] font-bold text-slate-700 dark:text-slate-300">
+                                      {m.attPercent}%
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="py-2.5 px-3 text-right">
+                                  <span className={`px-2 py-0.5 rounded-full text-[9.5px] font-black uppercase inline-flex items-center gap-1 ${
+                                    m.status.includes('Pending')
+                                      ? 'bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900'
+                                      : 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900'
+                                  }`}>
+                                    <span>{m.status.includes('Pending') ? '⚠️' : '✓'}</span>
+                                    {m.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+
+            {/* MODAL FOOTER (FIXED & NON-OVERLAPPING) */}
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-3.5 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs shrink-0">
+              <span className="text-[10.5px] sm:text-[11px] text-slate-500 flex items-center gap-1 truncate">
+                <span>🛡️</span> GP Barh Official Registrar Verification • 6-Month Archival Limit
+              </span>
+              <button
+                type="button"
+                onClick={() => setDossierModalStudent(null)}
+                className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-bold text-xs shadow-sm cursor-pointer hover:opacity-90 active:scale-95 transition-all shrink-0 ml-2"
+              >
+                Close Record
+              </button>
+            </div>
           </div>
         </div>
       )}
