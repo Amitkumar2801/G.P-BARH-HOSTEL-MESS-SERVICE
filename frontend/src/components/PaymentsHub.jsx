@@ -49,41 +49,18 @@ function PaymentsHub({ currentUser, profileData, isDarkMode }) {
   // Fetch Payment History
   const fetchPaymentHistory = async () => {
     setLoadingTxns(true);
-    const regNo = profileData?.regNo || currentUser?.reg_no || currentUser?.reg_no_email || '1554424049';
+    const regNo = profileData?.regNo || currentUser?.reg_no || currentUser?.reg_no_email;
+    if (!regNo) {
+      setTransactions([]);
+      setLoadingTxns(false);
+      return;
+    }
     try {
       const res = await axios.get(`http://127.0.0.1:8000/api/payments/my-history?reg_no=${regNo}`);
       if (res.data && res.data.length > 0) {
         setTransactions(res.data);
       } else {
-        const defaultTxns = [
-          {
-            id: 1,
-            student_name: profileData?.fullName || (profileData?.gender === 'FEMALE' ? 'Sana Sharma' : 'Amit Kumar Sharma'),
-            reg_no: regNo,
-            fee_type: 'HOSTEL',
-            amount: 4500,
-            utr_number: 'UPI/623849102849/SBIN',
-            status: 'APPROVED',
-            receipt_number: 'GPB/2026/HST-84921',
-            payment_period: '6 Months Maintenance (₹750 × 6)',
-            remarks: 'Verified by Accounts Section',
-            created_at: new Date(Date.now() - 4 * 86400000).toISOString()
-          },
-          {
-            id: 2,
-            student_name: profileData?.fullName || (profileData?.gender === 'FEMALE' ? 'Sana Sharma' : 'Amit Kumar Sharma'),
-            reg_no: regNo,
-            fee_type: 'MESS',
-            amount: 21600,
-            utr_number: 'UPI/992817264810/HDFC',
-            status: 'APPROVED',
-            receipt_number: 'GPB/2026/MSS-72105',
-            payment_period: '6 Months Mess Advance (₹3,600 × 6)',
-            remarks: 'Full Semester Advance Verified',
-            created_at: new Date(Date.now() - 10 * 86400000).toISOString()
-          }
-        ];
-        setTransactions(defaultTxns);
+        setTransactions([]);
       }
     } catch (err) {
       console.log('Using local cached records');
@@ -134,12 +111,13 @@ function PaymentsHub({ currentUser, profileData, isDarkMode }) {
       return;
     }
     setIsSubmittingHostel(true);
-    const regNo = profileData?.regNo || currentUser?.reg_no || currentUser?.reg_no_email || '1554424049';
+    const regNo = profileData?.regNo || currentUser?.reg_no || currentUser?.reg_no_email || '';
+    const studentName = profileData?.fullName || currentUser?.full_name || 'Student';
     const payload = {
-      student_id: currentUser?.id || 1,
-      student_name: profileData?.fullName || (profileData?.gender === 'FEMALE' ? 'Sana Sharma' : 'Amit Kumar Sharma'),
+      student_id: currentUser?.id,
+      student_name: studentName,
       reg_no: regNo,
-      gender: profileData?.gender || 'MALE',
+      gender: profileData?.gender || currentUser?.gender || 'MALE',
       fee_type: 'HOSTEL',
       amount: hostelAmount,
       utr_number: hostelUtr.trim(),
@@ -184,12 +162,13 @@ function PaymentsHub({ currentUser, profileData, isDarkMode }) {
       return;
     }
     setIsSubmittingMess(true);
-    const regNo = profileData?.regNo || currentUser?.reg_no || currentUser?.reg_no_email || '1554424049';
+    const regNo = profileData?.regNo || currentUser?.reg_no || currentUser?.reg_no_email || '';
+    const studentName = profileData?.fullName || currentUser?.full_name || 'Student';
     const payload = {
-      student_id: currentUser?.id || 1,
-      student_name: profileData?.fullName || (profileData?.gender === 'FEMALE' ? 'Sana Sharma' : 'Amit Kumar Sharma'),
+      student_id: currentUser?.id,
+      student_name: studentName,
       reg_no: regNo,
-      gender: profileData?.gender || 'MALE',
+      gender: profileData?.gender || currentUser?.gender || 'MALE',
       fee_type: 'MESS',
       amount: messAmount,
       utr_number: messUtr.trim(),
@@ -722,11 +701,11 @@ function PaymentsHub({ currentUser, profileData, isDarkMode }) {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', rowGap: '8px', columnGap: '12px', fontSize: '11.5px' }}>
                   <div>
                     <span style={{ color: '#64748b', fontWeight: 700, display: 'block', fontSize: '9.5px' }}>STUDENT NAME</span>
-                    <strong style={{ color: '#0f172a' }}>{activeReceiptModal.student_name || profileData?.fullName || 'Amit Kumar Sharma'}</strong>
+                    <strong style={{ color: '#0f172a' }}>{activeReceiptModal.student_name || profileData?.fullName || currentUser?.full_name || 'Student'}</strong>
                   </div>
                   <div>
                     <span style={{ color: '#64748b', fontWeight: 700, display: 'block', fontSize: '9.5px' }}>REGISTRATION NO</span>
-                    <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>{activeReceiptModal.reg_no || profileData?.regNo || '1554424049'}</strong>
+                    <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>{activeReceiptModal.reg_no || profileData?.regNo || currentUser?.reg_no || 'N/A'}</strong>
                   </div>
                   <div>
                     <span style={{ color: '#64748b', fontWeight: 700, display: 'block', fontSize: '9.5px' }}>FEE CATEGORY</span>

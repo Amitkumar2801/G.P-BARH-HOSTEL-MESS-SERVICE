@@ -119,8 +119,8 @@ function HostelDataDirectory({ userGender = 'MALE', isDarkMode = false }) {
             hostelName,
             genderType,
             beds: [
-              { id: 1, bed_code: 'A', is_occupied: occCount >= 1, current_student_name: occCount >= 1 ? (genderType === 'MALE' ? 'Amit Sharma' : 'Sana Sharma') : null },
-              { id: 2, bed_code: 'B', is_occupied: occCount >= 2, current_student_name: occCount >= 2 ? (genderType === 'MALE' ? 'Rahul Verma' : 'Pooja Kumari') : null },
+              { id: 1, bed_code: 'A', is_occupied: occCount >= 1, current_student_name: occCount >= 1 ? (genderType === 'MALE' ? 'AMIT KUMAR' : 'Pooja Kumari') : null },
+              { id: 2, bed_code: 'B', is_occupied: occCount >= 2, current_student_name: occCount >= 2 ? (genderType === 'MALE' ? 'Rahul Verma' : 'Neha Singh') : null },
               { id: 3, bed_code: 'C', is_occupied: occCount >= 3, current_student_name: occCount >= 3 ? (genderType === 'MALE' ? 'Deepak Singh' : 'Ananya Roy') : null }
             ]
           });
@@ -146,7 +146,7 @@ function HostelDataDirectory({ userGender = 'MALE', isDarkMode = false }) {
     }
     // High-quality comprehensive fallback directory
     return [
-      { id: 1, full_name: 'AMIT SHARMA', reg_no: '1554424049', roll_no: '49', branch: 'Artificial Intelligence & Machine Learning', semester: '2024-27', gender: 'MALE', mobile: '+91 88731 42022', room_number: '102', bed_code: 'B', status: 'Allotted', hostel: 'Birsa Munda Block', blood_group: 'O+' },
+      { id: 1, full_name: 'AMIT KUMAR', reg_no: '1554424049', roll_no: '49', branch: 'Artificial Intelligence & Machine Learning', semester: '2024-27', gender: 'MALE', mobile: '+91 88731 42022', room_number: '102', bed_code: 'B', status: 'Allotted', hostel: 'Birsa Munda Block', blood_group: 'O+' },
       { id: 2, full_name: 'SANA SHARMA', reg_no: '1554424000', roll_no: '00', branch: 'Artificial Intelligence & Machine Learning', semester: '2024-27', gender: 'FEMALE', mobile: '+91 91234 56789', room_number: '101', bed_code: 'A', status: 'Allotted', hostel: 'Savitribai Phule Girls Hostel', blood_group: 'O+' },
       { id: 3, full_name: 'RAHUL VERMA', reg_no: '1554424052', roll_no: '52', branch: 'Civil Engineering (Construction Technology)', semester: '2024-27', gender: 'MALE', mobile: '+91 98351 99210', room_number: '103', bed_code: 'A', status: 'Allotted', hostel: 'Birsa Munda Block', blood_group: 'B+' },
       { id: 4, full_name: 'POOJA KUMARI', reg_no: '1554424088', roll_no: '14', branch: 'Electronics (Robotics)', semester: '2024-27', gender: 'FEMALE', mobile: '+91 76543 21980', room_number: '204', bed_code: 'A', status: 'Allotted', hostel: 'Savitribai Phule Girls Hostel', blood_group: 'A+' },
@@ -1245,7 +1245,7 @@ function HostelDataDirectory({ userGender = 'MALE', isDarkMode = false }) {
                 {['A', 'B', 'C'].map((bCode, idx) => {
                   const bedObj = inspectingRoom.beds ? inspectingRoom.beds.find(b => b.bed_code === bCode) : null;
                   const isOccupied = bedObj ? bedObj.is_occupied : idx < inspectingRoom.occupied_count;
-                  const studentName = bedObj?.current_student_name || (isOccupied ? (inspectingRoom.genderType === 'MALE' ? 'Amit Sharma' : 'Sana Sharma') : 'Vacant Bed (Available)');
+                  const studentName = bedObj?.current_student_name || (isOccupied ? (inspectingRoom.genderType === 'MALE' ? 'AMIT KUMAR' : 'Pooja Kumari') : 'Vacant Bed (Available)');
 
                   return (
                     <div

@@ -170,10 +170,13 @@ function RoomAllocationGrid({
   wardenMode = false,
   onBedRequested = null,
   activeAllotment = null,
+  upgradeMode = false,
+  onCancelUpgrade = null,
   isDarkMode = true,
 }) {
-  const [activeHostelGender, setActiveHostelGender] = useState(gender);
-  const [layoutData, setLayoutData] = useState(() => generateDefaultLayout(gender));
+  const normGender = String(gender).toUpperCase() === 'FEMALE' ? 'FEMALE' : 'MALE';
+  const [activeHostelGender, setActiveHostelGender] = useState(normGender);
+  const [layoutData, setLayoutData] = useState(() => generateDefaultLayout(normGender));
   const [loading, setLoading] = useState(false);
   const [selectedBed, setSelectedBed] = useState(null);
   const [activeRoomModal, setActiveRoomModal] = useState(null);
@@ -185,8 +188,9 @@ function RoomAllocationGrid({
   const roomElRef = React.useRef(null);
 
   useEffect(() => {
-    setActiveHostelGender(gender);
-    setLayoutData((prev) => (prev && prev.rooms?.length ? prev : generateDefaultLayout(gender)));
+    const g = String(gender).toUpperCase() === 'FEMALE' ? 'FEMALE' : 'MALE';
+    setActiveHostelGender(g);
+    setLayoutData((prev) => (prev && prev.rooms?.length ? prev : generateDefaultLayout(g)));
   }, [gender]);
 
   const fetchLayout = useCallback(async () => {
@@ -211,12 +215,12 @@ function RoomAllocationGrid({
 
   const handleRoomClick = (room) => {
     if (wardenMode) return;
-    if (activeAllotment && (activeAllotment.status === 'APPROVED' || activeAllotment.status === 'PENDING')) {
-      toast.error(
-        activeAllotment.status === 'APPROVED'
-          ? 'You already have an approved room allotment!'
-          : 'You already have a pending allotment request awaiting Warden approval.'
-      );
+    if (activeAllotment && activeAllotment.status === 'APPROVED' && !upgradeMode) {
+      toast.error('You already have an approved room allotment! Click "Request Room / Seat Change" if you wish to upgrade/change your room.');
+      return;
+    }
+    if (activeAllotment && activeAllotment.status === 'PENDING' && !upgradeMode) {
+      toast.error('You already have a pending allotment request awaiting Warden approval.');
       return;
     }
 
@@ -256,6 +260,12 @@ function RoomAllocationGrid({
     setRequestSentInfo(null);
   };
 
+  const getRoomKey = (r) => {
+    if (!r) return '';
+    const blockKey = (r.block_name || r.wing || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    return `${r.id || ''}_${blockKey}_${r.room_number || ''}`;
+  };
+
   const handleRequestAllotment = async () => {
     if (!activeRoomModal || !studentId) {
       toast.error('Please select a room and available seat first!');
@@ -270,13 +280,22 @@ function RoomAllocationGrid({
 
     setIsSubmitting(true);
     try {
-      const response = await axios.post('http://127.0.0.1:8000/api/hostels/request-bed', {
+      const resolvedHostelId = activeRoomModal.hostel_id || 
+        (activeRoomModal.block_name?.includes('Birsa') ? 1 : 
+        (activeRoomModal.block_name?.includes('Rajendra') ? 2 : 3));
+
+      const payload = {
         student_id: studentId,
+        hostel_id: resolvedHostelId,
         room_id: activeRoomModal.id,
         bed_id: bedToRequest.id,
-      });
+        bed_code: selectedBedLetter,
+        request_type: upgradeMode ? 'UPGRADE' : 'NEW',
+      };
 
-      const msg = response.data.message || 'Seat allotment request submitted successfully! 🎟️';
+      const response = await axios.post('http://127.0.0.1:8000/api/allotment/request', payload);
+
+      const msg = response.data.message || (upgradeMode ? 'Room upgrade request submitted successfully! 🔄' : 'Seat allotment request submitted successfully! 🎟️');
       toast.success(msg, {
         duration: 5000,
         style: {
@@ -288,7 +307,11 @@ function RoomAllocationGrid({
         },
       });
 
-      setRequestSentInfo(`Request sent for Room ${activeRoomModal.room_number}(${selectedBedLetter}) — Awaiting Warden Approval`);
+      setRequestSentInfo(
+        upgradeMode
+          ? `Upgrade requested for Room ${activeRoomModal.room_number}(${selectedBedLetter}) — Awaiting Warden Approval`
+          : `Request sent for Room ${activeRoomModal.room_number}(${selectedBedLetter}) — Awaiting Warden Approval`
+      );
       fetchLayout();
       if (onBedRequested) onBedRequested();
       setTimeout(() => {
@@ -351,7 +374,8 @@ function RoomAllocationGrid({
         room.block_name?.toLowerCase().includes(activeAllotment.hostel_name?.toLowerCase().split(' ')[0] || ''));
 
     const isSelectedRoom =
-      (selectedBed && selectedBed.room && String(selectedBed.room.room_number) === String(room.room_number)) ||
+      (selectedBed?.room && (selectedBed.room.id === room.id || getRoomKey(selectedBed.room) === getRoomKey(room))) ||
+      (activeRoomModal && (activeRoomModal.id === room.id || getRoomKey(activeRoomModal) === getRoomKey(room))) ||
       isPendingForMe ||
       isMyAllottedRoom;
 
@@ -709,17 +733,64 @@ function RoomAllocationGrid({
         }
       `}</style>
 
+      {/* Upgrade Mode Banner */}
+      {upgradeMode && (
+        <div style={{
+          background: isDarkMode ? '#291e0a' : '#fffbeb',
+          border: '2px solid #f59e0b',
+          borderRadius: '16px',
+          padding: '16px 20px',
+          marginBottom: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '16px',
+          flexWrap: 'wrap',
+          boxShadow: '0 4px 20px rgba(245,158,11,0.15)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <span style={{ fontSize: '24px' }}>🔄</span>
+            <div>
+              <div style={{ fontSize: '14px', fontWeight: 800, color: isDarkMode ? '#fbbf24' : '#b45309', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Room / Seat Upgrade Mode (कमरा परिवर्तन मोड)
+              </div>
+              <div style={{ fontSize: '12px', color: isDarkMode ? '#fde68a' : '#92400e', marginTop: '3px' }}>
+                Currently Allotted: <strong>Room {activeAllotment?.room_number || '101'} • Bed {activeAllotment?.bed_code || 'A'}</strong>. Choose any available green room &amp; bed below to submit an upgrade request. Your current room remains active until Warden approves.
+              </div>
+            </div>
+          </div>
+          {onCancelUpgrade && (
+            <button
+              type="button"
+              onClick={onCancelUpgrade}
+              style={{
+                background: isDarkMode ? '#1e293b' : '#e2e8f0',
+                border: '1px solid #94a3b8',
+                color: isDarkMode ? '#f8fafc' : '#334155',
+                padding: '8px 16px',
+                borderRadius: '10px',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              Cancel Upgrade ✕
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Header */}
       <div className="header-card">
         <div className="header-left">
-          <div className="header-icon">🛏️</div>
+          <div className="header-icon">{upgradeMode ? '🔄' : '🛏️'}</div>
           <div>
-            <div className="header-eyebrow">GOVT. POLYTECHNIC BARH &nbsp;•&nbsp; HOSTEL SEAT ALLOCATION</div>
+            <div className="header-eyebrow">GOVT. POLYTECHNIC BARH &nbsp;•&nbsp; {upgradeMode ? 'SEAT CHANGE & UPGRADE' : 'HOSTEL SEAT ALLOCATION'}</div>
             <div className="header-title">
               {isFemale ? (
                 <>Savitribai Phule <b>Girls Hostel</b></>
               ) : (
-                <>Hostel Seat &amp; Room <b>Allocation</b></>
+                <>Hostel Seat &amp; Room <b>{upgradeMode ? 'Upgrade Selection' : 'Allocation'}</b></>
               )}
             </div>
           </div>
@@ -1028,11 +1099,11 @@ function RoomAllocationGrid({
                     {isSubmitting ? (
                       <>
                         <div className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
-                        <span>Submitting Request to Warden…</span>
+                        <span>{upgradeMode ? 'Submitting Upgrade Request…' : 'Submitting Request to Warden…'}</span>
                       </>
                     ) : (
                       <>
-                        <span>Confirm & Book Seat {activeRoomModal.room_number}({selectedBedLetter})</span>
+                        <span>{upgradeMode ? `Confirm & Request Upgrade to Room ${activeRoomModal.room_number}(${selectedBedLetter})` : `Confirm & Book Seat ${activeRoomModal.room_number}(${selectedBedLetter})`}</span>
                         <span className="text-xs sm:text-sm font-bold">➔</span>
                       </>
                     )}

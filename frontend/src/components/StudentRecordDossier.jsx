@@ -108,46 +108,46 @@ function StudentRecordDossier({
   const today = todayDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   const isFemale = String(profileData?.gender || currentUser?.gender || '').toUpperCase() === 'FEMALE';
   const defaultAvatar = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'/%3E%3C/svg%3E";
-  const avatarSrc = profilePic || defaultAvatar;
+  const avatarSrc = profilePic || currentUser?.profile_pic || currentUser?.profilePic || defaultAvatar;
 
-  const fullName = profileData?.fullName || currentUser?.full_name || (isFemale ? 'SANA SHARMA' : 'AMIT SHARMA');
+  const fullName = (profileData?.fullName || currentUser?.full_name || 'STUDENT').toUpperCase();
 
   const getCleanRegNo = () => {
     const r1 = String(profileData?.regNo || '');
     if (r1 && !r1.includes('@')) return r1;
     const r2 = String(currentUser?.reg_no || currentUser?.registration_no || '');
     if (r2 && !r2.includes('@')) return r2;
-    return isFemale ? '1554424000' : '1554424049';
+    return 'PENDING';
   };
   const regNo = getCleanRegNo();
-  const rawRoll = profileData?.rollNo || currentUser?.roll_no || (isFemale ? '00' : '49');
-  const rollNo = String(rawRoll || '').replace('#', '').trim() || (isFemale ? '00' : '49');
-  const branch = profileData?.branch || currentUser?.branch || 'Artificial Intelligence & Machine Learning';
+  const rawRoll = profileData?.rollNo || currentUser?.roll_no || 'NA';
+  const rollNo = String(rawRoll || '').replace('#', '').trim() || 'NA';
+  const branch = profileData?.branch || currentUser?.branch || 'General';
   const session = profileData?.session || profileData?.semester || currentUser?.semester || currentUser?.session || '2024-27';
 
   const getMaskedContact = () => {
     const c1 = String(profileData?.contact || '').trim();
-    if (c1 && !c1.includes('42022') && !c1.includes('56789') && !c1.includes('-----')) return c1;
+    if (c1) return c1;
     const c2 = String(currentUser?.mobile || currentUser?.phone || currentUser?.contact || '').trim();
-    if (c2 && !c2.includes('42022') && !c2.includes('56789') && !c2.includes('-----')) return c2;
-    return isFemale ? '+91 91234 -----' : '+91 88731 -----';
+    if (c2) return c2;
+    return 'Not Provided';
   };
   const contact = getMaskedContact();
 
   const getCleanEmail = () => {
     const e1 = String(profileData?.email || '').trim();
-    if (e1 && !e1.includes('arwal28') && !e1.includes('sanasharma31') && !e1.includes('student.female@') && !e1.includes('student@')) return e1;
+    if (e1) return e1;
     const e2 = String(currentUser?.email || '').trim();
-    if (e2 && !e2.includes('arwal28') && !e2.includes('sanasharma31') && !e2.includes('student.female@') && !e2.includes('student@')) return e2;
-    return isFemale ? 'sanasharma.gpb.ai@gmail.com' : 'amitkumar.gpb.ai@gmail.com';
+    if (e2) return e2;
+    return 'student@gpbarh.ac.in';
   };
   const email = getCleanEmail();
 
   const getCleanAddress = () => {
     const a1 = String(profileData?.address || '').trim();
-    if (a1 && !a1.includes('Saksohara') && !a1.includes('Agwanpur') && !a1.includes('PIN -')) return a1;
+    if (a1) return a1;
     const a2 = String(currentUser?.address || '').trim();
-    if (a2 && !a2.includes('Saksohara') && !a2.includes('Agwanpur') && !a2.includes('PIN -')) return a2;
+    if (a2) return a2;
     return 'Vill - Agwanpur, P.O - Agwanpur, Dist - Patna, Bihar - 803213';
   };
   const address = getCleanAddress();
