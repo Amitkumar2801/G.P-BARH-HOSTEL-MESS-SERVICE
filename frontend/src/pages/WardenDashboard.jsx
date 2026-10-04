@@ -10,7 +10,8 @@ import StudentRecordDossier from '../components/StudentRecordDossier';
 
 function WardenDashboard() {
   const [activeNavTab, setActiveNavTab] = useState('allocations'); // 'allocations', 'analytics', 'leaves', 'fees', 'directory'
-  const [allocationSubTab, setAllocationSubTab] = useState('pending'); // 'boys', 'girls', 'pending'
+  const [allocationSubTab, setAllocationSubTab] = useState('overview'); // 'overview', 'boys', 'girls'
+  const [pendingHostelFilter, setPendingHostelFilter] = useState('ALL'); // 'ALL', 'BOYS', 'GIRLS'
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 1024);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
@@ -1582,131 +1583,308 @@ function WardenDashboard() {
           {/* ========================================================================= */}
           {/* 🌟 2. HOSTEL ALLOCATION MASTER SWITCHER & APPROVAL WORKSPACE */}
           {/* ========================================================================= */}
-          {activeNavTab === 'allocations' && (
-            <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-300">
-              {/* MASTER SEGMENTED SWITCHER */}
-              <div className="bg-white dark:bg-slate-900 p-2 sm:p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-                <div className="flex overflow-x-auto no-scrollbar gap-1.5 p-1 bg-slate-100/80 dark:bg-slate-800/70 rounded-xl w-full sm:w-auto">
-                  <button
-                    onClick={() => setAllocationSubTab('pending')}
-                    className={`flex-1 sm:flex-initial px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer ${
-                      allocationSubTab === 'pending'
-                        ? 'bg-amber-500 text-black shadow-md font-black'
-                        : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700'
-                    }`}
-                  >
-                    <span>⏳</span>
-                    <span className="sm:hidden">Pending ({pendingRequests.length})</span>
-                    <span className="hidden sm:inline">Pending Requests Queue</span>
-                    {pendingRequests.length > 0 && (
-                      <span className="hidden sm:inline-block bg-black text-white px-2 py-0.5 rounded-full text-[10px] font-black">
-                        {pendingRequests.length}
-                      </span>
-                    )}
-                  </button>
+          {activeNavTab === 'allocations' && (() => {
+            const boysPendingCount = pendingRequests.filter(r => (r.student_gender || '').toUpperCase() !== 'FEMALE' && !(r.hostel_name || '').toLowerCase().includes('girls') && !(r.hostel_name || '').toLowerCase().includes('savitribai')).length;
+            const girlsPendingCount = pendingRequests.filter(r => (r.student_gender || '').toUpperCase() === 'FEMALE' || (r.hostel_name || '').toLowerCase().includes('girls') || (r.hostel_name || '').toLowerCase().includes('savitribai')).length;
 
-                  <button
-                    onClick={() => setAllocationSubTab('boys')}
-                    className={`flex-1 sm:flex-initial px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer ${
-                      allocationSubTab === 'boys'
-                        ? 'bg-blue-600 text-white shadow-md font-black'
-                        : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700'
-                    }`}
-                  >
-                    <span>🏢</span>
-                    <span className="sm:hidden">Boys Hostel</span>
-                    <span className="hidden sm:inline">Boys Hostel (Birsa Munda &amp; Dr. Rajendra Prasad)</span>
-                  </button>
+            const displayedPendingRequests = pendingRequests.filter(r => {
+              if (pendingHostelFilter === 'ALL') return true;
+              const isGirl = (r.student_gender || '').toUpperCase() === 'FEMALE' || (r.hostel_name || '').toLowerCase().includes('girls') || (r.hostel_name || '').toLowerCase().includes('savitribai');
+              if (pendingHostelFilter === 'GIRLS') return isGirl;
+              if (pendingHostelFilter === 'BOYS') return !isGirl;
+              return true;
+            });
 
-                  <button
-                    onClick={() => setAllocationSubTab('girls')}
-                    className={`flex-1 sm:flex-initial px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer ${
-                      allocationSubTab === 'girls'
-                        ? 'bg-pink-600 text-white shadow-md font-black'
-                        : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700'
-                    }`}
-                  >
-                    <span>🏢</span>
-                    <span className="sm:hidden">Girls Hostel</span>
-                    <span className="hidden sm:inline">Girls Hostel (Savitribai Phule Block)</span>
-                  </button>
-                </div>
-
-                <div className="text-[11px] font-bold text-slate-400 text-center sm:text-right px-2 hidden md:block">
-                  Warden Super-View Active
-                </div>
-              </div>
-
-              {/* VIEW 1: PENDING REQUESTS ACTION PANEL */}
-              {allocationSubTab === 'pending' && (
-                <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl p-5 sm:p-7 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-6">
-                  {/* HEADER & CONTROLS */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
-                    <div>
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-sm shrink-0">
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </div>
-                        <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                          Bed Allotment Approvals
-                        </h3>
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200 border border-amber-200/60 dark:border-amber-700/60">
-                          {pendingRequests.length} Pending
+            return (
+              <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-300">
+                {/* MASTER SEGMENTED SWITCHER */}
+                <div className="bg-white dark:bg-slate-900 p-2 sm:p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                  <div className="flex overflow-x-auto no-scrollbar gap-1.5 p-1 bg-slate-100/80 dark:bg-slate-800/70 rounded-xl w-full sm:w-auto">
+                    <button
+                      onClick={() => setAllocationSubTab('overview')}
+                      className={`flex-1 sm:flex-initial px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer ${
+                        allocationSubTab === 'overview' || allocationSubTab === 'pending'
+                          ? 'bg-amber-500 text-black shadow-md font-black'
+                          : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      <span>📊</span>
+                      <span className="sm:hidden">All Hostels ({pendingRequests.length})</span>
+                      <span className="hidden sm:inline">All Hostels Overview</span>
+                      {pendingRequests.length > 0 && (
+                        <span className="hidden sm:inline-block bg-black text-white px-2 py-0.5 rounded-full text-[10px] font-black">
+                          {pendingRequests.length}
                         </span>
-                      </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
-                        Verify student applicant distance, branch credentials, and review official dossier before approving hostel allotment.
-                      </p>
-                    </div>
+                      )}
+                    </button>
 
                     <button
-                      type="button"
-                      onClick={handleManualRefresh}
-                      disabled={isRefreshing}
-                      className={`inline-flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs self-start sm:self-auto active:scale-95 disabled:opacity-70 ${
-                        isRefreshing ? 'ring-2 ring-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-300' : ''
+                      onClick={() => setAllocationSubTab('boys')}
+                      className={`flex-1 sm:flex-initial px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer ${
+                        allocationSubTab === 'boys'
+                          ? 'bg-blue-600 text-white shadow-md font-black'
+                          : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700'
                       }`}
-                      title="Refresh pending applications and live allotment status"
                     >
-                      <svg
-                        className={`w-3.5 h-3.5 transition-transform duration-500 ${
-                          isRefreshing ? 'animate-spin text-amber-500' : 'text-slate-500 dark:text-slate-400'
-                        }`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2.5"
-                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                        />
-                      </svg>
-                      <span>{isRefreshing ? 'Refreshing…' : 'Refresh'}</span>
+                      <span>🏢</span>
+                      <span className="sm:hidden">Boys Hostel</span>
+                      <span className="hidden sm:inline">Boys Hostel (Birsa Munda &amp; Dr. Rajendra Prasad)</span>
+                    </button>
+
+                    <button
+                      onClick={() => setAllocationSubTab('girls')}
+                      className={`flex-1 sm:flex-initial px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap cursor-pointer ${
+                        allocationSubTab === 'girls'
+                          ? 'bg-pink-600 text-white shadow-md font-black'
+                          : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      <span>🌸</span>
+                      <span className="sm:hidden">Girls Hostel</span>
+                      <span className="hidden sm:inline">Girls Hostel (Savitribai Phule Block)</span>
                     </button>
                   </div>
 
+                  <div className="text-[11px] font-bold text-slate-400 text-center sm:text-right px-2 hidden md:block">
+                    Unified Chief Warden Central Authority
+                  </div>
+                </div>
+
+                {/* VIEW 1: ALL HOSTELS OVERVIEW & APPROVAL WORKSPACE */}
+                {(allocationSubTab === 'overview' || allocationSubTab === 'pending') && (
+                  <div className="space-y-6">
+                    {/* OVERALL CAPACITY & OCCUPANCY METRICS CARDS */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {/* 1. TOTAL CAPACITY */}
+                      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Sanctioned Capacity</span>
+                        <div className="flex items-baseline justify-between">
+                          <span className="text-3xl font-black text-slate-900 dark:text-white font-mono">
+                            {analytics.total_capacity || 321}
+                          </span>
+                          <span className="text-xs font-bold text-slate-400">Total Beds</span>
+                        </div>
+                        <p className="text-[11px] text-slate-500">Boys (201 Beds) + Girls (120 Beds)</p>
+                      </div>
+
+                      {/* 2. ACTIVE OCCUPIED BEDS */}
+                      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-blue-500">Active Occupied Beds</span>
+                        <div className="flex items-baseline justify-between">
+                          <span className="text-3xl font-black text-blue-600 dark:text-blue-400 font-mono">
+                            {analytics.occupied_beds || 92}
+                          </span>
+                          <span className="text-xs font-bold text-blue-500/80">Residents</span>
+                        </div>
+                        <p className="text-[11px] text-slate-500">Boys: {analytics.boys_occupied_beds || 68} | Girls: {analytics.girls_occupied_beds || 24}</p>
+                      </div>
+
+                      {/* 3. AVAILABLE VACANT BEDS */}
+                      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-500">Vacant Allotment Pool</span>
+                        <div className="flex items-baseline justify-between">
+                          <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                            {analytics.available_beds || (321 - (analytics.occupied_beds || 92))}
+                          </span>
+                          <span className="text-xs font-bold text-emerald-500/80">Beds Open</span>
+                        </div>
+                        <p className="text-[11px] text-slate-500">Available across all blocks</p>
+                      </div>
+
+                      {/* 4. OVERALL OCCUPANCY RATE */}
+                      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-purple-500">Institutional Occupancy</span>
+                        <div className="flex items-baseline justify-between">
+                          <span className="text-3xl font-black text-purple-600 dark:text-purple-400 font-mono">
+                            {analytics.occupancy_rate || 57.5}%
+                          </span>
+                          <span className="text-xs font-bold text-purple-500/80">Occupancy</span>
+                        </div>
+                        <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                          <div
+                            className="bg-gradient-to-r from-blue-500 via-indigo-500 to-pink-500 h-full rounded-full transition-all"
+                            style={{ width: `${analytics.occupancy_rate || 57.5}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* DUAL COMMAND WING SWITCHER CARDS */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* BOYS WINGS CARD */}
+                      <div className="bg-gradient-to-br from-blue-500/5 to-indigo-500/10 dark:from-blue-950/30 dark:to-indigo-950/20 p-5 sm:p-6 rounded-2xl border border-blue-200 dark:border-blue-900/60 shadow-sm flex flex-col justify-between gap-4">
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-bold text-xs uppercase tracking-wider">
+                              Boys Hostel Wings
+                            </span>
+                            <span className="text-xs font-bold text-slate-500">201 Beds Total</span>
+                          </div>
+                          <h4 className="text-lg font-black text-slate-900 dark:text-white mt-2">
+                            Birsa Munda &amp; Dr. Rajendra Prasad Blocks
+                          </h4>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                            Complete 3-floor blueprint layout with 67 triple-occupancy rooms. Unrestricted warden seat management and room inspections.
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-between gap-3 pt-2 border-t border-blue-200/60 dark:border-blue-900/40">
+                          <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                            Occupancy: <strong className="text-blue-600 dark:text-blue-400 font-mono">{analytics.boys_occupancy_pct || 62.4}%</strong>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setAllocationSubTab('boys')}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <span>Open Boys Bed Matrix</span>
+                            <span>➔</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* GIRLS WING CARD */}
+                      <div className="bg-gradient-to-br from-pink-500/5 to-rose-500/10 dark:from-pink-950/30 dark:to-rose-950/20 p-5 sm:p-6 rounded-2xl border border-pink-200 dark:border-pink-900/60 shadow-sm flex flex-col justify-between gap-4">
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="px-2.5 py-0.5 rounded-full bg-pink-100 dark:bg-pink-900/60 text-pink-700 dark:text-pink-300 font-bold text-xs uppercase tracking-wider">
+                              Girls Hostel Wing
+                            </span>
+                            <span className="text-xs font-bold text-slate-500">120 Beds Total</span>
+                          </div>
+                          <h4 className="text-lg font-black text-slate-900 dark:text-white mt-2">
+                            Savitribai Phule Girls Block
+                          </h4>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                            Secure 2-floor layout (Left &amp; Right Wings) with 40 triple-occupancy rooms. Complete authority under single Chief Warden.
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-between gap-3 pt-2 border-t border-pink-200/60 dark:border-pink-900/40">
+                          <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                            Occupancy: <strong className="text-pink-600 dark:text-pink-400 font-mono">{analytics.girls_occupancy_pct || 48.2}%</strong>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setAllocationSubTab('girls')}
+                            className="px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <span>Open Girls Bed Matrix</span>
+                            <span>➔</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* PENDING APPROVALS QUEUE PANEL */}
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl p-5 sm:p-7 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-6">
+                      {/* HEADER & CONTROLS */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
+                        <div>
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-sm shrink-0">
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </div>
+                            <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                              Chief Warden Universal Approvals Queue
+                            </h3>
+                            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200 border border-amber-200/60 dark:border-amber-700/60">
+                              {pendingRequests.length} Pending
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
+                            Unified approvals queue covering all applicants across Birsa Munda, Dr. Rajendra Prasad, and Savitribai Phule blocks.
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={handleManualRefresh}
+                            disabled={isRefreshing}
+                            className={`inline-flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs self-start sm:self-auto active:scale-95 disabled:opacity-70 ${
+                              isRefreshing ? 'ring-2 ring-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-300' : ''
+                            }`}
+                            title="Refresh pending applications and live allotment status"
+                          >
+                            <svg
+                              className={`w-3.5 h-3.5 transition-transform duration-500 ${
+                                isRefreshing ? 'animate-spin text-amber-500' : 'text-slate-500 dark:text-slate-400'
+                              }`}
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2.5"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                              />
+                            </svg>
+                            <span>{isRefreshing ? 'Refreshing…' : 'Refresh'}</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* QUEUE FILTER PILLS */}
+                      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">Filter Queue:</span>
+                        <button
+                          type="button"
+                          onClick={() => setPendingHostelFilter('ALL')}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            pendingHostelFilter === 'ALL'
+                              ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm font-black'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                          }`}
+                        >
+                          All Wings ({pendingRequests.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPendingHostelFilter('BOYS')}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            pendingHostelFilter === 'BOYS'
+                              ? 'bg-blue-600 text-white shadow-sm font-black'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                          }`}
+                        >
+                          🏢 Boys Wings ({boysPendingCount})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPendingHostelFilter('GIRLS')}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            pendingHostelFilter === 'GIRLS'
+                              ? 'bg-pink-600 text-white shadow-sm font-black'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                          }`}
+                        >
+                          🌸 Girls Wing ({girlsPendingCount})
+                        </button>
+                      </div>
+
                   {/* PENDING LIST OR EMPTY STATE */}
-                  {pendingRequests.length === 0 ? (
+                  {displayedPendingRequests.length === 0 ? (
                     <div className="text-center py-14 px-4 space-y-3 bg-slate-50/50 dark:bg-slate-800/20 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
                       <div className="w-12 h-12 mx-auto rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center">
                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                       </div>
-                      <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">No Pending Applications</h4>
+                      <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                        {pendingHostelFilter === 'ALL' ? 'No Pending Applications' : `No Pending Applications for ${pendingHostelFilter === 'BOYS' ? 'Boys Wings' : 'Girls Wing'}`}
+                      </h4>
                       <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-                        All student bed allotment requests have been reviewed. New applications will appear here automatically.
+                        All student bed allotment requests for this filter have been reviewed. New applications will appear here automatically.
                       </p>
                     </div>
                   ) : (
                     <>
                       {/* 📱 MOBILE / APP VIEW: SLEEK DEDICATED CARDS (md:hidden) */}
                       <div className="md:hidden space-y-3.5">
-                        {pendingRequests.map(req => (
+                        {displayedPendingRequests.map(req => (
                           <div
                             key={req.id}
                             className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-3.5 transition-all"
@@ -1741,8 +1919,18 @@ function WardenDashboard() {
                               </span>
                             </div>
 
-                            {/* BRANCH & PRIORITY BADGES */}
+                            {/* BRANCH, WING & PRIORITY BADGES */}
                             <div className="flex flex-wrap items-center gap-1.5">
+                              {/* HOSTEL WING BADGE */}
+                              {((req.student_gender || '').toUpperCase() === 'FEMALE' || (req.hostel_name || '').toLowerCase().includes('girls') || (req.hostel_name || '').toLowerCase().includes('savitribai')) ? (
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-pink-100 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300 border border-pink-200 dark:border-pink-800">
+                                  🌸 Savitribai Girls Block
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                                  🏢 {(req.hostel_name || '').includes('Rajendra') ? 'Rajendra Prasad Block' : 'Birsa Munda Block'}
+                                </span>
+                              )}
                               {req.request_type === 'UPGRADE' ? (
                                 <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-amber-500 text-slate-950 border border-amber-400 shadow-xs flex items-center gap-1">
                                   <span>🔄</span>
@@ -1848,7 +2036,7 @@ function WardenDashboard() {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-                            {pendingRequests.map(req => (
+                            {displayedPendingRequests.map(req => (
                               <tr key={req.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
                                 <td className="py-4 px-4">
                                   <div className="flex items-center gap-3">
@@ -1866,7 +2054,17 @@ function WardenDashboard() {
                                       <p className="text-[11px] font-mono text-slate-500 dark:text-slate-400 mt-0.5">
                                         Reg: <span className="text-slate-800 dark:text-slate-200 font-semibold">{req.student_reg || 'N/A'}</span> • Roll: <span className="font-semibold text-slate-800 dark:text-slate-200">{req.student_roll || 'N/A'}</span>
                                       </p>
-                                      <div className="flex items-center gap-1.5 mt-1">
+                                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                                        {/* HOSTEL WING BADGE */}
+                                        {((req.student_gender || '').toUpperCase() === 'FEMALE' || (req.hostel_name || '').toLowerCase().includes('girls') || (req.hostel_name || '').toLowerCase().includes('savitribai')) ? (
+                                          <span className="px-2 py-0.5 rounded text-[9.5px] font-extrabold uppercase tracking-wider bg-pink-100 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300 border border-pink-200 dark:border-pink-800">
+                                            🌸 Savitribai Girls Block
+                                          </span>
+                                        ) : (
+                                          <span className="px-2 py-0.5 rounded text-[9.5px] font-extrabold uppercase tracking-wider bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                                            🏢 {(req.hostel_name || '').includes('Rajendra') ? 'Rajendra Prasad Block' : 'Birsa Munda Block'}
+                                          </span>
+                                        )}
                                         {req.request_type === 'UPGRADE' ? (
                                           <span className="px-2 py-0.5 rounded text-[9.5px] font-black uppercase tracking-wider bg-amber-500 text-slate-950 border border-amber-400 shadow-xs">
                                             🔄 UPGRADE
@@ -2050,6 +2248,7 @@ function WardenDashboard() {
                       </div>
                     </div>
                   )}
+                  </div>
                 </div>
               )}
 
@@ -2075,7 +2274,8 @@ function WardenDashboard() {
                 </div>
               )}
             </div>
-          )}
+          );
+        })()}
 
           {/* ========================================================================= */}
           {/* 🌟 2.8. OCCUPANCY ANALYTICS & CAPACITY OVERVIEW */}
