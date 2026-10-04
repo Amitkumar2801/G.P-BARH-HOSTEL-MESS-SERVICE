@@ -176,6 +176,7 @@ function RoomAllocationGrid({
 }) {
   const normGender = String(gender).toUpperCase() === 'FEMALE' ? 'FEMALE' : 'MALE';
   const [activeHostelGender, setActiveHostelGender] = useState(normGender);
+  const [selectedBlock, setSelectedBlock] = useState(normGender === 'FEMALE' ? 'SAVITRIBAI' : 'ALL'); // 'ALL', 'BIRSA', 'RAJENDRA', 'SAVITRIBAI'
   const [layoutData, setLayoutData] = useState(() => generateDefaultLayout(normGender));
   const [loading, setLoading] = useState(false);
   const [selectedBed, setSelectedBed] = useState(null);
@@ -190,6 +191,7 @@ function RoomAllocationGrid({
   useEffect(() => {
     const g = String(gender).toUpperCase() === 'FEMALE' ? 'FEMALE' : 'MALE';
     setActiveHostelGender(g);
+    setSelectedBlock(g === 'FEMALE' ? 'SAVITRIBAI' : 'ALL');
     setLayoutData((prev) => (prev && prev.rooms?.length ? prev : generateDefaultLayout(g)));
   }, [gender]);
 
@@ -806,36 +808,167 @@ function RoomAllocationGrid({
         </div>
       </div>
 
-      {/* Hostels */}
-      {!isFemale ? (
-        <div className="hostels">
-          {/* Birsa Munda Boys Hostel */}
-          <div className="hostel-card">
-            <div className="hostel-banner">
-              <span className="bed-icon">🛏️</span>
-              <div>
-                <div className="hostel-name">Birsa Munda Boys Hostel</div>
-                <div className="hostel-sub">
-                  <b>{birsaVacant}</b> beds available • {birsaTotalBeds} Total Beds
-                </div>
-              </div>
+      {/* Chief Warden Instant Multi-Hostel Block Switcher */}
+      {wardenMode && (
+        <div style={{
+          background: isDarkMode ? '#171923' : '#ffffff',
+          border: '1px solid ' + (isDarkMode ? '#334155' : '#cbd5e1'),
+          borderRadius: '16px',
+          padding: '12px 18px',
+          marginBottom: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.06)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '18px' }}>⚡</span>
+            <div>
+              <span style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.8px', color: isDarkMode ? '#fbbf24' : '#b45309', display: 'block' }}>
+                Warden Bed Matrix Visualizer Switcher
+              </span>
+              <span style={{ fontSize: '12px', color: isDarkMode ? '#94a3b8' : '#64748b' }}>
+                Toggle instantly between institutional blocks without switching accounts
+              </span>
             </div>
-            {BOYS_FLOORS.Birsa.map((floor) => renderBoysFloor('Birsa', floor))}
           </div>
 
-          {/* Dr. Rajendra Prasad Boys Hostel */}
-          <div className="hostel-card">
-            <div className="hostel-banner">
-              <span className="bed-icon">🛏️</span>
-              <div>
-                <div className="hostel-name">Dr. Rajendra Prasad Boys Hostel</div>
-                <div className="hostel-sub">
-                  <b>{rajendraVacant}</b> beds available • {rajendraTotalBeds} Total Beds
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveHostelGender('MALE');
+                setSelectedBlock('ALL');
+              }}
+              style={{
+                padding: '7px 14px',
+                borderRadius: '10px',
+                fontSize: '11px',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                border: '1px solid',
+                borderColor: !isFemale && selectedBlock === 'ALL' ? '#f59e0b' : (isDarkMode ? '#334155' : '#e2e8f0'),
+                background: !isFemale && selectedBlock === 'ALL' ? '#f59e0b' : (isDarkMode ? '#1e293b' : '#f8fafc'),
+                color: !isFemale && selectedBlock === 'ALL' ? '#000000' : (isDarkMode ? '#e2e8f0' : '#334155')
+              }}
+            >
+              🏢 All Boys Wings
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setActiveHostelGender('MALE');
+                setSelectedBlock('BIRSA');
+              }}
+              style={{
+                padding: '7px 14px',
+                borderRadius: '10px',
+                fontSize: '11px',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                border: '1px solid',
+                borderColor: !isFemale && selectedBlock === 'BIRSA' ? '#2563eb' : (isDarkMode ? '#334155' : '#e2e8f0'),
+                background: !isFemale && selectedBlock === 'BIRSA' ? '#2563eb' : (isDarkMode ? '#1e293b' : '#f8fafc'),
+                color: !isFemale && selectedBlock === 'BIRSA' ? '#ffffff' : (isDarkMode ? '#e2e8f0' : '#334155')
+              }}
+            >
+              🏛️ Birsa Munda Block
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setActiveHostelGender('MALE');
+                setSelectedBlock('RAJENDRA');
+              }}
+              style={{
+                padding: '7px 14px',
+                borderRadius: '10px',
+                fontSize: '11px',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                border: '1px solid',
+                borderColor: !isFemale && selectedBlock === 'RAJENDRA' ? '#4f46e5' : (isDarkMode ? '#334155' : '#e2e8f0'),
+                background: !isFemale && selectedBlock === 'RAJENDRA' ? '#4f46e5' : (isDarkMode ? '#1e293b' : '#f8fafc'),
+                color: !isFemale && selectedBlock === 'RAJENDRA' ? '#ffffff' : (isDarkMode ? '#e2e8f0' : '#334155')
+              }}
+            >
+              🏛️ Dr. Rajendra Prasad Block
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setActiveHostelGender('FEMALE');
+                setSelectedBlock('SAVITRIBAI');
+              }}
+              style={{
+                padding: '7px 14px',
+                borderRadius: '10px',
+                fontSize: '11px',
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                border: '1px solid',
+                borderColor: isFemale ? '#db2777' : (isDarkMode ? '#334155' : '#e2e8f0'),
+                background: isFemale ? '#db2777' : (isDarkMode ? '#1e293b' : '#f8fafc'),
+                color: isFemale ? '#ffffff' : (isDarkMode ? '#e2e8f0' : '#334155')
+              }}
+            >
+              🌸 Savitribai Phule Girls Block
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Hostels */}
+      {!isFemale ? (
+        <div className="hostels" style={{ display: 'grid', gridTemplateColumns: selectedBlock === 'ALL' ? 'repeat(auto-fit, minmax(340px, 1fr))' : '1fr', gap: '20px' }}>
+          {/* Birsa Munda Boys Hostel */}
+          {(selectedBlock === 'ALL' || selectedBlock === 'BIRSA') && (
+            <div className="hostel-card">
+              <div className="hostel-banner">
+                <span className="bed-icon">🛏️</span>
+                <div>
+                  <div className="hostel-name">Birsa Munda Boys Hostel</div>
+                  <div className="hostel-sub">
+                    <b>{birsaVacant}</b> beds available • {birsaTotalBeds} Total Beds
+                  </div>
                 </div>
               </div>
+              {BOYS_FLOORS.Birsa.map((floor) => renderBoysFloor('Birsa', floor))}
             </div>
-            {BOYS_FLOORS.Rajendra.map((floor) => renderBoysFloor('Rajendra', floor))}
-          </div>
+          )}
+
+          {/* Dr. Rajendra Prasad Boys Hostel */}
+          {(selectedBlock === 'ALL' || selectedBlock === 'RAJENDRA') && (
+            <div className="hostel-card">
+              <div className="hostel-banner">
+                <span className="bed-icon">🛏️</span>
+                <div>
+                  <div className="hostel-name">Dr. Rajendra Prasad Boys Hostel</div>
+                  <div className="hostel-sub">
+                    <b>{rajendraVacant}</b> beds available • {rajendraTotalBeds} Total Beds
+                  </div>
+                </div>
+              </div>
+              {BOYS_FLOORS.Rajendra.map((floor) => renderBoysFloor('Rajendra', floor))}
+            </div>
+          )}
         </div>
       ) : (
         /* Girls Hostel */
