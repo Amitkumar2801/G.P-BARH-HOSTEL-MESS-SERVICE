@@ -37,10 +37,14 @@ class UserCreate(UserBase):
     reg_no: Optional[str] = None
     email: Optional[str] = None
     otp: Optional[str] = None
+    admin_id: Optional[str] = None
+    master_key: Optional[str] = None
 
 class UserLogin(BaseModel):
     reg_no_email: str # Accepts either Registration Number OR Email Address
     password: str
+    pin: Optional[str] = None
+    otp: Optional[str] = None
 
 class SendOTPRequest(BaseModel):
     email: Optional[str] = None
