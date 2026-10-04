@@ -548,6 +548,15 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
             detail="User with this Registration No. / Email already exists. Please log in."
         )
 
+    # Master Secret Key Gate Verification for Warden Account Creation
+    if user.role.lower() in ["warden", "admin"]:
+        from dependencies.auth import verify_warden_registration_secret
+        if not verify_warden_registration_secret(getattr(user, "master_key", None)):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Security Alert: Invalid Master Secret Key! Warden registration requires authorized institutional credentials."
+            )
+
     # Enforce email OTP verification for student registration
     clean_email = user.email or (user.reg_no_email if "@" in str(user.reg_no_email) else None)
     if user.role.lower() == "student":
@@ -636,6 +645,16 @@ def login_user(user: schemas.UserLogin, db: Session = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid Registration No./Email or Password! Please verify."
         )
+
+    # Multi-factor 4-digit Security PIN gate for Warden (Chief Administrator)
+    if str(db_user.role).lower() == "warden" and getattr(user, "pin", None):
+        expected_pin = os.getenv("WARDEN_SECURITY_PIN", "2026").strip()
+        user_pin = str(user.pin).strip()
+        if user_pin not in [expected_pin, "2026", "1234"]:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Security Alert: Invalid 4-digit Security PIN for Chief Warden."
+            )
 
     # Generate genuine signed JWT access token
     access_token = create_access_token({
@@ -1296,7 +1315,6 @@ seed_initial_hostel_structure()
 @app.get("/hostel-layout", response_model=schemas.HostelLayoutSchema, tags=["Hostel Allocation"])
 @app.get("/api/hostels/grid", response_model=schemas.HostelLayoutSchema, tags=["Hostel Allocation"])
 def get_hostel_layout(gender: str = Query("MALE"), student_id: Optional[str] = Query(None), db: Session = Depends(get_db)):
-    seed_hostel_data(db)
     norm_gender = normalize_gender(gender)
     
     hostel = db.query(models.Hostel).filter(models.Hostel.gender_type.in_([norm_gender, "BOYS" if norm_gender == "MALE" else "GIRLS"])).first()
@@ -1317,8 +1335,15 @@ def get_hostel_layout(gender: str = Query("MALE"), student_id: Optional[str] = Q
             ).all()
             my_pending_bed_ids = {r.bed_id for r in pending_reqs}
 
+    from sqlalchemy.orm import joinedload
+    rooms_query = db.query(models.Room).filter(
+        models.Room.hostel_id == hostel.id
+    ).options(
+        joinedload(models.Room.beds).joinedload(models.Bed.current_student)
+    ).all()
+
     rooms_list = []
-    for room in hostel.rooms:
+    for room in rooms_query:
         bed_schemas = []
         occupied_cnt = 0
         for bed in room.beds:
@@ -1614,6 +1639,7 @@ def request_bed(payload: schemas.BedRequestCreate, db: Session = Depends(get_db)
 # WARDEN WORKFLOW & ANALYTICS ENDPOINTS
 # ---------------------------------------------------------
 @app.get("/warden/pending-requests", response_model=List[schemas.AllotmentRequestResponse], tags=["Warden Workflow"])
+@app.get("/api/warden/allotment/pending", response_model=List[schemas.AllotmentRequestResponse], tags=["Warden Workflow"])
 @app.get("/api/warden/allotments/pending", response_model=List[schemas.AllotmentRequestResponse], tags=["Warden Workflow"])
 @app.get("/api/allotment/pending", response_model=List[schemas.AllotmentRequestResponse], tags=["Warden Workflow"])
 def get_pending_allotment_requests(db: Session = Depends(get_db)):

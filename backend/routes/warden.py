@@ -287,3 +287,38 @@ def batch_clear_passout_students(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Batch clearance failed: {str(e)}"
         )
+
+# --------------------------------------------------------------------------
+# 4. CHIEF WARDEN UNIFIED ALLOTMENT QUEUE & ACTIONS
+# --------------------------------------------------------------------------
+@router.get("/allotment/pending", response_model=List[schemas.AllotmentRequestResponse])
+@router.get("/allotments/pending", response_model=List[schemas.AllotmentRequestResponse])
+def get_warden_pending_queue(db: Session = Depends(get_db)):
+    """
+    Unified Chief Warden pending requests queue across ALL wings:
+    - Birsa Munda Boys Hostel
+    - Dr. Rajendra Prasad Boys Hostel
+    - Savitribai Phule Girls Hostel
+    Returns both male and female pending applicants with rich details.
+    """
+    from routes.allotment import get_pending_allotment_requests
+    return get_pending_allotment_requests(db=db)
+
+@router.post("/allotments/{request_id}/action")
+@router.put("/allotments/{request_id}/action")
+def handle_warden_allotment_action(
+    request_id: int,
+    payload: Optional[schemas.AllotmentActionRequest] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Chief Warden Universal Allotment Approval / Rejection action.
+    Persists updates live to Neon PostgreSQL.
+    """
+    from routes.allotment import approve_allotment_request, reject_allotment_request
+    action = (payload.action if payload and payload.action else "approve").lower()
+    if action == "approve":
+        return approve_allotment_request(request_id, payload, db=db)
+    else:
+        return reject_allotment_request(request_id, payload, db=db)
+
