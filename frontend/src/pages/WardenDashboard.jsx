@@ -1709,70 +1709,7 @@ function WardenDashboard() {
                       </div>
                     </div>
 
-                    {/* DUAL COMMAND WING SWITCHER CARDS */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* BOYS WINGS CARD */}
-                      <div className="bg-gradient-to-br from-blue-500/5 to-indigo-500/10 dark:from-blue-950/30 dark:to-indigo-950/20 p-5 sm:p-6 rounded-2xl border border-blue-200 dark:border-blue-900/60 shadow-sm flex flex-col justify-between gap-4">
-                        <div>
-                          <div className="flex items-center justify-between">
-                            <span className="px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-bold text-xs uppercase tracking-wider">
-                              Boys Hostel Wings
-                            </span>
-                            <span className="text-xs font-bold text-slate-500">201 Beds Total</span>
-                          </div>
-                          <h4 className="text-lg font-black text-slate-900 dark:text-white mt-2">
-                            Birsa Munda &amp; Dr. Rajendra Prasad Blocks
-                          </h4>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                            Complete 3-floor blueprint layout with 67 triple-occupancy rooms. Unrestricted warden seat management and room inspections.
-                          </p>
-                        </div>
-                        <div className="flex items-center justify-between gap-3 pt-2 border-t border-blue-200/60 dark:border-blue-900/40">
-                          <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                            Occupancy: <strong className="text-blue-600 dark:text-blue-400 font-mono">{analytics.boys_occupancy_pct || 62.4}%</strong>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => setAllocationSubTab('boys')}
-                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
-                          >
-                            <span>Open Boys Bed Matrix</span>
-                            <span>➔</span>
-                          </button>
-                        </div>
-                      </div>
 
-                      {/* GIRLS WING CARD */}
-                      <div className="bg-gradient-to-br from-pink-500/5 to-rose-500/10 dark:from-pink-950/30 dark:to-rose-950/20 p-5 sm:p-6 rounded-2xl border border-pink-200 dark:border-pink-900/60 shadow-sm flex flex-col justify-between gap-4">
-                        <div>
-                          <div className="flex items-center justify-between">
-                            <span className="px-2.5 py-0.5 rounded-full bg-pink-100 dark:bg-pink-900/60 text-pink-700 dark:text-pink-300 font-bold text-xs uppercase tracking-wider">
-                              Girls Hostel Wing
-                            </span>
-                            <span className="text-xs font-bold text-slate-500">120 Beds Total</span>
-                          </div>
-                          <h4 className="text-lg font-black text-slate-900 dark:text-white mt-2">
-                            Savitribai Phule Girls Block
-                          </h4>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                            Secure 2-floor layout (Left &amp; Right Wings) with 40 triple-occupancy rooms. Complete authority under single Chief Warden.
-                          </p>
-                        </div>
-                        <div className="flex items-center justify-between gap-3 pt-2 border-t border-pink-200/60 dark:border-pink-900/40">
-                          <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                            Occupancy: <strong className="text-pink-600 dark:text-pink-400 font-mono">{analytics.girls_occupancy_pct || 48.2}%</strong>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => setAllocationSubTab('girls')}
-                            className="px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
-                          >
-                            <span>Open Girls Bed Matrix</span>
-                            <span>➔</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
 
                     {/* PENDING APPROVALS QUEUE PANEL */}
                     <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl p-5 sm:p-7 border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-6">
