@@ -2076,13 +2076,13 @@ def get_student_allotment_status(
 def get_warden_analytics(db: Session = Depends(get_db)):
     # Boys hostel
     boys_hostel = db.query(models.Hostel).filter(models.Hostel.gender_type.in_(["BOYS", "MALE"])).first()
-    boys_total = sum(r.capacity for r in boys_hostel.rooms) if boys_hostel else 81
+    boys_total = sum(r.capacity for r in boys_hostel.rooms) if (boys_hostel and boys_hostel.rooms) else 201
     boys_occupied = db.query(models.Bed).join(models.Room).filter(models.Room.hostel_id == (boys_hostel.id if boys_hostel else 0), models.Bed.is_occupied == True).count()
     boys_pct = round((boys_occupied / boys_total) * 100, 1) if boys_total > 0 else 0.0
 
     # Girls hostel
     girls_hostel = db.query(models.Hostel).filter(models.Hostel.gender_type.in_(["GIRLS", "FEMALE"])).first()
-    girls_total = sum(r.capacity for r in girls_hostel.rooms) if girls_hostel else 72
+    girls_total = sum(r.capacity for r in girls_hostel.rooms) if (girls_hostel and girls_hostel.rooms) else 120
     girls_occupied = db.query(models.Bed).join(models.Room).filter(models.Room.hostel_id == (girls_hostel.id if girls_hostel else 0), models.Bed.is_occupied == True).count()
     girls_pct = round((girls_occupied / girls_total) * 100, 1) if girls_total > 0 else 0.0
 

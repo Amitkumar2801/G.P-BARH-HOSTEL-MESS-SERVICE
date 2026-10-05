@@ -25,19 +25,19 @@ function WardenDashboard() {
     return { id: 3, full_name: 'Chief Warden (Hostel Admin)', role: 'warden', reg_no_email: 'warden@gpbarh.ac.in' };
   });
 
-  // Analytics State
+  // Analytics State - Real Live Baseline (321 Total Beds: 201 Boys + 120 Girls)
   const [analytics, setAnalytics] = useState({
-    total_capacity: 153,
-    total_occupied: 42,
-    occupancy_pct: 27.5,
-    boys_total: 81,
-    boys_occupied: 28,
-    boys_occupancy_pct: 34.6,
-    girls_total: 72,
-    girls_occupied: 14,
-    girls_occupancy_pct: 19.4,
-    pending_requests_count: 3,
-    total_pending_dues: 189000
+    total_capacity: 321,
+    total_occupied: 0,
+    occupancy_pct: 0.0,
+    boys_total: 201,
+    boys_occupied: 0,
+    boys_occupancy_pct: 0.0,
+    girls_total: 120,
+    girls_occupied: 0,
+    girls_occupancy_pct: 0.0,
+    pending_requests_count: 0,
+    total_pending_dues: 0
   });
 
   // Pending Requests State
@@ -1339,7 +1339,7 @@ function WardenDashboard() {
                   icon: '📊',
                   renderBadge: () => (
                     <span className="shrink-0 whitespace-nowrap px-2 py-0.5 rounded-full text-[9px] font-bold text-amber-300/80 bg-amber-500/10 border border-amber-500/20">
-                      {analytics.occupancy_pct || 28}%
+                      {analytics.occupancy_pct ?? 0}%
                     </span>
                   )
                 },
@@ -1653,58 +1653,154 @@ function WardenDashboard() {
                 {/* VIEW 1: ALL HOSTELS OVERVIEW & APPROVAL WORKSPACE */}
                 {(allocationSubTab === 'overview' || allocationSubTab === 'pending') && (
                   <div className="space-y-6">
-                    {/* OVERALL CAPACITY & OCCUPANCY METRICS CARDS */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                      {/* 1. TOTAL CAPACITY */}
-                      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Sanctioned Capacity</span>
-                        <div className="flex items-baseline justify-between">
-                          <span className="text-3xl font-black text-slate-900 dark:text-white font-mono">
-                            {analytics.total_capacity || 321}
+                    {/* OVERALL CAPACITY & OCCUPANCY METRICS CARDS - 100% REAL LIVE DATA & REDESIGNED UI */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+                      {/* 1. TOTAL SANCTIONED CAPACITY */}
+                      <div className="relative overflow-hidden bg-white dark:bg-slate-900/90 backdrop-blur-md p-5 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-800/60 transition-all duration-200 group flex flex-col justify-between gap-3.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                            Sanctioned Capacity
                           </span>
-                          <span className="text-xs font-bold text-slate-400">Total Beds</span>
+                          <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-xs group-hover:scale-105 transition-transform">
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                          </div>
                         </div>
-                        <p className="text-[11px] text-slate-500">Boys (201 Beds) + Girls (120 Beds)</p>
+
+                        <div className="space-y-1">
+                          <div className="flex items-baseline justify-between">
+                            <span className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white font-mono tracking-tight">
+                              {analytics.total_capacity ?? 321}
+                            </span>
+                            <span className="text-xs font-extrabold text-slate-400 uppercase tracking-wide">Total Beds</span>
+                          </div>
+                        </div>
+
+                        <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] font-semibold">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-bold border border-blue-100 dark:border-blue-900/40">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                            Boys: {analytics.boys_total ?? 201} Beds
+                          </span>
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-pink-50 dark:bg-pink-950/60 text-pink-700 dark:text-pink-300 font-bold border border-pink-100 dark:border-pink-900/40">
+                            <span className="w-1.5 h-1.5 rounded-full bg-pink-500"></span>
+                            Girls: {analytics.girls_total ?? 120} Beds
+                          </span>
+                        </div>
                       </div>
 
                       {/* 2. ACTIVE OCCUPIED BEDS */}
-                      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-blue-500">Active Occupied Beds</span>
-                        <div className="flex items-baseline justify-between">
-                          <span className="text-3xl font-black text-blue-600 dark:text-blue-400 font-mono">
-                            {analytics.occupied_beds || 92}
+                      <div className="relative overflow-hidden bg-white dark:bg-slate-900/90 backdrop-blur-md p-5 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-blue-300 dark:hover:border-blue-800/60 transition-all duration-200 group flex flex-col justify-between gap-3.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                            <span className="relative flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                            </span>
+                            Active Occupied Beds
                           </span>
-                          <span className="text-xs font-bold text-blue-500/80">Residents</span>
+                          <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-100 dark:border-blue-900/50 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-xs group-hover:scale-105 transition-transform">
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                          </div>
                         </div>
-                        <p className="text-[11px] text-slate-500">Boys: {analytics.boys_occupied_beds || 68} | Girls: {analytics.girls_occupied_beds || 24}</p>
+
+                        <div className="space-y-1">
+                          <div className="flex items-baseline justify-between">
+                            <span className="text-3xl sm:text-4xl font-black text-blue-600 dark:text-blue-400 font-mono tracking-tight">
+                              {analytics.total_occupied ?? 0}
+                            </span>
+                            <span className="text-xs font-extrabold text-blue-500/80 uppercase tracking-wide">Residents</span>
+                          </div>
+                        </div>
+
+                        <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                          <span className="inline-flex items-center gap-1">
+                            <span className="text-blue-600 dark:text-blue-400 font-bold">Boys:</span>
+                            <strong className="font-mono text-slate-900 dark:text-white">{analytics.boys_occupied ?? 0}</strong>
+                          </span>
+                          <span className="text-slate-300 dark:text-slate-700">|</span>
+                          <span className="inline-flex items-center gap-1">
+                            <span className="text-pink-600 dark:text-pink-400 font-bold">Girls:</span>
+                            <strong className="font-mono text-slate-900 dark:text-white">{analytics.girls_occupied ?? 0}</strong>
+                          </span>
+                          <span className="text-slate-300 dark:text-slate-700">|</span>
+                          <span className="text-[10px] font-bold text-slate-400">Allotted</span>
+                        </div>
                       </div>
 
                       {/* 3. AVAILABLE VACANT BEDS */}
-                      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-500">Vacant Allotment Pool</span>
-                        <div className="flex items-baseline justify-between">
-                          <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono">
-                            {analytics.available_beds || (321 - (analytics.occupied_beds || 92))}
+                      <div className="relative overflow-hidden bg-white dark:bg-slate-900/90 backdrop-blur-md p-5 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-800/60 transition-all duration-200 group flex flex-col justify-between gap-3.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            Vacant Allotment Pool
                           </span>
-                          <span className="text-xs font-bold text-emerald-500/80">Beds Open</span>
+                          <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-100 dark:border-emerald-900/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-xs group-hover:scale-105 transition-transform">
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                            </svg>
+                          </div>
                         </div>
-                        <p className="text-[11px] text-slate-500">Available across all blocks</p>
+
+                        <div className="space-y-1">
+                          <div className="flex items-baseline justify-between">
+                            <span className="text-3xl sm:text-4xl font-black text-emerald-600 dark:text-emerald-400 font-mono tracking-tight">
+                              {(analytics.total_capacity ?? 321) - (analytics.total_occupied ?? 0)}
+                            </span>
+                            <span className="text-xs font-extrabold text-emerald-500/80 uppercase tracking-wide">Beds Open</span>
+                          </div>
+                        </div>
+
+                        <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                          <span className="inline-flex items-center gap-1">
+                            <span className="text-emerald-600 dark:text-emerald-400 font-bold">Boys:</span>
+                            <strong className="font-mono text-slate-900 dark:text-white">{(analytics.boys_total ?? 201) - (analytics.boys_occupied ?? 0)}</strong>
+                          </span>
+                          <span className="text-slate-300 dark:text-slate-700">|</span>
+                          <span className="inline-flex items-center gap-1">
+                            <span className="text-emerald-600 dark:text-emerald-400 font-bold">Girls:</span>
+                            <strong className="font-mono text-slate-900 dark:text-white">{(analytics.girls_total ?? 120) - (analytics.girls_occupied ?? 0)}</strong>
+                          </span>
+                          <span className="text-slate-300 dark:text-slate-700">|</span>
+                          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">Available</span>
+                        </div>
                       </div>
 
                       {/* 4. OVERALL OCCUPANCY RATE */}
-                      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-purple-500">Institutional Occupancy</span>
-                        <div className="flex items-baseline justify-between">
-                          <span className="text-3xl font-black text-purple-600 dark:text-purple-400 font-mono">
-                            {analytics.occupancy_rate || 57.5}%
+                      <div className="relative overflow-hidden bg-white dark:bg-slate-900/90 backdrop-blur-md p-5 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-purple-300 dark:hover:border-purple-800/60 transition-all duration-200 group flex flex-col justify-between gap-3.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-black uppercase tracking-wider text-purple-600 dark:text-purple-400 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                            Institutional Occupancy
                           </span>
-                          <span className="text-xs font-bold text-purple-500/80">Occupancy</span>
+                          <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-950/60 border border-purple-100 dark:border-purple-900/50 flex items-center justify-center text-purple-600 dark:text-purple-400 shadow-xs group-hover:scale-105 transition-transform">
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                          </div>
                         </div>
-                        <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                          <div
-                            className="bg-gradient-to-r from-blue-500 via-indigo-500 to-pink-500 h-full rounded-full transition-all"
-                            style={{ width: `${analytics.occupancy_rate || 57.5}%` }}
-                          ></div>
+
+                        <div className="space-y-2">
+                          <div className="flex items-baseline justify-between">
+                            <span className="text-3xl sm:text-4xl font-black text-purple-600 dark:text-purple-400 font-mono tracking-tight">
+                              {analytics.occupancy_pct ?? 0}%
+                            </span>
+                            <span className="text-xs font-extrabold text-purple-500/80 uppercase tracking-wide">Occupancy</span>
+                          </div>
+                          <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden p-0.5 border border-slate-200/50 dark:border-slate-700/50">
+                            <div
+                              className="bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600 h-full rounded-full transition-all duration-500"
+                              style={{ width: `${Math.min(100, Math.max(0, analytics.occupancy_pct ?? 0))}%` }}
+                            ></div>
+                          </div>
+                        </div>
+
+                        <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                          <span>Occupied: <strong className="font-mono text-slate-800 dark:text-slate-200">{analytics.total_occupied ?? 0}</strong> of {analytics.total_capacity ?? 321}</span>
+                          <span className="px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 font-bold text-[10px] border border-purple-100 dark:border-purple-900/40">Real-Time</span>
                         </div>
                       </div>
                     </div>
@@ -2248,11 +2344,11 @@ function WardenDashboard() {
                   <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Sanctioned Capacity</span>
                   <div className="flex items-baseline justify-between">
                     <span className="text-3xl font-black text-slate-900 dark:text-white font-mono">
-                      {analytics.total_capacity || 153}
+                      {analytics.total_capacity ?? 321}
                     </span>
                     <span className="text-xs font-bold text-slate-400">Total Beds</span>
                   </div>
-                  <p className="text-[11px] text-slate-500">Boys H-Block (81) + Girls Block (72)</p>
+                  <p className="text-[11px] text-slate-500">Boys ({analytics.boys_total ?? 201} Beds) + Girls ({analytics.girls_total ?? 120} Beds)</p>
                 </div>
 
                 {/* 2. ACTIVE OCCUPIED */}
@@ -2260,14 +2356,14 @@ function WardenDashboard() {
                   <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Occupied Beds</span>
                   <div className="flex items-baseline justify-between">
                     <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono">
-                      {analytics.total_occupied || 42}
+                      {analytics.total_occupied ?? 0}
                     </span>
                     <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full font-mono">
-                      {analytics.occupancy_pct || 27.5}% Full
+                      {analytics.occupancy_pct ?? 0}% Full
                     </span>
                   </div>
                   <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                    <div className="bg-emerald-500 h-full rounded-full transition-all" style={{ width: `${analytics.occupancy_pct || 27.5}%` }}></div>
+                    <div className="bg-emerald-500 h-full rounded-full transition-all" style={{ width: `${Math.min(100, Math.max(0, analytics.occupancy_pct ?? 0))}%` }}></div>
                   </div>
                 </div>
 
@@ -2276,7 +2372,7 @@ function WardenDashboard() {
                   <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Vacant / Available Beds</span>
                   <div className="flex items-baseline justify-between">
                     <span className="text-3xl font-black text-blue-600 dark:text-blue-400 font-mono">
-                      {(analytics.total_capacity || 153) - (analytics.total_occupied || 42)}
+                      {(analytics.total_capacity ?? 321) - (analytics.total_occupied ?? 0)}
                     </span>
                     <span className="text-xs font-bold text-blue-500 bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded-full">
                       Ready to Allot
@@ -2316,17 +2412,17 @@ function WardenDashboard() {
                       </div>
                     </div>
                     <span className="px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 font-black text-xs font-mono">
-                      {analytics.boys_occupied || 28} / {analytics.boys_total || 81}
+                      {analytics.boys_occupied ?? 0} / {analytics.boys_total ?? 201}
                     </span>
                   </div>
 
                   <div className="space-y-3">
                     <div className="flex justify-between text-xs font-bold">
                       <span className="text-slate-600 dark:text-slate-300">Occupancy Rate:</span>
-                      <span className="text-blue-600 dark:text-blue-400 font-mono">{analytics.boys_occupancy_pct || 34.6}%</span>
+                      <span className="text-blue-600 dark:text-blue-400 font-mono">{analytics.boys_occupancy_pct ?? 0}%</span>
                     </div>
                     <div className="w-full bg-slate-100 dark:bg-slate-800 h-3 rounded-full overflow-hidden">
-                      <div className="bg-blue-500 h-full rounded-full transition-all" style={{ width: `${analytics.boys_occupancy_pct || 34.6}%` }}></div>
+                      <div className="bg-blue-500 h-full rounded-full transition-all" style={{ width: `${Math.min(100, Math.max(0, analytics.boys_occupancy_pct ?? 0))}%` }}></div>
                     </div>
 
                     <div className="grid grid-cols-3 gap-2 pt-2 text-center text-xs">
@@ -2359,17 +2455,17 @@ function WardenDashboard() {
                       </div>
                     </div>
                     <span className="px-3 py-1 rounded-full bg-pink-50 dark:bg-pink-950/50 text-pink-700 dark:text-pink-300 font-black text-xs font-mono">
-                      {analytics.girls_occupied || 14} / {analytics.girls_total || 72}
+                      {analytics.girls_occupied ?? 0} / {analytics.girls_total ?? 120}
                     </span>
                   </div>
 
                   <div className="space-y-3">
                     <div className="flex justify-between text-xs font-bold">
                       <span className="text-slate-600 dark:text-slate-300">Occupancy Rate:</span>
-                      <span className="text-pink-600 dark:text-pink-400 font-mono">{analytics.girls_occupancy_pct || 19.4}%</span>
+                      <span className="text-pink-600 dark:text-pink-400 font-mono">{analytics.girls_occupancy_pct ?? 0}%</span>
                     </div>
                     <div className="w-full bg-slate-100 dark:bg-slate-800 h-3 rounded-full overflow-hidden">
-                      <div className="bg-pink-500 h-full rounded-full transition-all" style={{ width: `${analytics.girls_occupancy_pct || 19.4}%` }}></div>
+                      <div className="bg-pink-500 h-full rounded-full transition-all" style={{ width: `${Math.min(100, Math.max(0, analytics.girls_occupancy_pct ?? 0))}%` }}></div>
                     </div>
 
                     <div className="grid grid-cols-3 gap-2 pt-2 text-center text-xs">
