@@ -4,7 +4,10 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.models.user import StudentCreate, StudentResponse, StudentLogin
 from app.database import student_collection
 from passlib.context import CryptContext
-import jwt
+try:
+    import jwt
+except ImportError:
+    from jose import jwt
 import os
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
