@@ -162,6 +162,21 @@ def seed_default_users():
     finally:
         db.close()
 
+def seed_default_metrics():
+    """Ensure baseline live visitor counter (15442) exists in database."""
+    db = SessionLocal()
+    try:
+        visitors = db.query(models.SiteMetric).filter(models.SiteMetric.metric_name == "visitors").first()
+        if not visitors:
+            visitors = models.SiteMetric(metric_name="visitors", value=15442)
+            db.add(visitors)
+            db.commit()
+    except Exception as e:
+        print("Seed site metric error:", e)
+        db.rollback()
+    finally:
+        db.close()
+
 
 # ---------------------------------------------------------
 # FASTAPI APP INSTANCE SETUP
@@ -200,6 +215,7 @@ def startup_db_init():
         models.Base.metadata.create_all(bind=engine)
         run_database_migrations()
         seed_default_users()
+        seed_default_metrics()
     except Exception as e:
         print("Database startup init notice:", e)
 
@@ -265,6 +281,60 @@ def read_root():
         "status": "Database Connected & Server Running!",
         "version": "2.1.0"
     }
+
+# ---------------------------------------------------------
+# REAL-TIME VISITOR COUNTER & SYSTEM HEALTH METRICS
+# ---------------------------------------------------------
+@app.post("/api/metrics/visitor-hit", response_model=schemas.VisitorHitResponse, tags=["Site Metrics"])
+def record_visitor_hit(db: Session = Depends(get_db)):
+    """
+    Atomically increments the live visitor counter in PostgreSQL and returns the updated count.
+    """
+    try:
+        metric = db.query(models.SiteMetric).filter(models.SiteMetric.metric_name == "visitors").with_for_update().first()
+        if not metric:
+            metric = models.SiteMetric(metric_name="visitors", value=15443)
+            db.add(metric)
+        else:
+            metric.value = models.SiteMetric.value + 1
+        db.commit()
+        db.refresh(metric)
+        return schemas.VisitorHitResponse(visitor_count=int(metric.value))
+    except Exception as e:
+        db.rollback()
+        try:
+            metric = db.query(models.SiteMetric).filter(models.SiteMetric.metric_name == "visitors").first()
+            val = int(metric.value) if metric else 15443
+        except Exception:
+            val = 15443
+        return schemas.VisitorHitResponse(visitor_count=val)
+
+
+@app.get("/api/metrics/status", response_model=schemas.SystemStatusResponse, tags=["Site Metrics"])
+def get_metrics_status(db: Session = Depends(get_db)):
+    """
+    Returns real-time health status, database connectivity, and current visitor counter.
+    """
+    try:
+        metric = db.query(models.SiteMetric).filter(models.SiteMetric.metric_name == "visitors").first()
+        if not metric:
+            metric = models.SiteMetric(metric_name="visitors", value=15442)
+            db.add(metric)
+            db.commit()
+            db.refresh(metric)
+        return schemas.SystemStatusResponse(
+            status="online",
+            db_connected=True,
+            visitor_count=int(metric.value),
+            label="Hostel Core Services Active"
+        )
+    except Exception as e:
+        return schemas.SystemStatusResponse(
+            status="degraded",
+            db_connected=False,
+            visitor_count=15442,
+            label="Hostel Core Services Connecting..."
+        )
 
 # ---------------------------------------------------------
 # ---------------------------------------------------------
@@ -3168,5 +3238,68 @@ def delete_document(doc_id: int, db: Session = Depends(get_db)):
     return {"message": "Document deleted successfully", "id": doc_id}
 
 
+# ==========================================
+# SITE METRICS & VISITOR COUNTER ENDPOINTS
+# ==========================================
+@app.post("/api/metrics/visitor-hit", response_model=schemas.VisitorHitResponse, tags=["Site Metrics"])
+def record_visitor_hit(db: Session = Depends(get_db)):
+    """Increments the persistent live visitor counter atomically in PostgreSQL."""
+    try:
+        # Atomic lock on the metrics row
+        metric = db.query(models.SiteMetric).filter(models.SiteMetric.metric_name == "visitors").with_for_update().first()
+        if not metric:
+            metric = models.SiteMetric(metric_name="visitors", value=15443)
+            db.add(metric)
+            db.commit()
+            db.refresh(metric)
+        else:
+            metric.value += 1
+            metric.updated_at = datetime.utcnow()
+            db.commit()
+            db.refresh(metric)
+        return {"visitor_count": int(metric.value)}
+    except Exception as e:
+        print("Visitor hit counter increment notice:", e)
+        db.rollback()
+        try:
+            metric = db.query(models.SiteMetric).filter(models.SiteMetric.metric_name == "visitors").first()
+            if metric:
+                return {"visitor_count": int(metric.value)}
+        except Exception:
+            pass
+        return {"visitor_count": 15442}
 
+@app.get("/api/metrics/status", response_model=schemas.SystemStatusResponse, tags=["Site Metrics"])
+def get_system_status(db: Session = Depends(get_db)):
+    """Returns dynamic system health, database connection status, and current visitor count."""
+    db_connected = False
+    status_label = "Hostel Core Services Active"
+    health_status = "online"
+    visitor_count = 15442
 
+    try:
+        # Check active DB connection
+        db.execute(text("SELECT 1"))
+        db_connected = True
+
+        metric = db.query(models.SiteMetric).filter(models.SiteMetric.metric_name == "visitors").first()
+        if metric:
+            visitor_count = int(metric.value)
+        else:
+            # Seed if somehow missing
+            seed_default_metrics()
+            metric = db.query(models.SiteMetric).filter(models.SiteMetric.metric_name == "visitors").first()
+            if metric:
+                visitor_count = int(metric.value)
+    except Exception as e:
+        print("Metrics status check notice:", e)
+        db_connected = False
+        health_status = "degraded"
+        status_label = "Connecting to Core Services..."
+
+    return {
+        "status": health_status,
+        "db_connected": db_connected,
+        "visitor_count": visitor_count,
+        "label": status_label
+    }

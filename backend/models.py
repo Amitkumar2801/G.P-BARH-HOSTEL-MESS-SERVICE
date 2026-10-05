@@ -1,5 +1,5 @@
 # backend/models.py
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Boolean, Text, UniqueConstraint
+from sqlalchemy import Column, Integer, BigInteger, String, Float, ForeignKey, DateTime, Boolean, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from database import Base
@@ -185,3 +185,10 @@ class PublicDocument(Base):
     uploaded_by = Column(String, default="Chief Warden")
     is_active = Column(Boolean, default=True)
     updated_at = Column(DateTime, default=datetime.utcnow)
+
+class SiteMetric(Base):
+    __tablename__ = "site_metrics"
+
+    metric_name = Column(String, primary_key=True, index=True)
+    value = Column(BigInteger, default=15442)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

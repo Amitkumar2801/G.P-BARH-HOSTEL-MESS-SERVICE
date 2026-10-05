@@ -33,6 +33,13 @@ function Login() {
   const [showIdCard, setShowIdCard] = useState(false);
   const [publicNoticeModal, setPublicNoticeModal] = useState({ isOpen: false, category: 'RULES' });
 
+  // LIVE METRICS & SYSTEM HEALTH STATES
+  const [visitorCount, setVisitorCount] = useState(15442);
+  const [systemStatus, setSystemStatus] = useState({
+    status: 'online',
+    db_connected: true,
+    label: 'Hostel Core Services Active'
+  });
 
   // FORM STATES
   const [userId, setUserId] = useState("");
@@ -139,6 +146,84 @@ function Login() {
   // Initialize QR Session on mount
   useEffect(() => {
     fetchQrSession();
+  }, []);
+
+  // Live Persistent Visitor Counter & Dynamic System Health Status
+  useEffect(() => {
+    let isMounted = true;
+    const fetchMetrics = async () => {
+      const isVisited = sessionStorage.getItem('gp_visited');
+      const endpoints = [
+        "http://127.0.0.1:8000",
+        ""
+      ];
+
+      // 1. If fresh session, register visitor hit (atomic +1)
+      if (!isVisited) {
+        let hitRecorded = false;
+        for (const base of endpoints) {
+          try {
+            const res = await axios.post(`${base}/api/metrics/visitor-hit`, {}, { timeout: 4000 });
+            if (res.data && typeof res.data.visitor_count === 'number') {
+              if (isMounted) {
+                setVisitorCount(res.data.visitor_count);
+                sessionStorage.setItem('gp_visited', 'true');
+              }
+              hitRecorded = true;
+              break;
+            }
+          } catch (e) {
+            // try fallback endpoint
+          }
+        }
+        if (hitRecorded) {
+          // Also fetch system status
+          for (const base of endpoints) {
+            try {
+              const res = await axios.get(`${base}/api/metrics/status`, { timeout: 3500 });
+              if (res.data && isMounted) {
+                setSystemStatus({
+                  status: res.data.status || 'online',
+                  db_connected: res.data.db_connected !== false,
+                  label: res.data.label || 'Hostel Core Services Active'
+                });
+                if (typeof res.data.visitor_count === 'number') {
+                  setVisitorCount(res.data.visitor_count);
+                }
+                break;
+              }
+            } catch (e) {}
+          }
+          return;
+        }
+      }
+
+      // 2. If already visited in this session, only query status and latest count
+      for (const base of endpoints) {
+        try {
+          const res = await axios.get(`${base}/api/metrics/status`, { timeout: 3500 });
+          if (res.data && isMounted) {
+            setSystemStatus({
+              status: res.data.status || 'online',
+              db_connected: res.data.db_connected !== false,
+              label: res.data.label || 'Hostel Core Services Active'
+            });
+            if (typeof res.data.visitor_count === 'number') {
+              setVisitorCount(res.data.visitor_count);
+            }
+            break;
+          }
+        } catch (e) {
+          // try fallback
+        }
+      }
+    };
+
+    fetchMetrics();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Countdown timer effect
@@ -960,21 +1045,29 @@ function Login() {
                 </h4>
               </div>
 
-              <div className="bg-black/50 border border-emerald-500/30 p-1.5 rounded-lg flex items-center gap-2 text-[9.5px] text-emerald-400 font-bold">
+              <div className={`border p-1.5 rounded-lg flex items-center gap-2 text-[9.5px] font-bold transition-all ${
+                systemStatus.status === 'online'
+                  ? 'bg-black/50 border-emerald-500/30 text-emerald-400'
+                  : 'bg-black/50 border-amber-500/30 text-amber-400'
+              }`}>
                 <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                    systemStatus.status === 'online' ? 'bg-emerald-400' : 'bg-amber-400'
+                  }`}></span>
+                  <span className={`relative inline-flex rounded-full h-2 w-2 ${
+                    systemStatus.status === 'online' ? 'bg-emerald-500' : 'bg-amber-500'
+                  }`}></span>
                 </span>
-                <span>Hostel Core Services Active</span>
+                <span>{systemStatus.label || "Hostel Core Services Active"}</span>
               </div>
 
               <div>
                 <p className="text-[8.5px] text-gray-400 font-bold uppercase tracking-widest mb-1">Live Visitors</p>
                 <div className="flex space-x-1">
-                  {['0', '1', '5', '4', '4', '2'].map((num, i) => (
+                  {String(visitorCount || 15442).padStart(6, '0').split('').map((num, i) => (
                     <div
                       key={i}
-                      className="bg-gradient-to-b from-black to-zinc-900 border border-yellow-500/40 text-yellow-400 font-mono px-1.5 py-0.5 rounded shadow-inner text-[11px] font-black text-center"
+                      className="bg-gradient-to-b from-black to-zinc-900 border border-yellow-500/40 text-yellow-400 font-mono px-1.5 py-0.5 rounded shadow-inner text-[11px] font-black text-center min-w-[18px]"
                     >
                       {num}
                     </div>

@@ -517,3 +517,15 @@ class BatchClearResponse(BaseModel):
     cleared_count: int
     beds_vacated: int
     retained_year_back_count: int
+
+# ==========================================
+# SITE METRICS & VISITOR COUNTER SCHEMAS
+# ==========================================
+class VisitorHitResponse(BaseModel):
+    visitor_count: int
+
+class SystemStatusResponse(BaseModel):
+    status: str
+    db_connected: bool
+    visitor_count: int
+    label: str
