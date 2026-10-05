@@ -211,6 +211,8 @@ def normalize_gender(gender_str: Optional[str]) -> str:
     g = gender_str.strip().upper()
     if g in ["FEMALE", "GIRLS", "WOMEN", "GIRL"]:
         return "FEMALE"
+    if g in ["ALL", "BOTH", "ADMIN", "WARDEN"]:
+        return "ALL"
     return "MALE"
 
 def resolve_student_user(student_identifier, db: Session) -> Optional[models.User]:
@@ -273,7 +275,7 @@ def send_otp_endpoint(payload: schemas.SendOTPRequest, db: Session = Depends(get
     if not email:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="A valid student email address is required to dispatch OTP."
+            detail="A valid email address is required to dispatch OTP."
         )
     purpose = (payload.purpose or "SIGNUP").strip().upper()
     target_email = email
@@ -557,24 +559,34 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
                 detail="Security Alert: Invalid Master Secret Key! Warden registration requires authorized institutional credentials."
             )
 
-    # Enforce email OTP verification for student registration
-    clean_email = user.email or (user.reg_no_email if "@" in str(user.reg_no_email) else None)
-    if user.role.lower() == "student":
+    # Enforce email OTP verification for registration (both student and warden)
+    clean_email = user.email or (user.reg_no_email if "@" in str(user.reg_no_email) else None) or (user.admin_id if (user.admin_id and "@" in str(user.admin_id)) else None)
+    if user.role.lower() in ["warden", "admin"] and not clean_email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A valid institutional Gmail / Email address is required for Warden registration."
+        )
+
+    if clean_email:
         otp_verified = False
-        if clean_email:
-            if user.otp and verify_otp_code(clean_email, user.otp, purpose="SIGNUP", consume=True):
-                otp_verified = True
-            elif is_otp_pre_verified(clean_email, purpose="SIGNUP"):
-                otp_verified = True
+        if user.otp and verify_otp_code(clean_email, user.otp, purpose="SIGNUP", consume=True):
+            otp_verified = True
+        elif is_otp_pre_verified(clean_email, purpose="SIGNUP"):
+            otp_verified = True
 
         if not otp_verified:
+            user_type = "Chief Warden" if user.role.lower() in ["warden", "admin"] else "Student"
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email verification required! Please verify your 6-digit OTP before registration."
+                detail=f"{user_type} email verification required! Please verify the 6-digit OTP sent to your email before registration."
             )
 
-    norm_gender = normalize_gender(user.gender)
-    clean_reg_no = user.reg_no or (user.reg_no_email if "@" not in str(user.reg_no_email) else None)
+    if user.role.lower() in ["warden", "admin"]:
+        norm_gender = "ALL"
+        clean_reg_no = user.admin_id or user.reg_no or user.reg_no_email
+    else:
+        norm_gender = normalize_gender(user.gender)
+        clean_reg_no = user.reg_no or (user.reg_no_email if "@" not in str(user.reg_no_email) else None)
 
     # Hash password with bcrypt
     hashed_pwd = get_password_hash(user.password)
