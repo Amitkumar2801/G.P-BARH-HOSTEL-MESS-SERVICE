@@ -20,6 +20,8 @@ except Exception as err:
 try:
     from app.routes import auth as legacy_auth
     app.include_router(legacy_auth.router, prefix="/api/legacy-auth", tags=["Legacy Authentication"])
+    app.include_router(legacy_auth.router, prefix="/api/auth", tags=["Authentication"])
+    app.include_router(legacy_auth.router, prefix="/auth", tags=["Authentication"])
 except Exception as err:
     pass
 

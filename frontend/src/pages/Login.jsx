@@ -526,7 +526,7 @@ function Login() {
           password: password
         });
       } catch (e1) {
-        if (e1?.response?.data) throw e1;
+        if (e1?.response?.data && e1?.response?.status !== 404 && e1?.response?.status !== 405) throw e1;
         response = await apiPost("/login", {
           reg_no_email: inputClean,
           password: password

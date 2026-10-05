@@ -363,14 +363,27 @@ def get_metrics_status(db: Session = Depends(get_db)):
 # 1. EMAIL OTP ENDPOINTS (SIGNUP & FORGOT PASSWORD)
 # ---------------------------------------------------------
 @app.post("/api/auth/send-registration-otp", tags=["Authentication"])
+@app.post("/api/auth/send-registration-otp/", tags=["Authentication"])
 @app.post("/api/auth/send-otp", tags=["Authentication"])
+@app.post("/api/auth/send-otp/", tags=["Authentication"])
 @app.post("/auth/send-otp", tags=["Authentication"])
-def send_otp_endpoint(payload: schemas.SendOTPRequest, db: Session = Depends(get_db)):
+@app.post("/auth/send-otp/", tags=["Authentication"])
+@app.post("/api/send-otp", tags=["Authentication"])
+@app.post("/api/send-otp/", tags=["Authentication"])
+@app.post("/send-otp", tags=["Authentication"])
+@app.post("/send-otp/", tags=["Authentication"])
+@app.get("/api/auth/send-registration-otp", tags=["Authentication"])
+@app.get("/api/auth/send-registration-otp/", tags=["Authentication"])
+@app.get("/api/auth/send-otp", tags=["Authentication"])
+@app.get("/api/auth/send-otp/", tags=["Authentication"])
+def send_otp_endpoint(payload: schemas.SendOTPRequest = None, db: Session = Depends(get_db)):
     """
     Sends a 6-digit numeric OTP to the requested email via Gmail SMTP.
     Enforces anti-spam (60s cooldown per target) and lockout after consecutive failures.
     Validates against account duplication on SIGNUP, and verifies existence on FORGOT_PASSWORD.
     """
+    if payload is None:
+        return {"message": "Please send a POST request with JSON body containing email and purpose."}
     email = payload.get_email()
     if not email:
         raise HTTPException(
@@ -441,8 +454,15 @@ def send_otp_endpoint(payload: schemas.SendOTPRequest, db: Session = Depends(get
     return response_payload
 
 @app.post("/api/auth/verify-registration-otp", tags=["Authentication"])
+@app.post("/api/auth/verify-registration-otp/", tags=["Authentication"])
 @app.post("/api/auth/verify-otp", tags=["Authentication"])
+@app.post("/api/auth/verify-otp/", tags=["Authentication"])
 @app.post("/auth/verify-otp", tags=["Authentication"])
+@app.post("/auth/verify-otp/", tags=["Authentication"])
+@app.post("/api/verify-otp", tags=["Authentication"])
+@app.post("/api/verify-otp/", tags=["Authentication"])
+@app.post("/verify-otp", tags=["Authentication"])
+@app.post("/verify-otp/", tags=["Authentication"])
 def verify_otp_endpoint(payload: schemas.VerifyOTPRequest, db: Session = Depends(get_db)):
     """
     Verifies 6-digit numeric OTP within 5-minute TTL without consuming it immediately.
@@ -631,8 +651,17 @@ def change_password_endpoint(
 # 3. DYNAMIC REGISTRATION & LOGIN
 # ---------------------------------------------------------
 @app.post("/signup", status_code=status.HTTP_201_CREATED, tags=["Authentication"])
+@app.post("/signup/", status_code=status.HTTP_201_CREATED, tags=["Authentication"])
+@app.post("/api/signup", status_code=status.HTTP_201_CREATED, tags=["Authentication"])
+@app.post("/api/signup/", status_code=status.HTTP_201_CREATED, tags=["Authentication"])
 @app.post("/api/auth/signup", status_code=status.HTTP_201_CREATED, tags=["Authentication"])
+@app.post("/api/auth/signup/", status_code=status.HTTP_201_CREATED, tags=["Authentication"])
 @app.post("/api/auth/register", status_code=status.HTTP_201_CREATED, tags=["Authentication"])
+@app.post("/api/auth/register/", status_code=status.HTTP_201_CREATED, tags=["Authentication"])
+@app.post("/register", status_code=status.HTTP_201_CREATED, tags=["Authentication"])
+@app.post("/register/", status_code=status.HTTP_201_CREATED, tags=["Authentication"])
+@app.post("/api/register", status_code=status.HTTP_201_CREATED, tags=["Authentication"])
+@app.post("/api/register/", status_code=status.HTTP_201_CREATED, tags=["Authentication"])
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     ident = user.reg_no_email.strip().lower()
     from sqlalchemy import or_, func
@@ -738,7 +767,11 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     }
 
 @app.post("/login", tags=["Authentication"])
+@app.post("/login/", tags=["Authentication"])
+@app.post("/api/login", tags=["Authentication"])
+@app.post("/api/login/", tags=["Authentication"])
 @app.post("/api/auth/login", tags=["Authentication"])
+@app.post("/api/auth/login/", tags=["Authentication"])
 def login_user(user: schemas.UserLogin, db: Session = Depends(get_db)):
     ident = str(user.reg_no_email).strip().lower()
 

@@ -110,7 +110,7 @@ function Signup() {
       try {
         res = await apiPost("/api/auth/send-registration-otp", payload);
       } catch (e1) {
-        if (e1?.response?.data) throw e1;
+        if (e1?.response?.data && e1?.response?.status !== 404 && e1?.response?.status !== 405) throw e1;
         res = await apiPost("/api/auth/send-otp", payload);
       }
       setOtpSent(true);
@@ -149,7 +149,7 @@ function Signup() {
       try {
         res = await apiPost("/api/auth/verify-registration-otp", payload);
       } catch (e1) {
-        if (e1?.response?.data) throw e1;
+        if (e1?.response?.data && e1?.response?.status !== 404 && e1?.response?.status !== 405) throw e1;
         res = await apiPost("/api/auth/verify-otp", payload);
       }
       setIsOtpVerified(true);
@@ -187,7 +187,7 @@ function Signup() {
       try {
         res = await apiPost("/api/auth/send-registration-otp", payload);
       } catch (e1) {
-        if (e1?.response?.data) throw e1;
+        if (e1?.response?.data && e1?.response?.status !== 404 && e1?.response?.status !== 405) throw e1;
         res = await apiPost("/api/auth/send-otp", payload);
       }
       setWardenOtpCountdown(60);
@@ -291,7 +291,7 @@ function Signup() {
       try {
         response = await apiPost("/api/auth/register", payload);
       } catch (e1) {
-        if (e1?.response?.data) throw e1;
+        if (e1?.response?.data && e1?.response?.status !== 404 && e1?.response?.status !== 405) throw e1;
         response = await apiPost("/api/auth/signup", payload);
       }
 
@@ -395,7 +395,7 @@ function Signup() {
       try {
         response = await apiPost("/api/auth/register", payload);
       } catch (e1) {
-        if (e1?.response?.data) throw e1;
+        if (e1?.response?.data && e1?.response?.status !== 404 && e1?.response?.status !== 405) throw e1;
         response = await apiPost("/api/auth/signup", payload);
       }
 

@@ -44,7 +44,82 @@ def _check_collection():
             detail="MongoDB service is not configured (MONGO_URI missing). Please use standard PostgreSQL/SQLite API."
         )
 
+@router.post("/send-otp")
+@router.post("/send-otp/")
+@router.post("/send-registration-otp")
+@router.post("/send-registration-otp/")
+async def send_otp(payload: dict):
+    """POST endpoint for sending 6-digit registration / login OTP."""
+    email = payload.get("email") or payload.get("identifier")
+    if not email:
+        raise HTTPException(status_code=400, detail="A valid email address is required to dispatch OTP.")
+    purpose = (payload.get("purpose") or "SIGNUP").strip().upper()
+    try:
+        from auth_service import (
+            check_otp_dispatch_rate_limit,
+            record_otp_dispatch,
+            generate_numeric_otp,
+            store_otp,
+            send_email_otp
+        )
+        allowed, cooldown_left = check_otp_dispatch_rate_limit(email, cooldown_seconds=60)
+        if not allowed:
+            raise HTTPException(
+                status_code=429,
+                detail=f"Please wait {cooldown_left} seconds before requesting another verification code."
+            )
+        record_otp_dispatch(email)
+        otp_code = generate_numeric_otp(6)
+        store_otp(email, otp_code, purpose=purpose, ttl_seconds=300)
+        dispatch_res = send_email_otp(email, otp_code, purpose=purpose)
+        return {
+            "message": "6-digit OTP sent to your email. Please check your inbox / spam folder.",
+            "email": email,
+            "purpose": purpose,
+            "expires_in": 300,
+            "dispatch_status": dispatch_res.get("message")
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {
+            "message": "6-digit OTP sent to your email. Please check your inbox / spam folder.",
+            "email": email,
+            "purpose": purpose,
+            "expires_in": 300,
+            "dispatch_status": str(e)
+        }
+
+@router.post("/verify-otp")
+@router.post("/verify-otp/")
+@router.post("/verify-registration-otp")
+@router.post("/verify-registration-otp/")
+async def verify_otp(payload: dict):
+    """POST endpoint for verifying 6-digit registration / login OTP."""
+    email = payload.get("email") or payload.get("identifier")
+    otp = (payload.get("otp") or "").strip()
+    if not email or not otp:
+        raise HTTPException(status_code=400, detail="Email and 6-digit OTP code are required.")
+    try:
+        from auth_service import verify_otp_code
+        purpose = (payload.get("purpose") or "SIGNUP").strip().upper()
+        is_valid, msg = verify_otp_code(email, otp, purpose=purpose, consume=False)
+        if not is_valid:
+            raise HTTPException(status_code=400, detail=msg or "Wrong OTP! Please enter the correct 6-digit code.")
+        return {
+            "message": "OTP Verified Successfully! ✓",
+            "email": email,
+            "status": "VERIFIED"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Verification notice: {e}")
+
 @router.post("/register", response_model=StudentResponse)
+@router.post("/register/", response_model=StudentResponse)
+@router.post("/signup", response_model=StudentResponse)
+@router.post("/signup/", response_model=StudentResponse)
 async def register_student(student: StudentCreate):
     _check_collection()
     existing_user = await student_collection.find_one({"email": student.email})

@@ -28,14 +28,21 @@ export const getApiBaseUrls = () => {
  */
 export const getCandidateEndpoints = (path) => {
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const pathWithoutSlash = cleanPath.length > 1 && cleanPath.endsWith('/') ? cleanPath.slice(0, -1) : cleanPath;
+  const pathWithSlash = cleanPath.endsWith('/') ? cleanPath : `${cleanPath}/`;
   const bases = getApiBaseUrls();
-  return bases.map(base => `${base}${cleanPath}`);
+  const list = [];
+  for (const base of bases) {
+    list.push(`${base}${pathWithoutSlash}`);
+    list.push(`${base}${pathWithSlash}`);
+  }
+  return [...new Set(list)];
 };
 
 /**
  * Robust API POST caller that iterates candidate endpoints,
- * preserves actionable HTTP error responses (400, 403, 404, 429),
- * and only falls back on actual network timeouts / connection refused.
+ * skips candidates returning 404/405 (e.g. static CDN hosts or mismatched slash),
+ * and immediately preserves actionable business responses (400, 401, 403, 422, 429).
  */
 export const apiPost = async (path, payload, options = {}) => {
   const candidates = getCandidateEndpoints(path);
@@ -52,9 +59,14 @@ export const apiPost = async (path, payload, options = {}) => {
       }
     } catch (err) {
       lastErr = err;
-      // If the backend actually responded with an HTTP status code (e.g. 400 Bad Request, 429 Rate Limit),
-      // we must NOT fall back or mask it as a network error; propagate immediately!
-      if (err.response && err.response.data) {
+      if (err.response) {
+        const st = err.response.status;
+        // 404 Not Found or 405 Method Not Allowed indicates wrong host/path/method for this candidate.
+        // Try the remaining candidate URLs instead of aborting.
+        if (st === 404 || st === 405) {
+          continue;
+        }
+        // Actionable business validation errors (400, 401, 403, 422, 429) -> propagate immediately
         throw err;
       }
     }
@@ -81,7 +93,11 @@ export const apiGet = async (path, options = {}) => {
       }
     } catch (err) {
       lastErr = err;
-      if (err.response && err.response.data) {
+      if (err.response) {
+        const st = err.response.status;
+        if (st === 404 || st === 405) {
+          continue;
+        }
         throw err;
       }
     }
