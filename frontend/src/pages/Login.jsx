@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { apiPost } from '../utils/api';
 import { QRCodeSVG } from 'qrcode.react';
 import toast from 'react-hot-toast';
 import {
@@ -383,7 +384,7 @@ function Login() {
     }
     setIsForgotLoading(true);
     try {
-      const res = await axios.post("http://127.0.0.1:8000/api/auth/send-otp", {
+      const res = await apiPost("/api/auth/send-otp", {
         identifier: cleanIdent,
         email: cleanIdent,
         purpose: "FORGOT_PASSWORD"
@@ -418,7 +419,7 @@ function Login() {
     }
     setIsForgotLoading(true);
     try {
-      const res = await axios.post("http://127.0.0.1:8000/api/auth/verify-otp", {
+      const res = await apiPost("/api/auth/verify-otp", {
         identifier: forgotInput.trim(),
         email: forgotInput.trim(),
         otp: fullOtp,
@@ -470,7 +471,7 @@ function Login() {
     }
     setIsForgotLoading(true);
     try {
-      const res = await axios.post("http://127.0.0.1:8000/api/auth/reset-password", {
+      const res = await apiPost("/api/auth/reset-password", {
         identifier: forgotInput.trim(),
         email: forgotInput.trim(),
         otp: fullOtp,
@@ -518,25 +519,18 @@ function Login() {
 
     setIsLoading(true);
     try {
-      const endpoints = [
-        "http://127.0.0.1:8000/api/auth/login",
-        "http://127.0.0.1:8000/login",
-        "/api/auth/login",
-        "/login"
-      ];
       let response = null;
-      let lastErr = null;
-
-      for (const ep of endpoints) {
-        try {
-          response = await axios.post(ep, {
-            reg_no_email: inputClean,
-            password: password
-          }, { timeout: 3500 });
-          if (response && response.data && response.data.user) break;
-        } catch (err) {
-          lastErr = err;
-        }
+      try {
+        response = await apiPost("/api/auth/login", {
+          reg_no_email: inputClean,
+          password: password
+        });
+      } catch (e1) {
+        if (e1?.response?.data) throw e1;
+        response = await apiPost("/login", {
+          reg_no_email: inputClean,
+          password: password
+        });
       }
 
       const loggedInUser = response?.data?.user;

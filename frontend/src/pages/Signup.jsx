@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { apiPost } from '../utils/api';
 import toast, { Toaster } from 'react-hot-toast';
 import '../App.css';
 
@@ -107,9 +108,10 @@ function Signup() {
       };
       let res;
       try {
-        res = await axios.post("http://127.0.0.1:8000/api/auth/send-registration-otp", payload);
-      } catch (endpointErr) {
-        res = await axios.post("http://127.0.0.1:8000/api/auth/send-otp", payload);
+        res = await apiPost("/api/auth/send-registration-otp", payload);
+      } catch (e1) {
+        if (e1?.response?.data) throw e1;
+        res = await apiPost("/api/auth/send-otp", payload);
       }
       setOtpSent(true);
       setOtpCountdown(60); // 60-second cooldown timer
@@ -119,6 +121,7 @@ function Signup() {
     } catch (err) {
       console.error("Send OTP Error:", err);
       const detail = err?.response?.data?.detail || err?.message || "Could not send OTP. Please check your email.";
+      setSignupOtpError(detail);
       toast.error(detail);
     } finally {
       setIsOtpSending(false);
@@ -144,16 +147,17 @@ function Signup() {
       };
       let res;
       try {
-        res = await axios.post("http://127.0.0.1:8000/api/auth/verify-registration-otp", payload);
-      } catch (endpointErr) {
-        res = await axios.post("http://127.0.0.1:8000/api/auth/verify-otp", payload);
+        res = await apiPost("/api/auth/verify-registration-otp", payload);
+      } catch (e1) {
+        if (e1?.response?.data) throw e1;
+        res = await apiPost("/api/auth/verify-otp", payload);
       }
       setIsOtpVerified(true);
       setSignupOtpError("");
       toast.success(res?.data?.message || "OTP Verified Successfully! ✓ Proceed with Registration.");
     } catch (err) {
       console.error("Verify OTP Error:", err);
-      const errorMsg = "Wrong OTP! Please enter the correct 6-digit code.";
+      const errorMsg = err?.response?.data?.detail || "Wrong OTP! Please enter the correct 6-digit code.";
       setSignupOtpError(errorMsg);
       toast.error(errorMsg);
       setIsOtpVerified(false);
@@ -181,9 +185,10 @@ function Signup() {
       };
       let res;
       try {
-        res = await axios.post("http://127.0.0.1:8000/api/auth/send-registration-otp", payload);
-      } catch (endpointErr) {
-        res = await axios.post("http://127.0.0.1:8000/api/auth/send-otp", payload);
+        res = await apiPost("/api/auth/send-registration-otp", payload);
+      } catch (e1) {
+        if (e1?.response?.data) throw e1;
+        res = await apiPost("/api/auth/send-otp", payload);
       }
       setWardenOtpCountdown(60);
       setWardenOtp(["", "", "", "", "", ""]);
@@ -282,28 +287,13 @@ function Signup() {
     };
 
     try {
-      const endpoints = [
-        "http://127.0.0.1:8000/api/auth/register",
-        "http://127.0.0.1:8000/api/auth/signup",
-        "http://127.0.0.1:8000/signup",
-        "/api/auth/register",
-        "/api/auth/signup",
-        "/signup"
-      ];
       let response = null;
-      let lastErr = null;
-
-      for (const ep of endpoints) {
-        try {
-          response = await axios.post(ep, payload);
-          if (response && response.data) break;
-        } catch (err) {
-          lastErr = err;
-          if (err?.response?.status === 400 || err?.response?.status === 403) break;
-        }
+      try {
+        response = await apiPost("/api/auth/register", payload);
+      } catch (e1) {
+        if (e1?.response?.data) throw e1;
+        response = await apiPost("/api/auth/signup", payload);
       }
-
-      if (!response && lastErr) throw lastErr;
 
       setShowWardenOtpModal(false);
 
@@ -401,27 +391,13 @@ function Signup() {
     }
 
     try {
-      const endpoints = [
-        "http://127.0.0.1:8000/api/auth/register",
-        "http://127.0.0.1:8000/api/auth/signup",
-        "http://127.0.0.1:8000/signup",
-        "/api/auth/register",
-        "/api/auth/signup",
-        "/signup"
-      ];
       let response = null;
-      let lastErr = null;
-
-      for (const ep of endpoints) {
-        try {
-          response = await axios.post(ep, payload);
-          if (response && response.data) break;
-        } catch (err) {
-          lastErr = err;
-        }
+      try {
+        response = await apiPost("/api/auth/register", payload);
+      } catch (e1) {
+        if (e1?.response?.data) throw e1;
+        response = await apiPost("/api/auth/signup", payload);
       }
-
-      if (!response && lastErr) throw lastErr;
 
       // On successful signup, store token & profile
       if (response?.data?.access_token) {

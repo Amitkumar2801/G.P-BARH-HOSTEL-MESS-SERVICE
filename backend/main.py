@@ -190,12 +190,22 @@ app = FastAPI(
 # ---------------------------------------------------------
 # CORS CONFIGURATION
 # ---------------------------------------------------------
-cors_env = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,*")
-allowed_cors_origins = [orig.strip() for orig in cors_env.split(",") if orig.strip()]
+cors_env = os.getenv("CORS_ORIGINS", "")
+custom_origins = [orig.strip() for orig in cors_env.split(",") if orig.strip() and orig.strip() != "*"]
+default_origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000"
+]
+allowed_cors_origins = list(dict.fromkeys(default_origins + custom_origins))
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_cors_origins if "*" not in allowed_cors_origins else ["*"],
+    allow_origins=allowed_cors_origins,
+    allow_origin_regex=r"^https?:\/\/.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -295,18 +305,21 @@ def record_visitor_hit(db: Session = Depends(get_db)):
         if not metric:
             metric = models.SiteMetric(metric_name="visitors", value=15443)
             db.add(metric)
+            db.commit()
+            db.refresh(metric)
         else:
-            metric.value = models.SiteMetric.value + 1
-        db.commit()
-        db.refresh(metric)
+            metric.value += 1
+            metric.updated_at = datetime.utcnow()
+            db.commit()
+            db.refresh(metric)
         return schemas.VisitorHitResponse(visitor_count=int(metric.value))
     except Exception as e:
         db.rollback()
         try:
             metric = db.query(models.SiteMetric).filter(models.SiteMetric.metric_name == "visitors").first()
-            val = int(metric.value) if metric else 15443
+            val = int(metric.value) if metric else 15442
         except Exception:
-            val = 15443
+            val = 15442
         return schemas.VisitorHitResponse(visitor_count=val)
 
 
@@ -315,26 +328,35 @@ def get_metrics_status(db: Session = Depends(get_db)):
     """
     Returns real-time health status, database connectivity, and current visitor counter.
     """
+    db_connected = False
+    status_label = "Hostel Core Services Active"
+    health_status = "online"
+    visitor_count = 15442
+
     try:
+        db.execute(text("SELECT 1"))
+        db_connected = True
+
         metric = db.query(models.SiteMetric).filter(models.SiteMetric.metric_name == "visitors").first()
-        if not metric:
-            metric = models.SiteMetric(metric_name="visitors", value=15442)
-            db.add(metric)
-            db.commit()
-            db.refresh(metric)
-        return schemas.SystemStatusResponse(
-            status="online",
-            db_connected=True,
-            visitor_count=int(metric.value),
-            label="Hostel Core Services Active"
-        )
+        if metric:
+            visitor_count = int(metric.value)
+        else:
+            seed_default_metrics()
+            metric = db.query(models.SiteMetric).filter(models.SiteMetric.metric_name == "visitors").first()
+            if metric:
+                visitor_count = int(metric.value)
     except Exception as e:
-        return schemas.SystemStatusResponse(
-            status="degraded",
-            db_connected=False,
-            visitor_count=15442,
-            label="Hostel Core Services Connecting..."
-        )
+        print("Metrics status check notice:", e)
+        db_connected = False
+        health_status = "degraded"
+        status_label = "Connecting to Core Services..."
+
+    return schemas.SystemStatusResponse(
+        status=health_status,
+        db_connected=db_connected,
+        visitor_count=visitor_count,
+        label=status_label
+    )
 
 # ---------------------------------------------------------
 # ---------------------------------------------------------
@@ -3238,68 +3260,3 @@ def delete_document(doc_id: int, db: Session = Depends(get_db)):
     return {"message": "Document deleted successfully", "id": doc_id}
 
 
-# ==========================================
-# SITE METRICS & VISITOR COUNTER ENDPOINTS
-# ==========================================
-@app.post("/api/metrics/visitor-hit", response_model=schemas.VisitorHitResponse, tags=["Site Metrics"])
-def record_visitor_hit(db: Session = Depends(get_db)):
-    """Increments the persistent live visitor counter atomically in PostgreSQL."""
-    try:
-        # Atomic lock on the metrics row
-        metric = db.query(models.SiteMetric).filter(models.SiteMetric.metric_name == "visitors").with_for_update().first()
-        if not metric:
-            metric = models.SiteMetric(metric_name="visitors", value=15443)
-            db.add(metric)
-            db.commit()
-            db.refresh(metric)
-        else:
-            metric.value += 1
-            metric.updated_at = datetime.utcnow()
-            db.commit()
-            db.refresh(metric)
-        return {"visitor_count": int(metric.value)}
-    except Exception as e:
-        print("Visitor hit counter increment notice:", e)
-        db.rollback()
-        try:
-            metric = db.query(models.SiteMetric).filter(models.SiteMetric.metric_name == "visitors").first()
-            if metric:
-                return {"visitor_count": int(metric.value)}
-        except Exception:
-            pass
-        return {"visitor_count": 15442}
-
-@app.get("/api/metrics/status", response_model=schemas.SystemStatusResponse, tags=["Site Metrics"])
-def get_system_status(db: Session = Depends(get_db)):
-    """Returns dynamic system health, database connection status, and current visitor count."""
-    db_connected = False
-    status_label = "Hostel Core Services Active"
-    health_status = "online"
-    visitor_count = 15442
-
-    try:
-        # Check active DB connection
-        db.execute(text("SELECT 1"))
-        db_connected = True
-
-        metric = db.query(models.SiteMetric).filter(models.SiteMetric.metric_name == "visitors").first()
-        if metric:
-            visitor_count = int(metric.value)
-        else:
-            # Seed if somehow missing
-            seed_default_metrics()
-            metric = db.query(models.SiteMetric).filter(models.SiteMetric.metric_name == "visitors").first()
-            if metric:
-                visitor_count = int(metric.value)
-    except Exception as e:
-        print("Metrics status check notice:", e)
-        db_connected = False
-        health_status = "degraded"
-        status_label = "Connecting to Core Services..."
-
-    return {
-        "status": health_status,
-        "db_connected": db_connected,
-        "visitor_count": visitor_count,
-        "label": status_label
-    }
