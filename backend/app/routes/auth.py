@@ -34,8 +34,16 @@ def create_access_token(data: dict):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+def _check_collection():
+    if student_collection is None:
+        raise HTTPException(
+            status_code=503,
+            detail="MongoDB service is not configured (MONGO_URI missing). Please use standard PostgreSQL/SQLite API."
+        )
+
 @router.post("/register", response_model=StudentResponse)
 async def register_student(student: StudentCreate):
+    _check_collection()
     existing_user = await student_collection.find_one({"email": student.email})
     if existing_user:
         raise HTTPException(status_code=400, detail="Ye email pehle se register hai bhai!")
@@ -55,6 +63,7 @@ async def register_student(student: StudentCreate):
 
 @router.post("/login")
 async def login_student(student: StudentLogin):
+    _check_collection()
     db_student = await student_collection.find_one({"email": student.email})
     if not db_student:
         raise HTTPException(status_code=404, detail="Bhai, is email se koi account nahi mila!")
@@ -94,6 +103,7 @@ async def get_current_student(credentials: HTTPAuthorizationCredentials = Depend
 # 🔒 Naya LOCKED Rasta (Sirf Token walo ke liye)
 @router.get("/profile")
 async def student_profile(email: str = Depends(get_current_student)):
+    _check_collection()
     # Database se us email ka data uthana
     db_student = await student_collection.find_one({"email": email})
 

@@ -1,4 +1,12 @@
 # backend/main.py
+import sys
+from pathlib import Path
+
+# Ensure backend directory is in sys.path so modules resolve correctly under any working directory
+_backend_dir = Path(__file__).resolve().parent
+if str(_backend_dir) not in sys.path:
+    sys.path.insert(0, str(_backend_dir))
+
 from typing import List, Optional
 from fastapi import FastAPI, Depends, HTTPException, status, Query, Header
 from fastapi.middleware.cors import CORSMiddleware

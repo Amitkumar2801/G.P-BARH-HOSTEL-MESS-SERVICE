@@ -1,11 +1,33 @@
-# Backend Python Libraries
-fastapi
-uvicorn
-sqlalchemy
-pydantic
-python-dotenv
-psycopg2-binary
-passlib[bcrypt]
-python-jose[cryptography]
-python-multipart
-requests
+# ==========================================
+# GP BARH HOSTEL & MESS SERVICE - PYTHON DEPENDENCIES
+# ==========================================
+
+# Core Web Framework & Production ASGI/WSGI Servers
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+gunicorn>=21.2.0
+
+# Database Drivers - Relational (PostgreSQL & SQLite)
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.9
+
+# Database Drivers - Async MongoDB (Motor)
+motor>=3.3.0
+pymongo>=4.6.0
+dnspython>=2.5.0
+
+# Schemas, Data Validation & Type Safety
+pydantic>=2.0.0
+
+# Environment Variables & Configuration
+python-dotenv>=1.0.0
+
+# Security, JWT Authentication & Password Hashing
+passlib[bcrypt]>=1.7.4
+bcrypt>=4.0.1,<=4.1.2
+python-jose[cryptography]>=3.3.0
+python-multipart>=0.0.9
+
+# HTTP Clients & Utilities
+requests>=2.31.0
+httpx>=0.26.0
