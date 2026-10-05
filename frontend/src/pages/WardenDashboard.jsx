@@ -4645,194 +4645,27 @@ function WardenDashboard() {
           {/* ========================================================================= */}
           {activeNavTab === 'public_docs' && (
             <div className="space-y-6 animate-in fade-in duration-300">
-              {/* TOP BANNER */}
-              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-5">
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-red-100 dark:bg-red-950/60 text-[#720e0e] dark:text-red-300 border border-red-200 dark:border-red-900 flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
-                      Public Homepage Sync Active
-                    </span>
-                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
-                      <span>✓</span> Direct Student Download Portal
-                    </span>
-                  </div>
-                  <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
-                    <span className="text-2xl">📑</span>
-                    <span>Homepage Notices, Rules &amp; Mess Menu Manager</span>
+              {/* SECTION HEADER */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>📑</span> Homepage Notices &amp; Documents
                   </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
-                    Yahan se Warden bina kisi coding ke seedhe PDF ya Image upload kar sakte hain. Aapka upload kiya hua document automatically Homepage ke <strong>Rules</strong>, <strong>Mess Menu</strong>, <strong>Contact Warden</strong> aur Notice Board par live ho jayega jise student 1-click me download kar sakte hain.
+                  <p className="text-xs text-slate-500 mt-1">
+                    Manage notices, rules, and documents displayed on the public homepage.
                   </p>
                 </div>
 
-                <div className="shrink-0 flex items-center gap-3">
+                <div className="flex items-center gap-3">
                   <button
                     type="button"
                     onClick={() => openNewDocModal('NOTICE')}
-                    className="px-5 py-3 rounded-2xl bg-[#720e0e] hover:bg-[#851414] text-white font-black text-xs uppercase tracking-wider shadow-lg hover:shadow-xl transition-all flex items-center gap-2 cursor-pointer active:scale-95 border-none"
+                    className="px-4 py-2.5 rounded-xl bg-[#720e0e] hover:bg-[#851414] text-white font-bold text-xs uppercase tracking-wider transition-colors flex items-center gap-2 cursor-pointer shadow-sm"
                   >
                     <span>➕</span>
-                    <span>Upload Custom Notice / Circular</span>
+                    <span>Upload Document</span>
                   </button>
                 </div>
-              </div>
-
-              {/* QUICK LINKAGE GUIDE */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-2xl p-3 text-[11px] text-amber-900 dark:text-amber-200 flex items-center gap-2.5">
-                  <span className="text-lg">📜</span>
-                  <div>
-                    <span className="font-extrabold block">Card 1: Hostel Rules</span>
-                    <span className="opacity-80">Homepage Header ➔ 'Rules' link se connect hota hai</span>
-                  </div>
-                </div>
-                <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 rounded-2xl p-3 text-[11px] text-emerald-900 dark:text-emerald-200 flex items-center gap-2.5">
-                  <span className="text-lg">🍲</span>
-                  <div>
-                    <span className="font-extrabold block">Card 2: Mess Menu</span>
-                    <span className="opacity-80">Homepage Header ➔ 'Mess Menu' link se connect hota hai</span>
-                  </div>
-                </div>
-                <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/60 rounded-2xl p-3 text-[11px] text-blue-900 dark:text-blue-200 flex items-center gap-2.5">
-                  <span className="text-lg">📞</span>
-                  <div>
-                    <span className="font-extrabold block">Card 3: Warden Contacts</span>
-                    <span className="opacity-80">Homepage Header ➔ 'Contact Warden' link se connect hota hai</span>
-                  </div>
-                </div>
-                <div className="bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/60 rounded-2xl p-3 text-[11px] text-purple-900 dark:text-purple-200 flex items-center gap-2.5">
-                  <span className="text-lg">📌</span>
-                  <div>
-                    <span className="font-extrabold block">Card 4: Circulars / New</span>
-                    <span className="opacity-80">Homepage Footer Quick Portals Notice Board me show hota hai</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* 4 CORE HOMEPAGE CATEGORIES QUICK ACTION CARDS */}
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                {[
-                  {
-                    category: 'RULES',
-                    name: 'Hostel Rules & Regulations',
-                    icon: '📜',
-                    targetLink: 'Homepage Header ➔ "Rules"',
-                    badgeColor: 'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300',
-                    defaultDesc: 'Official Hostel Discipline, 08:00 PM in-time, and safety guidelines.'
-                  },
-                  {
-                    category: 'MESS_MENU',
-                    name: 'Weekly Mess Food Chart',
-                    icon: '🍲',
-                    targetLink: 'Homepage Header ➔ "Mess Menu"',
-                    badgeColor: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-300',
-                    defaultDesc: 'Breakfast, Lunch, Evening Snacks & Dinner 7-day rotation chart.'
-                  },
-                  {
-                    category: 'CONTACT_WARDEN',
-                    name: 'Warden Office Contacts',
-                    icon: '📞',
-                    targetLink: 'Homepage Header ➔ "Contact Warden"',
-                    badgeColor: 'bg-blue-100 text-blue-900 dark:bg-blue-950 dark:text-blue-300',
-                    defaultDesc: 'Chief Warden, Superintendent & Emergency helpline directory.'
-                  },
-                  {
-                    category: 'NOTICE',
-                    name: 'Admission & Circulars',
-                    icon: '📌',
-                    targetLink: 'Homepage Notice Board',
-                    badgeColor: 'bg-purple-100 text-purple-900 dark:bg-purple-950 dark:text-purple-300',
-                    defaultDesc: 'Hostel seat allotment guidelines, notices, and official circulars.'
-                  }
-                ].map(cat => {
-                  const doc = publicDocs.find(d => d.category === cat.category);
-                  return (
-                    <div
-                      key={cat.category}
-                      className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200/90 dark:border-slate-800 shadow-sm flex flex-col justify-between space-y-4 hover:border-slate-300 dark:hover:border-slate-700 transition-all"
-                    >
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-2xl shadow-inner shrink-0">
-                            {cat.icon}
-                          </div>
-                          {doc ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 shadow-xs shrink-0 whitespace-nowrap">
-                              <span className="relative flex h-2 w-2 shrink-0">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                              </span>
-                              <span>Live on Homepage</span>
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700/60 shrink-0 whitespace-nowrap">
-                              <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                              <span>Default Preset</span>
-                            </span>
-                          )}
-                        </div>
-
-                        <div>
-                          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5 flex items-center gap-1">
-                            <span>🔗</span> {cat.targetLink}
-                          </div>
-                          <h4 className="font-extrabold text-sm text-slate-900 dark:text-white leading-snug">
-                            {cat.name}
-                          </h4>
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
-                            {doc ? (doc.description || doc.title) : cat.defaultDesc}
-                          </p>
-                        </div>
-
-                        {doc && (
-                          <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-[10.5px] font-medium space-y-1">
-                            <div className="flex justify-between items-center text-slate-600 dark:text-slate-300 truncate">
-                              <span className="truncate font-semibold">📎 {doc.file_name || 'Document File'}</span>
-                              <span className="font-bold shrink-0 ml-1 text-slate-400 text-[10px]">{doc.file_size || 'PDF'}</span>
-                            </div>
-                            <p className="text-[9.5px] text-slate-400">
-                              Updated: {new Date(doc.updated_at).toLocaleDateString()}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => openNewDocModal(cat.category)}
-                          className="flex-1 py-2 px-2.5 rounded-xl bg-[#720e0e] hover:bg-[#851414] text-white font-bold text-xs flex items-center justify-center gap-1 cursor-pointer transition-colors shadow-xs"
-                          title="Upload new PDF or Image"
-                        >
-                          <span>📤</span>
-                          <span>{doc?.file_url ? 'Replace File' : 'Upload PDF/Img'}</span>
-                        </button>
-
-                        {doc && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => setPreviewDocModal(doc)}
-                              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-colors cursor-pointer"
-                              title="Preview Document"
-                            >
-                              👁️
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDownloadDoc(doc)}
-                              className="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 text-xs font-bold transition-colors cursor-pointer border border-emerald-200 dark:border-emerald-800"
-                              title="Download File"
-                            >
-                              📥
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
               </div>
 
               {/* COMPLETE HOMEPAGE DOCUMENTS MASTER DIRECTORY */}
