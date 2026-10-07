@@ -41,56 +41,62 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+import random
+import time
+from pydantic import BaseModel
+from app.services.email_service import send_real_email_otp
+
+class SendOtpRequest(BaseModel):
+    email: str
+    purpose: str = "Verification"
+
+otp_cache = {}
+
 @router.post("/send-otp")
 @router.post("/send-otp/")
 @router.post("/send-registration-otp")
 @router.post("/send-registration-otp/")
-async def send_otp(payload: dict):
-    """POST endpoint for sending 6-digit registration / login OTP."""
-    target_email = payload.get("email") or payload.get("identifier") or payload.get("target_email")
-    if not target_email:
-        raise HTTPException(status_code=400, detail="A valid email address is required to dispatch OTP.")
-    purpose = (payload.get("purpose") or "SIGNUP").strip().upper()
+def handle_registration_otp(payload: SendOtpRequest):
+    target = payload.email.strip().lower()
+    otp_code = str(random.randint(100000, 999999))
+    otp_cache[target] = {"otp": otp_code, "expires_at": time.time() + 600}
+    
+    # Store in central auth_service store as well for cross-validation
     try:
-        from auth_service import (
-            check_otp_dispatch_rate_limit,
-            record_otp_dispatch,
-            generate_numeric_otp,
-            store_otp,
-            send_email_otp
-        )
-        allowed, cooldown_left = check_otp_dispatch_rate_limit(target_email, cooldown_seconds=60)
-        if not allowed:
-            raise HTTPException(
-                status_code=429,
-                detail=f"Please wait {cooldown_left} seconds before requesting another verification code."
-            )
-        record_otp_dispatch(target_email)
-        generated_otp = generate_numeric_otp(6)
-        store_otp(target_email, generated_otp, purpose=purpose, ttl_seconds=300)
+        from auth_service import store_otp
+        store_otp(target, otp_code, purpose="SIGNUP", ttl_seconds=600)
+    except Exception:
+        pass
 
-        # Dispatch email OTP with structured error handling
-        try:
-            import inspect
-            dispatch_res = send_email_otp(target_email, generated_otp, purpose=purpose)
-            if inspect.iscoroutine(dispatch_res):
-                dispatch_res = await dispatch_res
-            return {
-                "success": True,
-                "message": "OTP sent successfully to email",
-                "email": target_email,
-                "purpose": purpose,
-                "expires_in": 300,
-                "dispatch_status": dispatch_res.get("message") if isinstance(dispatch_res, dict) else "Dispatched"
-            }
-        except Exception as e:
-            logger.error(f"SMTP Dispatch Error: {str(e)}")
-            raise HTTPException(status_code=500, detail=f"Failed to send email OTP: {str(e)}")
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"SMTP Dispatch Error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to send email OTP: {str(e)}")
+    try:
+        send_real_email_otp(to_email=target, otp_code=otp_code, purpose="Student Registration")
+    except Exception as err:
+        logger.error(f"Failed to send registration OTP: {err}")
+        raise HTTPException(status_code=500, detail=str(err))
+    return {"success": True, "message": f"OTP sent to {target}"}
+
+@router.post("/forgot-password/send-otp")
+@router.post("/forgot-password/send-otp/")
+@router.post("/reset-password/send-otp")
+def handle_forgot_password_otp(payload: SendOtpRequest):
+    target = payload.email.strip().lower()
+    otp_code = str(random.randint(100000, 999999))
+    otp_cache[target] = {"otp": otp_code, "expires_at": time.time() + 600}
+    
+    # Store in central auth_service store as well for cross-validation
+    try:
+        from auth_service import store_otp
+        store_otp(target, otp_code, purpose="FORGOT_PASSWORD", ttl_seconds=600)
+    except Exception:
+        pass
+
+    try:
+        send_real_email_otp(to_email=target, otp_code=otp_code, purpose="Password Reset")
+    except Exception as err:
+        logger.error(f"Failed to send reset OTP: {err}")
+        raise HTTPException(status_code=500, detail=str(err))
+    return {"success": True, "message": f"Reset OTP sent to {target}"}
+
 
 
 @router.post("/verify-otp")
