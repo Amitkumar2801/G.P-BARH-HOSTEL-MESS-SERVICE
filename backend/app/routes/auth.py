@@ -1,6 +1,6 @@
-from fastapi import APIRouter, HTTPException
-from fastapi import Depends
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
 from app.models.user import StudentCreate, StudentResponse, StudentLogin
 from app.database import student_collection
 from app.core.security import pwd_context, get_password_hash, verify_password
@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 import random
 import time
 from pydantic import BaseModel
-from app.services.email_service import send_real_email_otp
+from app.services.email_service import send_instant_otp_email, send_real_email_otp
 
 class SendOtpRequest(BaseModel):
     email: str
@@ -56,9 +56,11 @@ otp_cache = {}
 @router.post("/send-otp/")
 @router.post("/send-registration-otp")
 @router.post("/send-registration-otp/")
-def handle_registration_otp(payload: SendOtpRequest):
+async def send_registration_otp(payload: SendOtpRequest, background_tasks: BackgroundTasks):
     target = payload.email.strip().lower()
     otp_code = str(random.randint(100000, 999999))
+    
+    # Store OTP in active cache
     otp_cache[target] = {"otp": otp_code, "expires_at": time.time() + 600}
     
     # Store in central auth_service store as well for cross-validation
@@ -68,19 +70,19 @@ def handle_registration_otp(payload: SendOtpRequest):
     except Exception:
         pass
 
-    try:
-        send_real_email_otp(to_email=target, otp_code=otp_code, purpose="Student Registration")
-    except Exception as err:
-        logger.error(f"Failed to send registration OTP: {err}")
-        raise HTTPException(status_code=500, detail=str(err))
-    return {"success": True, "message": f"OTP sent to {target}"}
+    # Execute immediately in background task
+    background_tasks.add_task(send_instant_otp_email, target, otp_code, "Student Registration")
+    
+    return {"success": True, "message": f"OTP successfully dispatched to {target}"}
 
 @router.post("/forgot-password/send-otp")
 @router.post("/forgot-password/send-otp/")
 @router.post("/reset-password/send-otp")
-def handle_forgot_password_otp(payload: SendOtpRequest):
+async def send_forgot_password_otp(payload: SendOtpRequest, background_tasks: BackgroundTasks):
     target = payload.email.strip().lower()
     otp_code = str(random.randint(100000, 999999))
+    
+    # Store OTP in active cache
     otp_cache[target] = {"otp": otp_code, "expires_at": time.time() + 600}
     
     # Store in central auth_service store as well for cross-validation
@@ -90,12 +92,11 @@ def handle_forgot_password_otp(payload: SendOtpRequest):
     except Exception:
         pass
 
-    try:
-        send_real_email_otp(to_email=target, otp_code=otp_code, purpose="Password Reset")
-    except Exception as err:
-        logger.error(f"Failed to send reset OTP: {err}")
-        raise HTTPException(status_code=500, detail=str(err))
-    return {"success": True, "message": f"Reset OTP sent to {target}"}
+    # Execute immediately in background task
+    background_tasks.add_task(send_instant_otp_email, target, otp_code, "Password Reset")
+    
+    return {"success": True, "message": f"Reset OTP successfully dispatched to {target}"}
+
 
 
 

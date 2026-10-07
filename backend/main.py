@@ -8,8 +8,9 @@ if str(_backend_dir) not in sys.path:
     sys.path.insert(0, str(_backend_dir))
 
 from typing import List, Optional
-from fastapi import FastAPI, Depends, HTTPException, status, Query, Header
+from fastapi import FastAPI, Depends, HTTPException, status, Query, Header, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import text
 from datetime import datetime, date, timedelta
@@ -19,8 +20,12 @@ import json
 import secrets
 import uuid
 import time
+import logging
+
+logger = logging.getLogger(__name__)
 
 import models
+
 import schemas
 from database import engine, SessionLocal
 from auth_service import (
@@ -38,8 +43,10 @@ from auth_service import (
     store_otp,
     verify_otp_code,
     is_otp_pre_verified,
-    send_email_otp
+    send_email_otp,
+    send_instant_otp_email
 )
+
 
 # ---------------------------------------------------------
 # DATABASE INITIALIZATION & MIGRATION HELPER
@@ -376,11 +383,12 @@ def get_metrics_status(db: Session = Depends(get_db)):
 @app.get("/api/auth/send-registration-otp/", tags=["Authentication"])
 @app.get("/api/auth/send-otp", tags=["Authentication"])
 @app.get("/api/auth/send-otp/", tags=["Authentication"])
-def send_otp_endpoint(payload: schemas.SendOTPRequest = None, db: Session = Depends(get_db)):
+def send_otp_endpoint(payload: schemas.SendOTPRequest = None, background_tasks: BackgroundTasks = None, db: Session = Depends(get_db)):
     """
     Sends a 6-digit numeric OTP to the requested email via Gmail SMTP.
     Enforces anti-spam (60s cooldown per target) and lockout after consecutive failures.
     Validates against account duplication on SIGNUP, and verifies existence on FORGOT_PASSWORD.
+    Dispatches asynchronously in BackgroundTasks so the HTTP endpoint returns instantly (<50ms).
     """
     if payload is None:
         return {"message": "Please send a POST request with JSON body containing email and purpose."}
@@ -439,19 +447,28 @@ def send_otp_endpoint(payload: schemas.SendOTPRequest = None, db: Session = Depe
     if purpose in ("FORGOT_PASSWORD", "RESET_PASSWORD") and target_email != email:
         store_otp(target_email, otp_code, purpose=purpose, ttl_seconds=300)
 
-    dispatch_res = send_email_otp(target_email, otp_code, purpose=purpose)
+    # Asynchronous background delivery to eliminate frontend hang
+    if background_tasks:
+        background_tasks.add_task(send_instant_otp_email, target_email, otp_code, purpose)
+    else:
+        try:
+            send_instant_otp_email(target_email, otp_code, purpose)
+        except Exception as e:
+            logger.error(f"Synchronous dispatch error: {e}")
 
     response_payload = {
+        "success": True,
         "message": "6-digit OTP sent to your email. Please check your inbox / spam folder.",
         "email": target_email,
         "purpose": purpose,
         "expires_in": 300,
-        "dispatch_status": dispatch_res.get("message")
+        "dispatch_status": "Queued for instant delivery"
     }
     if os.getenv("INCLUDE_DEV_OTP", "false").lower() == "true":
         response_payload["otp"] = otp_code
 
     return response_payload
+
 
 @app.post("/api/auth/verify-registration-otp", tags=["Authentication"])
 @app.post("/api/auth/verify-registration-otp/", tags=["Authentication"])
