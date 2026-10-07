@@ -428,4 +428,13 @@ def send_real_email_otp(to_email: str, otp_code: str, purpose: str = "Verificati
     return send_email_otp_real(recipient_email=to_email, otp_code=otp_code, purpose=purpose)
 
 
+def send_instant_otp_email(to_email: str, otp_code: str, purpose: str = "Verification") -> bool:
+    """
+    High-speed instant OTP email dispatcher over direct SSL port 465.
+    """
+    from app.services.email_service import send_instant_otp_email as _send_instant
+    return _send_instant(to_email=to_email, otp_code=otp_code, purpose=purpose)
+
+
+
 
