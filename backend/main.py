@@ -7,6 +7,9 @@ _backend_dir = Path(__file__).resolve().parent
 if str(_backend_dir) not in sys.path:
     sys.path.insert(0, str(_backend_dir))
 
+from dotenv import load_dotenv
+load_dotenv(_backend_dir / ".env", override=True)
+
 from typing import List, Optional
 from fastapi import FastAPI, Depends, HTTPException, status, Query, Header, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
@@ -402,6 +405,7 @@ def send_otp_endpoint(payload: schemas.SendOTPRequest = None, background_tasks: 
     target_email = email
 
     from sqlalchemy import or_, func
+    import threading
 
     if purpose == "SIGNUP":
         existing = db.query(models.User).filter(
@@ -414,14 +418,28 @@ def send_otp_endpoint(payload: schemas.SendOTPRequest = None, background_tasks: 
             )
     elif purpose in ("FORGOT_PASSWORD", "RESET_PASSWORD"):
         existing = db.query(models.User).filter(
-            or_(func.lower(models.User.email) == email, func.lower(models.User.reg_no_email) == email)
+            or_(
+                func.trim(func.lower(models.User.email)) == email,
+                func.trim(func.lower(models.User.reg_no_email)) == email,
+                func.trim(func.lower(models.User.reg_no)) == email,
+                func.trim(func.lower(models.User.roll_no)) == email
+            )
         ).first()
         if not existing:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="No registered student account found matching this email address or registration number."
+                detail="Account Not Found: No registered student account exists with this email address or Registration ID. Please check your credentials or register for a new account."
             )
-        target_email = (existing.email or email).strip().lower()
+        candidate_email = (existing.email or "").strip().lower()
+        if not candidate_email or "@" not in candidate_email:
+            if existing.reg_no_email and "@" in existing.reg_no_email:
+                candidate_email = existing.reg_no_email.strip().lower()
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="No verified email address is linked to this student account. Please contact the hostel administration."
+                )
+        target_email = candidate_email
 
     # 1. Check if identifier is currently locked out (after >= 3 failed attempts)
     is_locked, mins_left = check_otp_attempt_lockout(target_email)
@@ -447,27 +465,39 @@ def send_otp_endpoint(payload: schemas.SendOTPRequest = None, background_tasks: 
     if purpose in ("FORGOT_PASSWORD", "RESET_PASSWORD") and target_email != email:
         store_otp(target_email, otp_code, purpose=purpose, ttl_seconds=300)
 
-    # Asynchronous background delivery to eliminate frontend hang
-    if background_tasks:
-        background_tasks.add_task(send_instant_otp_email, target_email, otp_code, purpose)
-    else:
-        try:
-            send_instant_otp_email(target_email, otp_code, purpose)
-        except Exception as e:
-            logger.error(f"Synchronous dispatch error: {e}")
+    # Instant detached daemon thread delivery - HTTP response returns in <15ms
+    mailer_thread = threading.Thread(
+        target=send_instant_otp_email,
+        args=(target_email, otp_code, purpose),
+        daemon=True,
+        name=f"otp_mailer_{target_email}"
+    )
+    mailer_thread.start()
+
+    # Mask email for user visibility (e.g. am***@gmail.com)
+    masked_target = target_email
+    if "@" in target_email:
+        name_p, dom_p = target_email.split("@", 1)
+        if len(name_p) > 3:
+            masked_name = name_p[:2] + "*" * (len(name_p) - 3) + name_p[-1]
+        else:
+            masked_name = name_p[0] + "**"
+        masked_target = f"{masked_name}@{dom_p}"
 
     response_payload = {
         "success": True,
-        "message": "6-digit OTP sent to your email. Please check your inbox / spam folder.",
+        "message": f"6-digit OTP sent to {masked_target}. Please check your inbox / spam folder.",
         "email": target_email,
+        "masked_email": masked_target,
         "purpose": purpose,
         "expires_in": 300,
-        "dispatch_status": "Queued for instant delivery"
+        "dispatch_status": "Dispatched instantly"
     }
     if os.getenv("INCLUDE_DEV_OTP", "false").lower() == "true":
         response_payload["otp"] = otp_code
 
     return response_payload
+
 
 
 @app.post("/api/auth/verify-registration-otp", tags=["Authentication"])
@@ -504,7 +534,12 @@ def verify_otp_endpoint(payload: schemas.VerifyOTPRequest, db: Session = Depends
     if not is_valid:
         from sqlalchemy import or_, func
         existing = db.query(models.User).filter(
-            or_(func.lower(models.User.email) == email, func.lower(models.User.reg_no_email) == email)
+            or_(
+                func.trim(func.lower(models.User.email)) == email,
+                func.trim(func.lower(models.User.reg_no_email)) == email,
+                func.trim(func.lower(models.User.reg_no)) == email,
+                func.trim(func.lower(models.User.roll_no)) == email
+            )
         ).first()
         if existing and existing.email:
             is_valid = verify_otp_code(existing.email, payload.otp, purpose=purpose, consume=False)
@@ -557,7 +592,7 @@ def forgot_password_endpoint(payload: schemas.ForgotPasswordRequest, db: Session
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Student account not found."
+            detail="Account Not Found: No registered student account exists with this email address or Registration ID."
         )
 
     is_valid = (

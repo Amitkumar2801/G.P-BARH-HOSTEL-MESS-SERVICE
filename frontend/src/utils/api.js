@@ -39,12 +39,17 @@ export const getApiBaseUrls = () => {
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
   const bases = [];
-  if (API_BASE_URL) bases.push(API_BASE_URL);
   if (isLocal) {
     bases.push("http://127.0.0.1:8000");
     bases.push("http://localhost:8000");
   }
+  if (API_BASE_URL && !isLocal) {
+    bases.push(API_BASE_URL);
+  }
   bases.push(""); // relative
+  if (API_BASE_URL && isLocal) {
+    bases.push(API_BASE_URL);
+  }
   return [...new Set(bases)];
 };
 

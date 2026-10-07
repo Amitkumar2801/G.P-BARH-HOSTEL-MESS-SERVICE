@@ -116,8 +116,8 @@ function Signup() {
       setOtpSent(true);
       setOtpCountdown(60); // 60-second cooldown timer
       setIsOtpVerified(false);
-      setSignupOtpError("");
-      toast.success("6-digit OTP sent to your email. Please check your inbox / spam folder.", { duration: 6000 });
+      const msg = res?.data?.message || "6-digit OTP sent to your email. Please check your inbox / spam folder.";
+      toast.success(msg, { duration: 6000 });
     } catch (err) {
       console.error("Send OTP Error:", err);
       const detail = err?.response?.data?.detail || err?.message || "Could not send OTP. Please check your email.";

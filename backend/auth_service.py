@@ -229,28 +229,42 @@ def send_email_otp(to_email: str, otp: str, purpose: str = "SIGNUP") -> Dict[str
     clean_purpose = purpose.strip().upper()
     is_reset = clean_purpose in ("FORGOT_PASSWORD", "RESET_PASSWORD")
 
+    # Format official timestamp in Indian Standard Time (IST - UTC+5:30)
+    try:
+        ist_now = datetime.now(timezone(timedelta(hours=5, minutes=30)))
+        issued_at_str = ist_now.strftime("%d %b %Y, %I:%M %p IST")
+    except Exception:
+        issued_at_str = datetime.now().strftime("%d %b %Y, %I:%M %p")
+
+    # Generate individual digit HTML tiles for clean, modern verification display
+    clean_otp = str(otp).strip()
+    digit_cells = "".join([
+        f'<td width="46" height="56" align="center" valign="middle" style="width: 46px; height: 56px; background-color: #ffffff; border: 2px solid #cbd5e1; border-radius: 10px; font-family: \'Courier New\', Courier, monospace; font-size: 30px; font-weight: 900; color: #800000; text-align: center; line-height: 56px; box-shadow: 0 2px 5px rgba(0,0,0,0.06);">{d}</td>'
+        for d in clean_otp
+    ])
+
     if is_reset:
         subject = f"[Password Reset OTP] Govt. Polytechnic Barh: {otp}"
         header_sub = "HOSTEL &amp; MESS MANAGEMENT SYSTEM • PASSWORD RECOVERY"
-        badge_text = "🔑 PASSWORD RESET OTP • पासवर्ड रीसेट"
+        badge_text = "🔑 PASSWORD RESET VERIFICATION • पासवर्ड रीसेट सत्यापन"
         badge_bg = "#fef3c7"
-        badge_border = "#fcd34d"
+        badge_border = "#f59e0b"
         badge_color = "#92400e"
         text_purpose = "PURPOSE: PASSWORD RESET OTP (पासवर्ड रीसेट कोड)"
-        text_instruction = "We received a request to reset the password for your Govt. Polytechnic Barh Hostel & Mess Portal account. Use the 6-digit OTP below to set your new password:"
+        text_instruction = "A request was submitted to reset your account password for the Govt. Polytechnic Barh Hostel & Mess Portal. Use the official 6-digit verification code below to authenticate your request and set your new password:"
         security_note = "This Password Reset OTP is strictly confidential. Govt. Polytechnic Barh authorities will never ask for your code."
-        warning_note = "If you did NOT request a password reset, please ignore this email or notify the warden office immediately. Valid for strictly 5 minutes."
+        warning_note = "If you did NOT request a password reset, your account credentials may be exposed. Please notify the warden office or hostel administration immediately."
     else:
         subject = f"[Create Account OTP] Govt. Polytechnic Barh: {otp}"
         header_sub = "HOSTEL &amp; MESS MANAGEMENT SYSTEM • REGISTRATION VERIFICATION"
-        badge_text = "📝 CREATE ACCOUNT OTP • नया खाता पंजीकरण"
+        badge_text = "🎓 NEW STUDENT ONBOARDING • नया खाता पंजीकरण सत्यापन"
         badge_bg = "#eff6ff"
-        badge_border = "#bfdbfe"
+        badge_border = "#3b82f6"
         badge_color = "#1e40af"
         text_purpose = "PURPOSE: CREATE ACCOUNT OTP (नया खाता पंजीकरण कोड)"
-        text_instruction = "Thank you for registering on the Govt. Polytechnic Barh Hostel & Mess Portal. Use the 6-digit OTP below to verify your email and complete your new account creation:"
+        text_instruction = "Thank you for registering on the Govt. Polytechnic Barh Official Hostel & Mess Management Portal. Use the 6-digit verification code below to confirm your registered email address and activate your student portal profile:"
         security_note = "This Account Creation OTP is strictly confidential. Govt. Polytechnic Barh authorities will never ask for your code."
-        warning_note = "This OTP confirms your official account creation. Valid for strictly 5 minutes. Do not forward or share this code with anyone."
+        warning_note = "This OTP confirms your official account identity. Valid for strictly 10 minutes. Do not forward or share this code with anyone."
 
     html_content = f"""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -263,45 +277,129 @@ def send_email_otp(to_email: str, otp: str, purpose: str = "SIGNUP") -> Dict[str
   <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#f1f5f9" style="background-color: #f1f5f9; padding: 32px 12px; margin: 0; width: 100%;">
     <tr>
       <td align="center" valign="top">
-        <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="max-width: 580px; width: 100%; background-color: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 10px 25px rgba(0,0,0,0.06);">
+        <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="max-width: 580px; width: 100%; background-color: #ffffff; border-radius: 14px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 12px 30px rgba(0,0,0,0.08);">
+          <!-- Top Gold Institutional Accent Bar -->
           <tr>
-            <td align="center" bgcolor="#800000" style="background: #800000; border-radius: 12px 12px 0 0; padding: 24px; text-align: center;">
-              <h1 style="color: #ffffff; font-size: 20px; font-weight: 800; margin: 0; font-family: sans-serif;">Government Polytechnic, Barh</h1>
-              <p style="color: #fde047; font-size: 12px; font-weight: 700; margin: 6px 0 0 0; letter-spacing: 0.8px;">{header_sub}</p>
+            <td bgcolor="#eab308" style="background-color: #eab308; height: 4px; line-height: 4px; font-size: 4px; padding: 0;">&nbsp;</td>
+          </tr>
+          <!-- Official Institutional Header -->
+          <tr>
+            <td align="center" bgcolor="#7a0c0c" style="background: #7a0c0c; padding: 26px 20px 22px 20px; text-align: center;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto 10px auto;">
+                <tr>
+                  <td align="center" style="width: 44px; height: 44px; background-color: #ffffff; border-radius: 50%; font-size: 22px; line-height: 44px; text-align: center; box-shadow: 0 3px 8px rgba(0,0,0,0.25);">
+                    🏛️
+                  </td>
+                </tr>
+              </table>
+              <div style="color: #fef08a; font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 4px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                Government of Bihar • Dept. of Science &amp; Technology
+              </div>
+              <h1 style="color: #ffffff; font-size: 22px; font-weight: 800; margin: 0; line-height: 1.25; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                राजकीय पॉलिटेक्निक, बाढ़
+              </h1>
+              <div style="color: #f8fafc; font-size: 14.5px; font-weight: 600; margin-top: 3px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                Government Polytechnic, Barh (Patna)
+              </div>
+              <div style="margin-top: 12px;">
+                <span style="display: inline-block; background-color: rgba(0,0,0,0.28); border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 4px 14px; color: #fef08a; font-size: 10.5px; font-weight: 700; letter-spacing: 0.6px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                  {header_sub}
+                </span>
+              </div>
             </td>
           </tr>
+          <!-- Body Content -->
           <tr>
-            <td style="padding: 30px 28px 24px 28px; text-align: left; background-color: #ffffff;">
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto 16px auto;">
+            <td style="padding: 28px 26px 20px 26px; text-align: left; background-color: #ffffff;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin: 0 0 16px 0;">
                 <tr>
-                  <td align="center">
-                    <div style="display: inline-block; background-color: {badge_bg}; border: 1px solid {badge_border}; border-radius: 20px; padding: 7px 20px; font-size: 13px; font-weight: 800; color: {badge_color}; letter-spacing: 0.3px; font-family: sans-serif;">
+                  <td style="background-color: {badge_bg}; border: 1px solid {badge_border}; border-radius: 6px; padding: 6px 14px;">
+                    <span style="font-size: 11.5px; font-weight: 800; color: {badge_color}; letter-spacing: 0.4px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
                       {badge_text}
-                    </div>
+                    </span>
                   </td>
                 </tr>
               </table>
-              <p style="color: #334155; font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">{text_instruction}</p>
-              <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="margin: 24px 0;">
+              <p style="color: #0f172a; font-size: 14.5px; font-weight: 700; margin: 0 0 8px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                Dear Student / Resident,
+              </p>
+              <p style="color: #334155; font-size: 13.5px; line-height: 1.6; margin: 0 0 18px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                {text_instruction}
+              </p>
+              <!-- HERO OTP PANEL WITH INDIVIDUAL DIGIT TILES -->
+              <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px 14px; margin: 18px 0; text-align: center;">
                 <tr>
                   <td align="center">
-                    <div style="background-color: #f8fafc; border: 2px dashed #94a3b8; border-radius: 12px; padding: 18px 24px; display: inline-block;">
-                      <span style="font-family: 'Courier New', Courier, monospace; font-size: 36px; font-weight: 900; letter-spacing: 8px; color: #800000;">{otp}</span>
+                    <div style="color: #64748b; font-size: 11px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                      OFFICIAL 6-DIGIT VERIFICATION CODE
+                    </div>
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="6" align="center" style="margin: 0 auto;">
+                      <tr>
+                        {digit_cells}
+                      </tr>
+                    </table>
+                    <div style="margin-top: 14px; font-size: 12px; color: #475569; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                      <span style="color: #b91c1c; font-weight: 800;">⏱️ Valid for 10 Minutes</span>
+                      &nbsp;•&nbsp; Single-use security code &nbsp;•&nbsp; Strictly confidential
                     </div>
                   </td>
                 </tr>
               </table>
-              <p style="color: #64748b; font-size: 12px; line-height: 1.5; margin: 16px 0 0 0; text-align: center;">
-                ⏳ <strong>Validity:</strong> 5 minutes • Single use only<br/>
-                🔒 {security_note}
-              </p>
+              <!-- OFFICIAL DISPATCH CREDENTIALS TABLE -->
+              <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; margin: 18px 0; font-size: 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; overflow: hidden;">
+                <tr style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                  <td colspan="2" style="padding: 8px 14px; font-weight: 700; color: #334155; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.8px;">
+                    📋 Official Verification Details
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 9px 14px; color: #64748b; font-weight: 600; width: 36%; border-bottom: 1px solid #f1f5f9;">Registered Recipient:</td>
+                  <td style="padding: 9px 14px; color: #0f172a; font-weight: 700; border-bottom: 1px solid #f1f5f9;">{to_email}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 9px 14px; color: #64748b; font-weight: 600; border-bottom: 1px solid #f1f5f9;">Issuing Authority:</td>
+                  <td style="padding: 9px 14px; color: #0f172a; font-weight: 600; border-bottom: 1px solid #f1f5f9;">Office of the Chief Hostel Warden, GP Barh</td>
+                </tr>
+                <tr>
+                  <td style="padding: 9px 14px; color: #64748b; font-weight: 600;">Time of Generation:</td>
+                  <td style="padding: 9px 14px; color: #0f172a; font-weight: 600;">{issued_at_str}</td>
+                </tr>
+              </table>
+              <!-- SECURITY ADVISORY CALLOUT -->
+              <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 4px; padding: 12px 14px; margin: 18px 0;">
+                <tr>
+                  <td>
+                    <div style="color: #92400e; font-size: 12px; font-weight: 800; margin-bottom: 4px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                      🔒 Security Advisory / सुरक्षा दिशा-निर्देश:
+                    </div>
+                    <div style="color: #78350f; font-size: 11.5px; line-height: 1.55; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                      • {security_note}<br/>
+                      • Govt. Polytechnic Barh staff, wardens, or mess officials will <strong>never</strong> ask you for your password or OTP.<br/>
+                      • {warning_note}
+                    </div>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
+          <!-- Institutional Official Footer -->
           <tr>
-            <td align="center" bgcolor="#f8fafc" style="background-color: #f8fafc; padding: 16px 24px; border-top: 1px solid #e2e8f0; text-align: center;">
-              <p style="color: #94a3b8; font-size: 11px; margin: 0; font-family: sans-serif;">
-                Govt. Polytechnic Barh Campus, NH-31, Barh, Patna - 803213<br/>
-                Official Institutional Portal • Bihar State
+            <td align="center" bgcolor="#0f172a" style="background-color: #0f172a; padding: 22px 24px; text-align: center; border-radius: 0 0 14px 14px;">
+              <p style="color: #f8fafc; font-size: 12px; font-weight: 700; margin: 0 0 4px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; letter-spacing: 0.5px;">
+                GOVERNMENT POLYTECHNIC, BARH (PATNA)
+              </p>
+              <p style="color: #cbd5e1; font-size: 11px; margin: 0 0 8px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                राजकीय पॉलिटेक्निक, बाढ़ • तकनीकी शिक्षा विभाग, बिहार सरकार
+              </p>
+              <p style="color: #94a3b8; font-size: 10.5px; line-height: 1.5; margin: 0 0 12px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                Campus: NH-31, Near Railway Station, Barh, Patna - 803213, Bihar<br/>
+                Approved by AICTE, New Delhi • Affiliated to SBTE, Bihar<br/>
+                Support Helpdesk: <a href="mailto:gpbarhhostel@gmail.com" style="color: #38bdf8; text-decoration: none; font-weight: 600;">gpbarhhostel@gmail.com</a>
+              </p>
+              <div style="height: 1px; background-color: #334155; margin: 10px auto; max-width: 320px;"></div>
+              <p style="color: #64748b; font-size: 10px; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.4;">
+                This is an official automated institutional notification. Please do not reply directly to this email.<br/>
+                © 2026 GP Barh Hostel &amp; Mess Management System. All Rights Reserved.
               </p>
             </td>
           </tr>
@@ -320,6 +418,9 @@ def send_email_otp(to_email: str, otp: str, purpose: str = "SIGNUP") -> Dict[str
 OFFICIAL 6-DIGIT OTP: {otp}
 
 {text_instruction}
+
+Generated At: {issued_at_str}
+Recipient: {to_email}
 
 🔒 Security PIN • Single-use only
 {security_note}
@@ -344,22 +445,28 @@ For issues regarding seat allotment, contact: gpbarhhostel@gmail.com
         raise RuntimeError(err_msg)
 
     try:
+        from email.utils import formatdate
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
-        msg["From"] = f"Govt. Polytechnic Barh <{smtp_user}>"
+        msg["From"] = smtp_user
         msg["To"] = to_email
         msg["Reply-To"] = smtp_user
+        msg["Date"] = formatdate(localtime=True)
 
         msg.attach(MIMEText(text_content, "plain", "utf-8"))
         msg.attach(MIMEText(html_content, "html", "utf-8"))
 
-        if smtp_port == 465:
-            with smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=25) as server:
+        # Fast connection: try 587 first, fallback to 465
+        try:
+            with smtplib.SMTP(smtp_server, 587, timeout=8) as server:
+                server.ehlo()
+                server.starttls()
+                server.ehlo()
                 server.login(smtp_user, clean_smtp_pass)
                 server.send_message(msg)
-        else:
-            with smtplib.SMTP(smtp_server, smtp_port, timeout=25) as server:
-                server.starttls()
+        except Exception as e587:
+            logger.warning(f"Port 587 dispatch failed: {e587}. Trying 465...")
+            with smtplib.SMTP_SSL(smtp_server, 465, timeout=8) as server:
                 server.login(smtp_user, clean_smtp_pass)
                 server.send_message(msg)
 
@@ -373,67 +480,30 @@ For issues regarding seat allotment, contact: gpbarhhostel@gmail.com
     except Exception as e:
         err = f"Failed to send email to {to_email}: {str(e)}"
         logger.error(f"[SMTP Failure] {err}", exc_info=True)
-        raise RuntimeError(err) from e
+        return {
+            "success": False,
+            "message": err,
+            "recipient": to_email,
+            "purpose": clean_purpose
+        }
 
 
 def send_email_otp_real(recipient_email: str, otp_code: str, purpose: str = "Registration"):
-    """
-    Direct Gmail SMTP mailer function sending single-use verification OTP with HTML MIME template.
-    """
-    smtp_server, smtp_port, smtp_user, smtp_pass = get_smtp_config()
-    if not smtp_user or not smtp_pass:
-        logger.error("FATAL: SMTP credentials not found in environment variables!")
-        raise RuntimeError("SMTP configuration missing. Set SMTP_USER and SMTP_PASSWORD in .env")
-
-    subject = f"GP Barh Hostel Portal - Verification Code: {otp_code}"
-    html_content = f"""
-    <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; background-color: #f9f9f9; border-radius: 8px;">
-        <h2 style="color: #800000;">Government Polytechnic, Barh</h2>
-        <p>Your one-time 6-digit verification code for <strong>{purpose}</strong> is:</p>
-        <div style="font-size: 28px; font-weight: bold; letter-spacing: 5px; color: #004085; padding: 10px 0;">{otp_code}</div>
-        <p>This OTP is valid for 10 minutes. Do not share this OTP with anyone.</p>
-        <hr style="border: 0; border-top: 1px solid #ddd; margin: 20px 0;">
-        <small style="color: #777;">Government Polytechnic, Barh - Hostel & Mess Management Portal</small>
-    </div>
-    """
-
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
-    msg["From"] = f"GP Barh Hostel <{smtp_user}>"
-    msg["To"] = recipient_email
-    msg.attach(MIMEText(html_content, "html"))
-
-    try:
-        clean_pass = smtp_pass.replace(" ", "")
-        if smtp_port == 465:
-            with smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=15) as server:
-                server.login(smtp_user, clean_pass)
-                server.sendmail(smtp_user, recipient_email, msg.as_string())
-        else:
-            with smtplib.SMTP(smtp_server, smtp_port, timeout=15) as server:
-                server.starttls()
-                server.login(smtp_user, clean_pass)
-                server.sendmail(smtp_user, recipient_email, msg.as_string())
-        logger.info(f"Successfully dispatched OTP email to {recipient_email}")
-        return True
-    except Exception as exc:
-        logger.error(f"Failed to dispatch email to {recipient_email}: {exc}", exc_info=True)
-        raise exc
+    return send_email_otp(to_email=recipient_email, otp=otp_code, purpose=purpose)
 
 
 def send_real_email_otp(to_email: str, otp_code: str, purpose: str = "Verification") -> bool:
-    """
-    Direct Gmail SMTP mailer function matching production contract.
-    """
-    return send_email_otp_real(recipient_email=to_email, otp_code=otp_code, purpose=purpose)
+    res = send_email_otp(to_email=to_email, otp=otp_code, purpose=purpose)
+    return bool(res.get("success", False))
 
 
 def send_instant_otp_email(to_email: str, otp_code: str, purpose: str = "Verification") -> bool:
     """
-    High-speed instant OTP email dispatcher over direct SSL port 465.
+    High-speed instant OTP email dispatcher using official institutional template.
     """
-    from app.services.email_service import send_instant_otp_email as _send_instant
-    return _send_instant(to_email=to_email, otp_code=otp_code, purpose=purpose)
+    res = send_email_otp(to_email=to_email, otp=otp_code, purpose=purpose)
+    return bool(res.get("success", False))
+
 
 
 

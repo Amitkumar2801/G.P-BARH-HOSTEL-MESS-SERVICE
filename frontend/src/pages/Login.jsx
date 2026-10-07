@@ -73,6 +73,7 @@ function Login() {
   const [resendCooldown, setResendCooldown] = useState(0);
   const [isForgotLoading, setIsForgotLoading] = useState(false);
   const [forgotOtpError, setForgotOtpError] = useState("");
+  const [forgotIdentityError, setForgotIdentityError] = useState("");
 
   const navigate = useNavigate();
 
@@ -379,9 +380,11 @@ function Login() {
     if (e) e.preventDefault();
     const cleanIdent = (forgotInput || "").trim();
     if (!cleanIdent) {
+      setForgotIdentityError("Please enter your Registration ID or Registered Email address.");
       toast.error("Please enter your Registration ID or Registered Email!");
       return;
     }
+    setForgotIdentityError("");
     setIsForgotLoading(true);
     try {
       const res = await apiPost("/api/auth/send-otp", {
@@ -394,14 +397,16 @@ function Login() {
       setResendCooldown(60);
       setOtpBoxes(['', '', '', '', '', '']);
       setForgotOtpError("");
-      toast.success("6-digit OTP sent to your email. Please check your inbox / spam folder.", {
+      setForgotIdentityError("");
+      toast.success(res.data?.message || "6-digit OTP sent to your email. Please check your inbox / spam folder.", {
         duration: 6000,
         style: { borderRadius: '12px', background: '#0f172a', color: '#f8fafc', border: '1px solid #334155' }
       });
     } catch (err) {
-      const detail = err.response?.data?.detail || "Could not dispatch OTP. Please check your registration ID/email.";
+      const detail = err.response?.data?.detail || "No registered student account found matching this email address or registration number.";
+      setForgotIdentityError(detail);
       toast.error(detail, {
-        duration: 5000,
+        duration: 6000,
         style: { borderRadius: '12px', background: '#7f1d1d', color: '#fef2f2', border: '1px solid #ef4444' }
       });
     } finally {
@@ -771,6 +776,8 @@ function Login() {
                         setOtpBoxes(['', '', '', '', '', '']);
                         setNewPassword("");
                         setConfirmPassword("");
+                        setForgotIdentityError("");
+                        setForgotOtpError("");
                       }}
                       className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 hover:underline cursor-pointer bg-transparent border-none p-0"
                     >
@@ -1270,13 +1277,30 @@ function Login() {
                       <input
                         type="text"
                         value={forgotInput}
-                        onChange={(e) => setForgotInput(e.target.value)}
+                        onChange={(e) => {
+                          setForgotInput(e.target.value);
+                          if (forgotIdentityError) setForgotIdentityError("");
+                        }}
                         placeholder="e.g. 1554424049 or amitkumar.gpb.ai@gmail.com"
-                        className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-sm font-medium outline-none focus:border-slate-900 dark:focus:border-slate-300 focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-white/10 transition-all placeholder-slate-400"
+                        className={`w-full px-4 py-3 rounded-xl border ${
+                          forgotIdentityError
+                            ? 'border-rose-500 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 ring-1 ring-rose-500/30'
+                            : 'border-slate-300 dark:border-slate-700 focus:border-slate-900 dark:focus:border-slate-300 focus:ring-2 focus:ring-slate-900/10 dark:focus:ring-white/10'
+                        } bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white text-sm font-medium outline-none transition-all placeholder-slate-400`}
                         autoFocus
                       />
                     </div>
                   </div>
+
+                  {forgotIdentityError && (
+                    <div className="p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-xl flex items-start gap-2.5 text-xs text-rose-700 dark:text-rose-300 animate-in fade-in duration-200">
+                      <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 dark:text-rose-400 mt-0.5" />
+                      <div className="leading-relaxed">
+                        <p className="font-semibold text-rose-800 dark:text-rose-200">Account Not Found</p>
+                        <p className="mt-0.5">{forgotIdentityError}</p>
+                      </div>
+                    </div>
+                  )}
 
                   <button
                     type="submit"
