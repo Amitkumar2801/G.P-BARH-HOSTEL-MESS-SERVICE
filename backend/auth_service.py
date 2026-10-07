@@ -363,11 +363,69 @@ For issues regarding seat allotment, contact: gpbarhhostel@gmail.com
                 server.login(smtp_user, clean_smtp_pass)
                 server.send_message(msg)
 
-        logger.info(f"OTP successfully dispatched via Gmail SMTP to {to_email}")
+        logger.info(f"[SMTP Success] Institutional verification email dispatched to {to_email}")
         return {
             "success": True,
-            "message": f"Institutional verification email dispatched successfully to {to_email} via Gmail SMTP."
+            "message": f"OTP successfully dispatched to {to_email}",
+            "recipient": to_email,
+            "purpose": clean_purpose
         }
     except Exception as e:
-        logger.error(f"Gmail SMTP Dispatch Error to {to_email}: {str(e)}")
-        raise RuntimeError(f"Gmail SMTP transmission error: {str(e)}")
+        err = f"Failed to send email to {to_email}: {str(e)}"
+        logger.error(f"[SMTP Failure] {err}", exc_info=True)
+        raise RuntimeError(err) from e
+
+
+def send_email_otp_real(recipient_email: str, otp_code: str, purpose: str = "Registration"):
+    """
+    Direct Gmail SMTP mailer function sending single-use verification OTP with HTML MIME template.
+    """
+    smtp_server, smtp_port, smtp_user, smtp_pass = get_smtp_config()
+    if not smtp_user or not smtp_pass:
+        logger.error("FATAL: SMTP credentials not found in environment variables!")
+        raise RuntimeError("SMTP configuration missing. Set SMTP_USER and SMTP_PASSWORD in .env")
+
+    subject = f"GP Barh Hostel Portal - Verification Code: {otp_code}"
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; background-color: #f9f9f9; border-radius: 8px;">
+        <h2 style="color: #800000;">Government Polytechnic, Barh</h2>
+        <p>Your one-time 6-digit verification code for <strong>{purpose}</strong> is:</p>
+        <div style="font-size: 28px; font-weight: bold; letter-spacing: 5px; color: #004085; padding: 10px 0;">{otp_code}</div>
+        <p>This OTP is valid for 10 minutes. Do not share this OTP with anyone.</p>
+        <hr style="border: 0; border-top: 1px solid #ddd; margin: 20px 0;">
+        <small style="color: #777;">Government Polytechnic, Barh - Hostel & Mess Management Portal</small>
+    </div>
+    """
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = f"GP Barh Hostel <{smtp_user}>"
+    msg["To"] = recipient_email
+    msg.attach(MIMEText(html_content, "html"))
+
+    try:
+        clean_pass = smtp_pass.replace(" ", "")
+        if smtp_port == 465:
+            with smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=15) as server:
+                server.login(smtp_user, clean_pass)
+                server.sendmail(smtp_user, recipient_email, msg.as_string())
+        else:
+            with smtplib.SMTP(smtp_server, smtp_port, timeout=15) as server:
+                server.starttls()
+                server.login(smtp_user, clean_pass)
+                server.sendmail(smtp_user, recipient_email, msg.as_string())
+        logger.info(f"Successfully dispatched OTP email to {recipient_email}")
+        return True
+    except Exception as exc:
+        logger.error(f"Failed to dispatch email to {recipient_email}: {exc}", exc_info=True)
+        raise exc
+
+
+def send_real_email_otp(to_email: str, otp_code: str, purpose: str = "Verification") -> bool:
+    """
+    Direct Gmail SMTP mailer function matching production contract.
+    """
+    return send_email_otp_real(recipient_email=to_email, otp_code=otp_code, purpose=purpose)
+
+
+
