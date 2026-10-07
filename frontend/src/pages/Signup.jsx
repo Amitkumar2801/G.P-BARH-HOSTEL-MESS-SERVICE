@@ -483,7 +483,7 @@ function Signup() {
 
           <div className="w-full md:w-[56%] p-6 md:p-8 lg:p-10 flex flex-col justify-center">
             <div className="text-center md:text-left mb-6">
-              <h2 className="text-2xl md:text-3xl lg:text-4xl font-black mb-1 tracking-tight text-blue-600 dark:text-blue-400 drop-shadow-sm">
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-black mb-1 tracking-tight text-slate-900 dark:text-white drop-shadow-sm">
                 Create Account
               </h2>
               <p className={`text-xs font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -502,8 +502,8 @@ function Signup() {
                 <select
                   value={role}
                   onChange={(e) => handleRoleChange(e.target.value)}
-                  className={`w-full px-4 py-2.5 rounded-xl border focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-bold cursor-pointer ${
-                    isDarkMode ? 'bg-gray-800 border-gray-600 text-blue-400' : 'bg-blue-50 border-blue-200 text-blue-700'
+                  className={`w-full px-4 py-2.5 rounded-xl border focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 outline-none transition-all text-sm font-bold cursor-pointer ${
+                    isDarkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-slate-50 border-slate-300 text-slate-800'
                   }`}
                 >
                   <option value="student">👨‍🎓 Student</option>
@@ -521,7 +521,7 @@ function Signup() {
                       onClick={() => setGender("MALE")}
                       className={`py-2.5 px-4 rounded-lg font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
                         gender === "MALE"
-                          ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 scale-[1.02]'
+                          ? 'bg-slate-900 text-white shadow-md shadow-slate-900/20 scale-[1.02] dark:bg-white dark:text-slate-900'
                           : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                       }`}
                     >
@@ -532,7 +532,7 @@ function Signup() {
                       onClick={() => setGender("FEMALE")}
                       className={`py-2.5 px-4 rounded-lg font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
                         gender === "FEMALE"
-                          ? 'bg-pink-600 text-white shadow-md shadow-pink-600/30 scale-[1.02]'
+                          ? 'bg-slate-900 text-white shadow-md shadow-slate-900/20 scale-[1.02] dark:bg-white dark:text-slate-900'
                           : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                       }`}
                     >
@@ -636,7 +636,7 @@ function Signup() {
                             ? 'bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 cursor-not-allowed'
                             : otpCountdown > 0
                             ? 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed'
-                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white cursor-pointer active:scale-95'
+                            : 'bg-slate-900 hover:bg-black dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 border border-slate-800 dark:border-white/20 cursor-pointer active:scale-95'
                         }`}
                       >
                         {isOtpSending ? (
@@ -852,12 +852,10 @@ function Signup() {
                 type="submit"
                 id="btn-signup-submit"
                 disabled={isLoading || isWardenOtpSending || (role === 'student' && !isOtpVerified)}
-                className={`w-full font-extrabold py-3.5 rounded-xl transition-all shadow-lg text-sm tracking-wider uppercase mt-4 flex items-center justify-center gap-2 ${
+                className={`w-full font-extrabold py-3.5 rounded-xl transition-all shadow-md hover:shadow-lg text-sm tracking-wider uppercase mt-4 flex items-center justify-center gap-2 ${
                   isLoading || isWardenOtpSending || (role === 'student' && !isOtpVerified)
                     ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed border border-slate-300 dark:border-slate-600'
-                    : role === 'warden'
-                    ? 'bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white hover:shadow-indigo-500/40 transform hover:-translate-y-0.5 cursor-pointer'
-                    : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white hover:shadow-blue-500/40 transform hover:-translate-y-0.5 cursor-pointer'
+                    : 'bg-slate-900 hover:bg-black dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 border border-slate-800 dark:border-white/20 hover:shadow-slate-900/20 transform hover:-translate-y-0.5 cursor-pointer'
                 }`}
               >
                 {isLoading ? (
@@ -895,38 +893,22 @@ function Signup() {
 
               <div className="text-center mt-3">
                 <p className={`text-xs font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Already registered? <Link to="/" className="font-bold text-blue-600 hover:text-blue-500 hover:underline">Sign In here</Link>
+                  Already registered? <Link to="/" className="font-bold text-slate-900 dark:text-white hover:underline">Sign In here</Link>
                 </p>
               </div>
             </form>
           </div>
 
-          {/* 🌟 ULTRA-PREMIUM DYNAMIC RIGHT HERO BANNER (WARDEN vs BOYS vs GIRLS ARCHITECTURE) 🌟 */}
-          <div className={`hidden md:flex w-[44%] p-8 flex-col justify-between relative overflow-hidden transition-all duration-500 ${
-            role === 'warden'
-              ? (isDarkMode ? 'bg-gradient-to-br from-indigo-950/90 via-slate-900 to-blue-950/90 border-l border-indigo-500/30' : 'bg-gradient-to-br from-indigo-50 via-blue-50 to-slate-50 border-l border-indigo-200')
-              : gender === 'FEMALE' 
-              ? (isDarkMode ? 'bg-gradient-to-br from-pink-950/90 via-slate-900 to-purple-950/90 border-l border-pink-500/30' : 'bg-gradient-to-br from-pink-50 via-rose-50 to-purple-50 border-l border-pink-200')
-              : (isDarkMode ? 'bg-gradient-to-br from-blue-950/90 via-slate-900 to-indigo-950/90 border-l border-blue-500/30' : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-sky-50 border-l border-blue-200')
-          }`}>
+          {/* 🌟 ULTRA-PREMIUM DYNAMIC RIGHT HERO BANNER 🌟 */}
+          <div className="hidden md:flex w-[44%] p-8 flex-col justify-between relative overflow-hidden transition-all duration-500 bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200/60 border-l border-slate-200 dark:border-slate-800 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900">
             {/* Ambient Background Glow Spheres */}
-            <div className={`absolute -top-12 -right-12 w-48 h-48 rounded-full blur-3xl opacity-30 pointer-events-none ${
-              role === 'warden' ? 'bg-indigo-500' : gender === 'FEMALE' ? 'bg-pink-500' : 'bg-blue-500'
-            }`}></div>
-            <div className={`absolute -bottom-12 -left-12 w-48 h-48 rounded-full blur-3xl opacity-20 pointer-events-none ${
-              role === 'warden' ? 'bg-blue-500' : gender === 'FEMALE' ? 'bg-purple-500' : 'bg-indigo-500'
-            }`}></div>
+            <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full blur-3xl opacity-20 pointer-events-none bg-slate-400 dark:bg-slate-700"></div>
+            <div className="absolute -bottom-12 -left-12 w-48 h-48 rounded-full blur-3xl opacity-15 pointer-events-none bg-slate-300 dark:bg-slate-800"></div>
 
             {/* HEADER BADGE & HOSTEL TITLE */}
             <div className="text-center w-full relative z-10">
-              <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase mb-3 shadow-md border transition-all duration-300 ${
-                role === 'warden'
-                  ? (isDarkMode ? 'bg-indigo-900/80 text-indigo-200 border-indigo-400/50 shadow-indigo-500/20' : 'bg-indigo-100 text-indigo-900 border-indigo-300 shadow-indigo-100')
-                  : gender === 'FEMALE'
-                  ? (isDarkMode ? 'bg-pink-900/80 text-pink-200 border-pink-400/50 shadow-pink-500/20' : 'bg-pink-100 text-pink-900 border-pink-300 shadow-pink-100')
-                  : (isDarkMode ? 'bg-blue-900/80 text-blue-200 border-blue-400/50 shadow-blue-500/20' : 'bg-blue-100 text-blue-900 border-blue-300 shadow-blue-100')
-              }`}>
-                <span className={`w-2.5 h-2.5 rounded-full animate-ping inline-block ${role === 'warden' ? 'bg-indigo-400' : gender === 'FEMALE' ? 'bg-pink-400' : 'bg-blue-400'}`}></span>
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase mb-3 shadow-xs border transition-all duration-300 bg-slate-900 text-white border-slate-800 dark:bg-white dark:text-slate-900 dark:border-white/20">
+                <span className="w-2 h-2 rounded-full inline-block bg-emerald-400"></span>
                 <span>{role === 'warden' ? '🛡️ CHIEF WARDEN CENTRAL AUTHORITY' : gender === 'FEMALE' ? '🌸 SECURE RESIDENTIAL COMPLEX' : '🏛️ DUAL-WING RESIDENTIAL CAMPUS'}</span>
               </div>
 
@@ -935,13 +917,7 @@ function Signup() {
               }`}>
                 {role === 'warden' ? 'GP Barh Hostel Complex' : gender === 'FEMALE' ? 'Savitribai Phule Girls Hostel' : 'GP Barh Boys Hostel'}
               </h3>
-              <p className={`text-xs font-black tracking-wide ${
-                role === 'warden'
-                  ? (isDarkMode ? 'text-indigo-300' : 'text-indigo-700')
-                  : gender === 'FEMALE' 
-                  ? (isDarkMode ? 'text-pink-300' : 'text-pink-700') 
-                  : (isDarkMode ? 'text-blue-300' : 'text-blue-700')
-              }`}>
+              <p className={`text-xs font-bold tracking-wide ${isDarkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                 {role === 'warden'
                   ? 'Unified Central Command • Boys & Girls Wings'
                   : gender === 'FEMALE' 
@@ -1006,49 +982,49 @@ function Signup() {
                 </>
               ) : gender === 'MALE' ? (
                 <>
-                  <div className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-200 hover:scale-[1.02] ${
-                    isDarkMode ? 'bg-slate-800/80 border-slate-700 hover:bg-slate-800' : 'bg-blue-50/70 border-blue-100 hover:bg-blue-50'
+                  <div className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-200 hover:scale-[1.01] ${
+                    isDarkMode ? 'bg-slate-800/80 border-slate-700 hover:bg-slate-800' : 'bg-white/90 border-slate-200/90 hover:bg-white hover:border-slate-300 shadow-xs'
                   }`}>
                     <span className="text-xl">🏢</span>
                     <div>
                       <p className={`text-xs font-extrabold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Birsa Munda Block</p>
-                      <p className={`text-[10px] font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>Modern Student Living &amp; Study Wing</p>
+                      <p className={`text-[10px] font-semibold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Modern Student Living &amp; Study Wing</p>
                     </div>
                   </div>
-                  <div className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-200 hover:scale-[1.02] ${
-                    isDarkMode ? 'bg-slate-800/80 border-slate-700 hover:bg-slate-800' : 'bg-blue-50/70 border-blue-100 hover:bg-blue-50'
+                  <div className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-200 hover:scale-[1.01] ${
+                    isDarkMode ? 'bg-slate-800/80 border-slate-700 hover:bg-slate-800' : 'bg-white/90 border-slate-200/90 hover:bg-white hover:border-slate-300 shadow-xs'
                   }`}>
                     <span className="text-xl">🏢</span>
                     <div>
                       <p className={`text-xs font-extrabold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Dr. Rajendra Prasad Block</p>
-                      <p className={`text-[10px] font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>Premium Residential Quarters</p>
+                      <p className={`text-[10px] font-semibold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Premium Residential Quarters</p>
                     </div>
                   </div>
-                  <div className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-200 hover:scale-[1.02] ${
-                    isDarkMode ? 'bg-slate-800/80 border-slate-700 hover:bg-slate-800' : 'bg-indigo-50/70 border-indigo-100 hover:bg-indigo-50'
+                  <div className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-200 hover:scale-[1.01] ${
+                    isDarkMode ? 'bg-slate-800/80 border-slate-700 hover:bg-slate-800' : 'bg-white/90 border-slate-200/90 hover:bg-white hover:border-slate-300 shadow-xs'
                   }`}>
                     <span className="text-xl">🛋️</span>
                     <div>
                       <p className={`text-xs font-extrabold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Common Room (BH1 &amp; BH2)</p>
-                      <p className={`text-[10px] font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>Recreation Lounge, Table Tennis &amp; TV Arena</p>
+                      <p className={`text-[10px] font-semibold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Recreation Lounge, Table Tennis &amp; TV Arena</p>
                     </div>
                   </div>
-                  <div className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-200 hover:scale-[1.02] ${
-                    isDarkMode ? 'bg-slate-800/80 border-slate-700 hover:bg-slate-800' : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                  <div className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-200 hover:scale-[1.01] ${
+                    isDarkMode ? 'bg-slate-800/80 border-slate-700 hover:bg-slate-800' : 'bg-white/90 border-slate-200/90 hover:bg-white hover:border-slate-300 shadow-xs'
                   }`}>
                     <span className="text-xl">📹</span>
                     <div>
                       <p className={`text-xs font-extrabold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>24x7 HD CCTV Surveillance</p>
-                      <p className={`text-[10px] font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>Comprehensive Multi-Tier Campus Security</p>
+                      <p className={`text-[10px] font-semibold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Comprehensive Multi-Tier Campus Security</p>
                     </div>
                   </div>
-                  <div className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-200 hover:scale-[1.02] ${
-                    isDarkMode ? 'bg-slate-800/80 border-slate-700 hover:bg-slate-800' : 'bg-sky-50/70 border-sky-100 hover:bg-sky-50'
+                  <div className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-200 hover:scale-[1.01] ${
+                    isDarkMode ? 'bg-slate-800/80 border-slate-700 hover:bg-slate-800' : 'bg-white/90 border-slate-200/90 hover:bg-white hover:border-slate-300 shadow-xs'
                   }`}>
                     <span className="text-xl">💧</span>
                     <div>
                       <p className={`text-xs font-extrabold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>24x7 Water Cooler</p>
-                      <p className={`text-[10px] font-semibold ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>Multi-Stage Purified RO Chilled Drinking Water</p>
+                      <p className={`text-[10px] font-semibold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Multi-Stage Purified RO Chilled Drinking Water</p>
                     </div>
                   </div>
                 </>

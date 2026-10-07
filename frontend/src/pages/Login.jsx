@@ -734,7 +734,7 @@ function Login() {
                         if (loginError) setLoginError("");
                       }}
                       placeholder="name@example.com or Reg No."
-                      className={`w-full px-4 py-3 rounded-xl border ${loginError ? 'border-red-500 focus:ring-red-500/30 focus:border-red-500 ring-2 ring-red-500/20' : 'border-gray-200 dark:border-gray-700 focus:ring-blue-500/30 focus:border-blue-500'} bg-gray-50/50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 transition-all placeholder:text-gray-400 font-medium`}
+                      className={`w-full px-4 py-3 rounded-xl border ${loginError ? 'border-red-500 focus:ring-red-500/30 focus:border-red-500 ring-2 ring-red-500/20' : 'border-gray-200 dark:border-gray-700 focus:ring-slate-900/10 focus:border-slate-900 dark:focus:border-slate-300 dark:focus:ring-white/10'} bg-gray-50/50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 transition-all placeholder:text-gray-400 font-medium`}
                     />
                   </div>
                 </div>
@@ -754,7 +754,7 @@ function Login() {
                         if (loginError) setLoginError("");
                       }}
                       placeholder="••••••••"
-                      className={`w-full px-4 py-3 rounded-xl border ${loginError ? 'border-red-500 focus:ring-red-500/30 focus:border-red-500 ring-2 ring-red-500/20' : 'border-gray-200 dark:border-gray-700 focus:ring-blue-500/30 focus:border-blue-500'} bg-gray-50/50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 transition-all placeholder:text-gray-400 font-medium pr-10`}
+                      className={`w-full px-4 py-3 rounded-xl border ${loginError ? 'border-red-500 focus:ring-red-500/30 focus:border-red-500 ring-2 ring-red-500/20' : 'border-gray-200 dark:border-gray-700 focus:ring-slate-900/10 focus:border-slate-900 dark:focus:border-slate-300 dark:focus:ring-white/10'} bg-gray-50/50 dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 transition-all placeholder:text-gray-400 font-medium pr-10`}
                     />
                     <button
                       type="button"
@@ -779,20 +779,20 @@ function Login() {
                         setForgotIdentityError("");
                         setForgotOtpError("");
                       }}
-                      className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 hover:underline cursor-pointer bg-transparent border-none p-0"
+                      className="text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:underline cursor-pointer bg-transparent border-none p-0 transition-colors"
                     >
                       Forgot Password?
                     </button>
                   </div>
                 </div>
 
-                {/* SIGN IN BUTTON - PRIMARY ACTION */}
+                {/* SIGN IN BUTTON - EXECUTIVE DARK ACTION */}
                 <div className="pt-1">
                   <button
                     type="submit"
                     disabled={isLoading}
                     id="btn-login-submit"
-                    className="w-full group py-3.5 px-5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:via-indigo-500 hover:to-blue-600 text-white font-bold text-sm rounded-xl shadow-md hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-200 cursor-pointer border-0 flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-60"
+                    className="w-full group py-3.5 px-5 bg-slate-900 hover:bg-black dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 font-bold text-sm rounded-xl shadow-md hover:shadow-lg hover:shadow-slate-900/20 transition-all duration-200 cursor-pointer border border-slate-800 dark:border-white/20 flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-60"
                   >
                     <span>{isLoading ? 'Signing In...' : 'Sign In'}</span>
                     {!isLoading && (
@@ -817,16 +817,16 @@ function Login() {
               <Link
                 to="/signup"
                 id="btn-goto-signup"
-                className="group w-full flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-700/80 bg-slate-50/80 hover:bg-white dark:bg-slate-800/40 dark:hover:bg-slate-800/90 hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-md transition-all duration-200 text-left"
+                className="group w-full flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 hover:bg-white dark:bg-slate-800/40 dark:hover:bg-slate-800/90 hover:border-slate-400 dark:hover:border-slate-600 hover:shadow-md transition-all duration-200 text-left"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-900/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-200 shadow-xs">
+                  <div className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0 group-hover:bg-slate-900 group-hover:text-white dark:group-hover:bg-white dark:group-hover:text-slate-900 transition-all duration-200 shadow-xs">
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                     </svg>
                   </div>
                   <div className="min-w-0">
-                    <div className="text-xs font-black text-slate-800 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate">
+                    <div className="text-xs font-black text-slate-800 dark:text-slate-100 group-hover:text-slate-900 dark:group-hover:text-white transition-colors truncate">
                       Register as New Student
                     </div>
                     <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">
@@ -835,7 +835,7 @@ function Login() {
                   </div>
                 </div>
 
-                <div className="w-7 h-7 rounded-lg bg-slate-200/70 dark:bg-slate-700/60 group-hover:bg-indigo-600 group-hover:text-white text-slate-500 dark:text-slate-300 flex items-center justify-center transition-all duration-200 shrink-0 ml-2">
+                <div className="w-7 h-7 rounded-lg bg-slate-200/70 dark:bg-slate-700/60 group-hover:bg-slate-900 group-hover:text-white dark:group-hover:bg-white dark:group-hover:text-slate-900 text-slate-500 dark:text-slate-300 flex items-center justify-center transition-all duration-200 shrink-0 ml-2">
                   <svg className="w-3.5 h-3.5 transform group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
                   </svg>
