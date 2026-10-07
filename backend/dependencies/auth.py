@@ -57,9 +57,9 @@ def get_current_user(
         from sqlalchemy import or_, func
         user = db.query(models.User).filter(
             or_(
-                func.lower(models.User.reg_no_email) == sub_id.lower(),
-                func.lower(models.User.email) == sub_id.lower(),
-                func.lower(models.User.reg_no) == sub_id.lower()
+                func.trim(func.lower(models.User.reg_no_email)) == sub_id.lower(),
+                func.trim(func.lower(models.User.email)) == sub_id.lower(),
+                func.trim(func.lower(models.User.reg_no)) == sub_id.lower()
             )
         ).first()
 

@@ -530,7 +530,11 @@ def forgot_password_endpoint(payload: schemas.ForgotPasswordRequest, db: Session
 
     from sqlalchemy import or_, func
     user = db.query(models.User).filter(
-        or_(func.lower(models.User.email) == email, func.lower(models.User.reg_no_email) == email)
+        or_(
+            func.trim(func.lower(models.User.email)) == email,
+            func.trim(func.lower(models.User.reg_no_email)) == email,
+            func.trim(func.lower(models.User.reg_no)) == email
+        )
     ).first()
 
     if not user:
@@ -561,7 +565,7 @@ def forgot_password_endpoint(payload: schemas.ForgotPasswordRequest, db: Session
             detail=err_msg
         )
 
-    hashed = pwd_context.hash(clean_new_password)
+    hashed = get_password_hash(clean_new_password)
     user.password = hashed
     user.hashed_password = hashed
     user.updated_at = datetime.utcnow()
@@ -658,18 +662,50 @@ def change_password_endpoint(
 @app.post("/api/auth/signup/", status_code=status.HTTP_201_CREATED, tags=["Authentication"])
 @app.post("/api/auth/register", status_code=status.HTTP_201_CREATED, tags=["Authentication"])
 @app.post("/api/auth/register/", status_code=status.HTTP_201_CREATED, tags=["Authentication"])
+@app.post("/api/student/register", status_code=status.HTTP_201_CREATED, tags=["Authentication"])
+@app.post("/api/student/register/", status_code=status.HTTP_201_CREATED, tags=["Authentication"])
+@app.post("/api/students/register", status_code=status.HTTP_201_CREATED, tags=["Authentication"])
+@app.post("/api/students/register/", status_code=status.HTTP_201_CREATED, tags=["Authentication"])
 @app.post("/register", status_code=status.HTTP_201_CREATED, tags=["Authentication"])
 @app.post("/register/", status_code=status.HTTP_201_CREATED, tags=["Authentication"])
 @app.post("/api/register", status_code=status.HTTP_201_CREATED, tags=["Authentication"])
 @app.post("/api/register/", status_code=status.HTTP_201_CREATED, tags=["Authentication"])
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    ident = user.reg_no_email.strip().lower()
+    clean_full_name = str(user.full_name or "").strip()
+    raw_password = str(user.password or "").strip()
+    if not raw_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password is required and cannot be empty."
+        )
+
+    # Normalize email, registration number, and reg_no_email
+    clean_email = (
+        user.email or 
+        (user.reg_no_email if "@" in str(user.reg_no_email) else None) or 
+        (user.admin_id if (user.admin_id and "@" in str(user.admin_id)) else None)
+    )
+    if clean_email:
+        clean_email = clean_email.lower().strip()
+
+    clean_reg_no = user.reg_no or (user.reg_no_email if "@" not in str(user.reg_no_email) else None) or user.admin_id
+    if clean_reg_no:
+        clean_reg_no = str(clean_reg_no).strip()
+
+    clean_reg_no_email = str(user.reg_no_email or clean_reg_no or clean_email or "").strip()
+    if "@" in clean_reg_no_email:
+        clean_reg_no_email = clean_reg_no_email.lower()
+
+    ident = clean_reg_no_email.lower()
+
     from sqlalchemy import or_, func
     existing_user = db.query(models.User).filter(
         or_(
-            func.lower(models.User.reg_no_email) == ident,
-            func.lower(models.User.email) == ident,
-            func.lower(models.User.reg_no) == ident
+            func.trim(func.lower(models.User.reg_no_email)) == ident,
+            func.trim(func.lower(models.User.email)) == ident,
+            func.trim(func.lower(models.User.reg_no)) == ident,
+            func.trim(models.User.reg_no) == clean_reg_no if clean_reg_no else False,
+            func.trim(func.lower(models.User.email)) == clean_email if clean_email else False
         )
     ).first()
 
@@ -689,7 +725,6 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
             )
 
     # Enforce email OTP verification for registration (both student and warden)
-    clean_email = user.email or (user.reg_no_email if "@" in str(user.reg_no_email) else None) or (user.admin_id if (user.admin_id and "@" in str(user.admin_id)) else None)
     if user.role.lower() in ["warden", "admin"] and not clean_email:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -712,24 +747,24 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
     if user.role.lower() in ["warden", "admin"]:
         norm_gender = "ALL"
-        clean_reg_no = user.admin_id or user.reg_no or user.reg_no_email
+        final_reg_no = clean_reg_no or clean_reg_no_email
     else:
         norm_gender = normalize_gender(user.gender)
-        clean_reg_no = user.reg_no or (user.reg_no_email if "@" not in str(user.reg_no_email) else None)
+        final_reg_no = clean_reg_no or (clean_reg_no_email if "@" not in clean_reg_no_email else None)
 
-    # Hash password with bcrypt
-    hashed_pwd = get_password_hash(user.password)
+    # Hash password with global unified bcrypt hasher
+    hashed_pwd = get_password_hash(raw_password)
 
     new_user = models.User(
-        full_name=user.full_name,
-        reg_no_email=user.reg_no_email,
+        full_name=clean_full_name,
+        reg_no_email=clean_reg_no_email,
         email=clean_email,
         password=hashed_pwd,
-        role=user.role.lower(),
+        role=user.role.lower().strip(),
         gender=norm_gender,
-        reg_no=clean_reg_no or user.reg_no_email,
-        branch=user.branch if user.branch else None,
-        semester=user.session or user.semester or "2024-27",
+        reg_no=final_reg_no or clean_reg_no_email,
+        branch=user.branch.strip() if user.branch else None,
+        semester=(user.session or user.semester or "2024-27").strip(),
         profile_completed=False,
         room_number=None,
         bed_code=None,
@@ -741,6 +776,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow()
     )
+    new_user.hashed_password = hashed_pwd
 
     db.add(new_user)
     db.commit()
@@ -772,23 +808,51 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 @app.post("/api/login/", tags=["Authentication"])
 @app.post("/api/auth/login", tags=["Authentication"])
 @app.post("/api/auth/login/", tags=["Authentication"])
+@app.post("/api/student/login", tags=["Authentication"])
+@app.post("/api/student/login/", tags=["Authentication"])
 def login_user(user: schemas.UserLogin, db: Session = Depends(get_db)):
-    ident = str(user.reg_no_email).strip().lower()
+    raw_identifier = user.get_identifier() if hasattr(user, "get_identifier") else (
+        getattr(user, "identifier", None) or 
+        user.reg_no_email or 
+        getattr(user, "email", None) or 
+        getattr(user, "registration_no", None) or 
+        getattr(user, "reg_no", None) or 
+        ""
+    ).strip()
+    norm_email = raw_identifier.lower()
+    clean_pass = str(user.password or "").strip()
 
-    # Query by Registration Number OR Email Address OR reg_no_email (case-insensitive)
+    if not raw_identifier:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Registration Number or Email Address is required."
+        )
+
+    # Dual Login Support: Query by email OR registration number interchangeably
     from sqlalchemy import or_, func
     db_user = db.query(models.User).filter(
         or_(
-            func.lower(models.User.reg_no_email) == ident,
-            func.lower(models.User.reg_no) == ident,
-            func.lower(models.User.email) == ident
+            func.trim(func.lower(models.User.email)) == norm_email,
+            func.trim(models.User.reg_no) == raw_identifier,
+            func.trim(func.lower(models.User.reg_no)) == norm_email,
+            func.trim(func.lower(models.User.reg_no_email)) == norm_email,
+            func.trim(models.User.reg_no_email) == raw_identifier
         )
     ).first()
 
-    if not db_user or not verify_password(user.password, db_user.password):
+    if not db_user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid Registration No./Email or Password! Please verify."
+            detail="Invalid Credentials. Please check ID/Email and Password."
+        )
+
+    # Verify password against both hashed_password and password columns
+    stored_hash = db_user.hashed_password or db_user.password or ""
+    is_valid_pw = verify_password(clean_pass, stored_hash) or verify_password(user.password, stored_hash)
+    if not is_valid_pw:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Credentials. Please check ID/Email and Password."
         )
 
     # Multi-factor 4-digit Security PIN gate for Warden (Chief Administrator)

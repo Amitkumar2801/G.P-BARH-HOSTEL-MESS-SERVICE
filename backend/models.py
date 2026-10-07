@@ -22,6 +22,15 @@ class User(Base):
     def hashed_password(self, value):
         self.password = value
 
+    @property
+    def password_hash(self):
+        return self.password
+
+    @password_hash.setter
+    def password_hash(self, value):
+        self.password = value
+
+
     # Profile completion fields
     gender = Column(String, default="MALE") # 'MALE' or 'FEMALE' (or 'BOYS'/'GIRLS')
     branch = Column(String, nullable=True)

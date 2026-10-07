@@ -7,6 +7,8 @@ backend_dir = Path(__file__).resolve().parent.parent
 if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
 
+from fastapi.middleware.cors import CORSMiddleware
+
 # Import the primary, full-featured FastAPI application from main.py
 try:
     import main as primary_backend
@@ -15,6 +17,13 @@ except Exception as err:
     print(f"Notice: Delegating to standalone fallback FastAPI instance: {err}")
     from fastapi import FastAPI
     app = FastAPI(title="GP Barh Hostel & Mess Service (Standalone)")
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],  # Allows Vercel preview and production domains
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 # Optional legacy MongoDB route inclusion (if MongoDB is available)
 try:
@@ -24,6 +33,7 @@ try:
     app.include_router(legacy_auth.router, prefix="/auth", tags=["Authentication"])
 except Exception as err:
     pass
+
 
 @app.get("/test-db", tags=["Health Check"])
 async def test_db():

@@ -31,63 +31,16 @@ import bcrypt
 import re
 
 # --------------------------------------------------------------------------
-# PASSLIB-COMPATIBLE BCRYPT CRYPTCONTEXT WRAPPER
+# PASSLIB-COMPATIBLE BCRYPT CRYPTCONTEXT (UNIFIED VIA APP.CORE.SECURITY)
 # --------------------------------------------------------------------------
-class PwdContextWrapper:
-    """
-    Enterprise-grade password hashing and verification interface
-    compatible with passlib.context.CryptContext (pwd_context.verify, pwd_context.hash).
-    Uses direct bcrypt binding to bypass Python 3.14 / bcrypt 4.x __about__ deprecation.
-    """
-    def hash(self, secret: str) -> str:
-        cleaned = (secret or "").strip()
-        pwd_bytes = cleaned.encode("utf-8")[:72]
-        salt = bcrypt.gensalt()
-        return bcrypt.hashpw(pwd_bytes, salt).decode("utf-8")
-
-    def verify(self, secret: str, hashed_or_plain: str) -> bool:
-        if not secret or not hashed_or_plain:
-            return False
-        cleaned = secret.strip()
-        try:
-            if hashed_or_plain.startswith("$2a$") or hashed_or_plain.startswith("$2b$") or hashed_or_plain.startswith("$2y$"):
-                pwd_bytes = cleaned.encode("utf-8")[:72]
-                hash_bytes = hashed_or_plain.encode("utf-8")
-                return bcrypt.checkpw(pwd_bytes, hash_bytes)
-        except Exception:
-            pass
-        # Backward compatibility for legacy test records stored unhashed
-        return cleaned == hashed_or_plain
-
-pwd_context = PwdContextWrapper()
-
-def get_password_hash(password: str) -> str:
-    """Hash plain password using bcrypt with standard salt."""
-    return pwd_context.hash(password)
-
-def verify_password(plain_password: str, hashed_or_plain: str) -> bool:
-    """Verify plain password against hashed string, with legacy plain-text fallback."""
-    return pwd_context.verify(plain_password, hashed_or_plain)
-
-# Strict institutional password regex: minimum 8 characters, at least 1 number, 1 special character
-PASSWORD_REGEX = re.compile(r'^(?=.*[0-9])(?=.*[!@#$%^&*(),.?":{}|<>_~`+\-=\[\]\\;/]).{8,}$')
-
-def validate_password_complexity(password: str) -> tuple[bool, Optional[str]]:
-    """
-    Enforces strict enterprise password requirements:
-    - Stripped whitespace
-    - Minimum 8 characters
-    - At least 1 number (0-9)
-    - At least 1 special character (!@#$%^&* etc.)
-    """
-    cleaned = (password or "").strip()
-    if len(cleaned) < 8:
-        return False, "Password must be at least 8 characters long."
-    if not re.search(r'[0-9]', cleaned):
-        return False, "Password must include at least one numeric digit (0-9)."
-    if not re.search(r'[!@#$%^&*(),.?":{}|<>_~`+\-=\[\]\\;/]', cleaned):
-        return False, "Password must include at least one special character (!@#$%^&* etc.)."
-    return True, None
+from app.core.security import (
+    CryptContext,
+    pwd_context,
+    get_password_hash,
+    verify_password,
+    PASSWORD_REGEX,
+    validate_password_complexity,
+)
 
 # JWT Token Generator & Verifier
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:

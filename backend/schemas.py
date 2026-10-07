@@ -41,10 +41,27 @@ class UserCreate(UserBase):
     master_key: Optional[str] = None
 
 class UserLogin(BaseModel):
-    reg_no_email: str # Accepts either Registration Number OR Email Address
+    reg_no_email: Optional[str] = None # Accepts either Registration Number OR Email Address
+    identifier: Optional[str] = None
+    email: Optional[str] = None
+    registration_no: Optional[str] = None
+    registration_number: Optional[str] = None
+    reg_no: Optional[str] = None
     password: str
     pin: Optional[str] = None
     otp: Optional[str] = None
+
+    def get_identifier(self) -> str:
+        return (
+            self.identifier or 
+            self.reg_no_email or 
+            self.email or 
+            self.registration_no or 
+            self.registration_number or 
+            self.reg_no or 
+            ""
+        ).strip()
+
 
 class SendOTPRequest(BaseModel):
     email: Optional[str] = None

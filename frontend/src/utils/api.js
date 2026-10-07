@@ -1,19 +1,45 @@
 // frontend/src/utils/api.js
 import axios from 'axios';
 
+export const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL || 
+  import.meta.env.VITE_BACKEND_URL || 
+  'https://gpbarh-backend.onrender.com'
+).trim().replace(/\/+$/, '');
+
+// Standardized Axios client with 60s timeout for Render cold start
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 60000, // 60 seconds to allow Render cold start
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Global response interceptor for server wakeup alert
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.code === 'ECONNABORTED' || error.message === 'Network Error') {
+      console.warn('Backend server is waking up, please wait...');
+    }
+    return Promise.reject(error);
+  }
+);
+
 /**
  * Returns prioritized API base URLs:
  * 1. Environment variable VITE_API_BASE_URL or VITE_BACKEND_URL
- * 2. Localhost URL (only when browsing from localhost/127.0.0.1)
- * 3. Relative path '' (for Vercel rewrites or direct domain deployment)
+ * 2. Fallback Render Production backend URL
+ * 3. Localhost URL (only when browsing from localhost/127.0.0.1)
+ * 4. Relative path '' (for Vercel rewrites or direct domain deployment)
  */
 export const getApiBaseUrls = () => {
-  const envBase = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_BACKEND_URL || '').trim().replace(/\/+$/, '');
   const isLocal = typeof window !== 'undefined' && 
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
   const bases = [];
-  if (envBase) bases.push(envBase);
+  if (API_BASE_URL) bases.push(API_BASE_URL);
   if (isLocal) {
     bases.push("http://127.0.0.1:8000");
     bases.push("http://localhost:8000");
@@ -50,8 +76,8 @@ export const apiPost = async (path, payload, options = {}) => {
 
   for (const url of candidates) {
     try {
-      const response = await axios.post(url, payload, {
-        timeout: 15000,
+      const response = await api.post(url, payload, {
+        timeout: 60000,
         ...options
       });
       if (response && response.data) {
@@ -84,8 +110,8 @@ export const apiGet = async (path, options = {}) => {
 
   for (const url of candidates) {
     try {
-      const response = await axios.get(url, {
-        timeout: 10000,
+      const response = await api.get(url, {
+        timeout: 60000,
         ...options
       });
       if (response && response.data) {
@@ -105,3 +131,6 @@ export const apiGet = async (path, options = {}) => {
 
   throw lastErr || new Error("Failed to connect to backend server.");
 };
+
+export default api;
+

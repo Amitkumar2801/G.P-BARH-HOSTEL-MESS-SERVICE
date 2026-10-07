@@ -522,16 +522,21 @@ function Login() {
       let response = null;
       try {
         response = await apiPost("/api/auth/login", {
+          identifier: inputClean,
           reg_no_email: inputClean,
+          email: inputClean,
           password: password
         });
       } catch (e1) {
         if (e1?.response?.data && e1?.response?.status !== 404 && e1?.response?.status !== 405) throw e1;
         response = await apiPost("/login", {
+          identifier: inputClean,
           reg_no_email: inputClean,
+          email: inputClean,
           password: password
         });
       }
+
 
       const loggedInUser = response?.data?.user;
       const accessToken = response?.data?.access_token || response?.data?.token;
