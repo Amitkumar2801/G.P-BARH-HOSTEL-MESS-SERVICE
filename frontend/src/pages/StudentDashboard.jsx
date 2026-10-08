@@ -727,6 +727,13 @@ function StudentDashboard() {
   const [complaintPreview, setComplaintPreview] = useState(null);
 
   const handleAvatarChange = (e) => {
+    if (isProfileLocked) {
+      toast.error("Profile is locked! Click 'UNLOCK TO EDIT PROFILE' below to change your DP 🔒", {
+        duration: 3500,
+        style: { borderRadius: '12px', background: '#0f172a', color: '#f8fafc', border: '1px solid #334155' }
+      });
+      return;
+    }
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
@@ -749,8 +756,9 @@ function StudentDashboard() {
       setCurrentUser(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
 
-      toast.success("Profile photo updated! 📸 Click 'SAVE & LOCK RECORDS' to lock.", {
-        style: { borderRadius: '10px', background: '#2563eb', color: '#fff' }
+      toast.success("New DP selected! 📸 Click 'SAVE & LOCK RECORDS' below to confirm and lock.", {
+        duration: 4500,
+        style: { borderRadius: '12px', background: '#1e293b', color: '#60a5fa', border: '1px solid #3b82f6' }
       });
     };
     reader.readAsDataURL(file);
@@ -926,7 +934,7 @@ function StudentDashboard() {
       setShowUnlockModal(false);
       setUnlockPasswordInput("");
       setUnlockError("");
-      toast.success("Profile Unlocked! You can now edit records. 🔓", {
+      toast.success("Profile Unlocked! You can now edit records & change your DP. 🔓", {
         style: { borderRadius: '10px', background: '#2563eb', color: '#fff' }
       });
     } else {
@@ -1311,7 +1319,7 @@ function StudentDashboard() {
     localStorage.setItem(`gpbarh_profile_locked_${userKey}`, 'true');
     localStorage.setItem('gpbarh_profile_locked', 'true');
 
-    toast.success("Profile saved & locked successfully! 🔒⚡", {
+    toast.success("Profile & DP saved & locked successfully! 🔒⚡", {
       duration: 3500,
       style: { borderRadius: '12px', background: '#14532d', color: '#ffffff', border: '1px solid #22c55e' }
     });
@@ -1915,34 +1923,63 @@ function StudentDashboard() {
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                        {/* AVATAR WITH CAMERA OVERLAY */}
+                        {/* AVATAR WITH CAMERA / LOCK OVERLAY */}
                         <div style={{ position: 'relative', width: '76px', height: '76px', flexShrink: 0 }}>
-                          <div style={{ width: '100%', height: '100%', borderRadius: '50%', border: '2px solid var(--border)', overflow: 'hidden', background: 'var(--input-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <div style={{
+                            width: '100%',
+                            height: '100%',
+                            borderRadius: '50%',
+                            border: isProfileLocked ? '2px solid var(--border)' : '3px solid #2563eb',
+                            overflow: 'hidden',
+                            background: 'var(--input-bg)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.3s ease',
+                            boxShadow: isProfileLocked ? 'none' : '0 0 16px rgba(37,99,235,0.35)'
+                          }}>
                             <img src={profilePic} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           </div>
                           <label
-                            htmlFor="mainAvatarInput"
+                            htmlFor={isProfileLocked ? undefined : "mainAvatarInput"}
+                            onClick={(e) => {
+                              if (isProfileLocked) {
+                                e.preventDefault();
+                                toast.error("Profile is locked! Click 'UNLOCK TO EDIT PROFILE' below to change your DP 🔒", {
+                                  duration: 3500,
+                                  style: { borderRadius: '12px', background: '#0f172a', color: '#f8fafc', border: '1px solid #334155' }
+                                });
+                              }
+                            }}
                             style={{
                               position: 'absolute',
                               bottom: '0px',
                               right: '0px',
-                              width: '26px',
-                              height: '26px',
+                              width: '28px',
+                              height: '28px',
                               borderRadius: '50%',
-                              background: '#2563eb',
+                              background: isProfileLocked ? '#64748b' : 'linear-gradient(135deg, #2563eb, #1d4ed8)',
                               color: '#ffffff',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              fontSize: '12px',
-                              cursor: 'pointer',
-                              boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
-                              border: '2px solid #ffffff'
+                              fontSize: isProfileLocked ? '12px' : '13px',
+                              cursor: isProfileLocked ? 'not-allowed' : 'pointer',
+                              boxShadow: isProfileLocked ? '0 2px 4px rgba(0,0,0,0.2)' : '0 4px 12px rgba(37,99,235,0.45)',
+                              border: '2px solid #ffffff',
+                              transition: 'all 0.2s ease'
                             }}
-                            title="Change Profile Photo"
+                            title={isProfileLocked ? "Profile is locked. Click 'UNLOCK TO EDIT PROFILE' below to change DP" : "Change Profile Photo"}
                           >
-                            📷
-                            <input type="file" id="mainAvatarInput" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarChange} />
+                            {isProfileLocked ? '🔒' : '📷'}
+                            <input
+                              type="file"
+                              id="mainAvatarInput"
+                              accept="image/*"
+                              disabled={isProfileLocked}
+                              style={{ display: 'none' }}
+                              onChange={handleAvatarChange}
+                            />
                           </label>
                         </div>
 
