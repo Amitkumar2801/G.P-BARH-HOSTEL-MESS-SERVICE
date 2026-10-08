@@ -89,14 +89,16 @@ const customCSS = `
   .logo-placeholder img { width: 100%; height: 100%; object-fit: contain; }
   .header-text-block { min-width: 0; }
   .header-title { font-family: 'Fraunces', serif; font-size: 19px; font-weight: 700; color: #fff; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .desktop-brand { display: inline; }
+  .mobile-brand { display: none; }
   .header-sub { font-size: 10px; color: #fca5a5; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-  .header-right { display: flex; align-items: center; gap: 16px; }
-  .theme-toggle { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.2); border-radius: 50%; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; transition: 0.2s; }
+  .header-right { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
+  .theme-toggle { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.2); border-radius: 50%; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; transition: 0.2s; flex-shrink: 0; }
   .theme-toggle:hover { background: rgba(0,0,0,0.4); }
-  .date-chip { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 6px 16px; font-size: 12px; font-weight: 600; color: #fff; backdrop-filter: blur(4px); }
-  .status-toggle { display: flex; align-items: center; gap: 8px; background: #10b981; border-radius: 20px; padding: 6px 16px; font-size: 12px; font-weight: 700; color: #fff; box-shadow: 0 2px 8px rgba(16,185,129,0.3); }
-  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; animation: pulse 2s infinite; }
+  .date-chip { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 6px 16px; font-size: 12px; font-weight: 600; color: #fff; backdrop-filter: blur(4px); white-space: nowrap; }
+  .status-toggle { display: flex; align-items: center; gap: 7px; border-radius: 20px; padding: 6px 14px; font-size: 11.5px; font-weight: 800; color: #fff; letter-spacing: 0.4px; white-space: nowrap; flex-shrink: 0; user-select: none; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
   /* SCROLLABLE AREA */
   .scroll-content { flex: 1; overflow-y: auto; padding: 40px; }
@@ -444,14 +446,60 @@ const customCSS = `
       display: none !important;
     }
     .header {
-      padding: 0 16px !important;
+      padding: 0 12px !important;
+      height: 60px !important;
+    }
+    .header-left {
+      gap: 8px !important;
+      min-width: 0 !important;
+      flex: 1 !important;
+    }
+    .logo-placeholder {
+      width: 34px !important;
+      height: 34px !important;
+      padding: 2px !important;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2) !important;
+    }
+    .desktop-brand {
+      display: none !important;
+    }
+    .mobile-brand {
+      display: inline !important;
+      font-size: 15px !important;
+      font-weight: 800 !important;
+      letter-spacing: -0.2px !important;
     }
     .header-title {
-      font-size: 16px !important;
-      max-width: 220px !important;
+      font-size: 15px !important;
+      max-width: none !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      line-height: 1 !important;
     }
     .header-sub {
       display: none !important;
+    }
+    .header-right {
+      gap: 6px !important;
+      flex-shrink: 0 !important;
+    }
+    .theme-toggle {
+      width: 32px !important;
+      height: 32px !important;
+      font-size: 13px !important;
+    }
+    .status-toggle {
+      padding: 4px 9px !important;
+      font-size: 9.5px !important;
+      font-weight: 800 !important;
+      gap: 4px !important;
+      border-radius: 9999px !important;
+      white-space: nowrap !important;
+    }
+    .status-dot {
+      width: 6px !important;
+      height: 6px !important;
     }
     .scroll-content {
       padding: 20px 16px !important;
@@ -1912,16 +1960,70 @@ function StudentDashboard() {
               </button>
               <div className="logo-placeholder"><img src={logo} alt="GP Barh" /></div>
               <div className="header-text-block">
-                <h1 className="header-title">Govt. Polytechnic, Barh</h1>
-                <p className="header-sub">Hostel & Mess Management System</p>
+                <h1 className="header-title">
+                  <span className="desktop-brand">Govt. Polytechnic, Barh</span>
+                  <span className="mobile-brand">G.P. Barh</span>
+                </h1>
+                <p className="header-sub">Hostel &amp; Mess Management System</p>
               </div>
             </div>
             <div className="header-right">
-              <button className="theme-toggle" onClick={() => setIsDarkMode(!isDarkMode)}>
+              <button 
+                type="button" 
+                className="theme-toggle" 
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              >
                 {isDarkMode ? '☀️' : '🌙'}
               </button>
               <div className="date-chip">{formattedDate}</div>
-              <div className="status-toggle"><div className="status-dot"></div> IN HOSTEL</div>
+
+              {/* DYNAMIC HOSTEL ALLOTMENT STATUS PILL */}
+              {isAllotmentApproved ? (
+                <div 
+                  className="status-toggle status-approved" 
+                  title={`Hostel Allotted: ${allotmentInfo?.hostel_name || 'Hostel Block'} (Room ${allotmentInfo?.room_number || ''} ${allotmentInfo?.bed_code || ''})`}
+                  style={{
+                    background: '#059669',
+                    color: '#ffffff',
+                    boxShadow: '0 2px 10px rgba(5, 150, 105, 0.35)',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  <div className="status-dot" style={{ background: '#34d399', boxShadow: '0 0 8px #34d399' }}></div>
+                  <span>IN HOSTEL</span>
+                </div>
+              ) : allotmentInfo?.status === 'PENDING' ? (
+                <div 
+                  className="status-toggle status-pending" 
+                  title="Seat allotment request submitted. Awaiting Warden approval."
+                  style={{
+                    background: 'rgba(234, 179, 8, 0.22)',
+                    color: '#fef08a',
+                    border: '1px solid rgba(234, 179, 8, 0.5)',
+                    boxShadow: '0 2px 8px rgba(234, 179, 8, 0.2)',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  <div className="status-dot" style={{ background: '#facc15', boxShadow: '0 0 6px #facc15' }}></div>
+                  <span>PENDING</span>
+                </div>
+              ) : (
+                <div 
+                  className="status-toggle status-not-allotted" 
+                  title="Not allotted yet. Please select and request your seat from the Seat & Room Allocation tab."
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.12)',
+                    color: '#fecaca',
+                    border: '1px solid rgba(254, 202, 202, 0.35)',
+                    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  <div className="status-dot" style={{ background: '#f87171', animation: 'none' }}></div>
+                  <span>NOT ALLOTTED</span>
+                </div>
+              )}
             </div>
           </header>
 
@@ -2041,9 +2143,19 @@ function StudentDashboard() {
 
                       {/* VERIFIED BADGE & ID CHIP */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', padding: '6px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span>✓</span> Verified Resident
-                        </div>
+                        {isAllotmentApproved ? (
+                          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', padding: '6px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span>✓</span> Verified Resident ({allotmentInfo?.room_number ? `Room ${allotmentInfo.room_number}` : 'In Hostel'})
+                          </div>
+                        ) : allotmentInfo?.status === 'PENDING' ? (
+                          <div style={{ background: '#fefce8', border: '1px solid #fef08a', color: '#854d0e', padding: '6px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span>⏳</span> Allotment Pending
+                          </div>
+                        ) : (
+                          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', padding: '6px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span>○</span> Seat Not Allotted
+                          </div>
+                        )}
                         <div style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-muted)', padding: '6px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 700 }}>
                           ID: <span style={{ color: 'var(--text)', fontFamily: 'monospace' }}>{profileData.regNo}</span>
                         </div>
@@ -4030,6 +4142,26 @@ function StudentDashboard() {
                 onClose={() => setIsConnectModalOpen(false)}
                 currentUser={currentUser}
               />
+
+              {/* INSTITUTIONAL PORTAL FOOTER */}
+              <footer style={{
+                marginTop: '32px',
+                paddingTop: '24px',
+                paddingBottom: '20px',
+                borderTop: '1px solid var(--border)',
+                textAlign: 'center',
+                color: 'var(--text-muted)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '12px', fontWeight: 700, color: 'var(--text)', flexWrap: 'wrap', marginBottom: '6px' }}>
+                  <span>🏛️</span>
+                  <span>Government Polytechnic, Barh</span>
+                  <span style={{ opacity: 0.5 }}>•</span>
+                  <span>Hostel &amp; Mess Management System</span>
+                </div>
+                <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)', opacity: 0.85 }}>
+                  Department of Science, Technology and Technical Education, Govt. of Bihar
+                </p>
+              </footer>
 
             </div>
           </section>
