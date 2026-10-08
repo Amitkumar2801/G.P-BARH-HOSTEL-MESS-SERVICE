@@ -3860,42 +3860,53 @@ function StudentDashboard() {
               {/* 7. APP SCAN / CONNECT WEB APP */}
               {activeTab === 'appscan' && (
                 <article className="mobile-only-nav">
-                  <div className="custom-card" style={{ textAlign: 'center', padding: '48px 32px', maxWidth: '540px', margin: '0 auto' }}>
-                    <div style={{ width: '70px', height: '70px', borderRadius: '20px', background: 'var(--teal-light)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', margin: '0 auto 16px', boxShadow: '0 8px 20px rgba(14,122,90,0.15)' }}>
-                      📱
+                  <div className="custom-card" style={{ textAlign: 'center', padding: '40px 24px', maxWidth: '520px', margin: '0 auto', borderRadius: '24px', border: '1px solid rgba(14,122,90,0.15)', boxShadow: '0 20px 40px -15px rgba(0,0,0,0.07)' }}>
+                    {/* Visual Device Link Icon Banner */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', margin: '0 auto 20px' }}>
+                      <div style={{ width: '56px', height: '56px', borderRadius: '18px', background: 'var(--teal-light)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', boxShadow: '0 8px 18px rgba(14,122,90,0.18)' }}>
+                        📱
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ width: '8px', height: '2px', background: '#0d9e74', borderRadius: '2px' }}></span>
+                        <span style={{ width: '8px', height: '2px', background: '#0d9e74', borderRadius: '2px' }}></span>
+                        <span style={{ fontSize: '14px', color: '#0d9e74', fontWeight: 'bold' }}>⚡</span>
+                        <span style={{ width: '8px', height: '2px', background: '#0d9e74', borderRadius: '2px' }}></span>
+                        <span style={{ width: '8px', height: '2px', background: '#0d9e74', borderRadius: '2px' }}></span>
+                      </div>
+                      <div style={{ width: '56px', height: '56px', borderRadius: '18px', background: '#f1f5f9', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', boxShadow: '0 8px 18px rgba(15,23,42,0.08)' }}>
+                        💻
+                      </div>
                     </div>
-                    <h2 className="page-title">Connect Web App</h2>
-                    <p className="page-sub" style={{ marginBottom: '28px', fontSize: '13px' }}>
-                      Scan the QR Code displayed on any computer's <strong>GP Barh Login screen</strong> to link your active student session instantly without entering passwords.
+
+                    <h2 className="page-title" style={{ fontSize: '22px', fontWeight: '800', marginBottom: '8px' }}>
+                      Connect Web App
+                    </h2>
+                    <p className="page-sub" style={{ marginBottom: '24px', fontSize: '13px', lineHeight: '1.6', color: '#64748b' }}>
+                      Instantly log into the GP Barh Hostel Portal on any computer without typing your password. Just scan the screen's QR code.
                     </p>
 
-                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '20px', padding: '22px 16px', marginBottom: '24px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>
-                          <span style={{ fontSize: '18px' }}>📱</span>
-                          <span>Phone</span>
-                        </div>
-                        <span style={{ fontSize: '14px', color: '#94a3b8', fontWeight: 'bold' }}>➔</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>
-                          <span style={{ fontSize: '18px' }}>🔲</span>
-                          <span>QR Code</span>
-                        </div>
-                        <span style={{ fontSize: '14px', color: '#94a3b8', fontWeight: 'bold' }}>➔</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>
-                          <span style={{ fontSize: '18px' }}>💻</span>
-                          <span>Website</span>
-                        </div>
-                        <span style={{ fontSize: '14px', color: '#94a3b8', fontWeight: 'bold' }}>➔</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '13px', fontWeight: '800', color: '#0d9e74' }}>
-                          <span style={{ fontSize: '18px' }}>⚡</span>
-                          <span>Login</span>
-                        </div>
+                    {/* Step-by-Step Visual Workflow */}
+                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '20px', padding: '18px 16px', marginBottom: '24px', textAlign: 'left' }}>
+                      <div style={{ fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#0d9e74', marginBottom: '12px' }}>
+                        Quick Steps
                       </div>
-                      <div style={{ fontSize: '12px', fontWeight: '600', color: '#64748b' }}>
-                        Instant &amp; Secure Web Session Authentication
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12.5px', color: '#334155' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '800', color: '#0f172a', shrink: 0 }}>1</span>
+                          <span>Open <strong>gpbarh.in</strong> or hostel login page on your PC</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '800', color: '#0f172a', shrink: 0 }}>2</span>
+                          <span>Tap the button below to launch the camera scanner</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '800', color: '#065f46', shrink: 0 }}>3</span>
+                          <span>Point camera at the QR code to log in instantly</span>
+                        </div>
                       </div>
                     </div>
 
+                    {/* Launch Scanner Primary Action Button */}
                     <button
                       type="button"
                       onClick={() => setIsConnectModalOpen(true)}
@@ -3908,19 +3919,26 @@ function StudentDashboard() {
                         borderRadius: '16px',
                         fontSize: '14px',
                         fontWeight: '800',
-                        letterSpacing: '0.05em',
-                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
                         boxShadow: '0 10px 25px rgba(14,122,90,0.3)',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: '10px'
+                        gap: '10px',
+                        transition: 'transform 0.15s ease'
                       }}
+                      onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.97)'}
+                      onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
                     >
-                      <span>📷</span>
+                      <span style={{ fontSize: '18px' }}>📷</span>
                       <span>Launch QR Camera Scanner</span>
                     </button>
+
+                    <div style={{ marginTop: '16px', fontSize: '11px', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                      <span>🔒</span>
+                      <span>End-to-End Cryptographically Encrypted Session</span>
+                    </div>
                   </div>
                 </article>
               )}
