@@ -444,6 +444,7 @@ class QRVerifyRequest(BaseModel):
     session_id: str
     user_id: Optional[int] = None
     reg_no_email: Optional[str] = None
+    token: Optional[str] = None
 
 class QRVerifyResponse(BaseModel):
     status: str
@@ -504,8 +505,9 @@ class MarkYearBackRequest(BaseModel):
     is_year_back: bool = True
 
 class BatchClearRequest(BaseModel):
-    session: str # e.g. "2024-2027" or "2024-27"
+    session: str # e.g. "2024-2027", "2024-27", "2024-26"
     exclude_year_back: bool = True
+    require_fee_clearance: Optional[bool] = False
     hostel_id: Optional[int] = None
 
 class BatchStudentItem(BaseModel):
@@ -522,6 +524,7 @@ class BatchStudentItem(BaseModel):
     hostel_block: Optional[str] = None
     hostel_id: Optional[int] = None
     allotment_status: Optional[str] = "NONE"
+    payment_status: Optional[str] = "UNPAID"
     is_year_back: bool = False
     is_archived: bool = False
 
@@ -534,6 +537,12 @@ class BatchClearResponse(BaseModel):
     cleared_count: int
     beds_vacated: int
     retained_year_back_count: int
+    retained_dues_count: Optional[int] = 0
+
+class BulkDeleteStudentsRequest(BaseModel):
+    student_ids: List[int]
+    reason: Optional[str] = "Passout Batch Archival"
+
 
 # ==========================================
 # SITE METRICS & VISITOR COUNTER SCHEMAS

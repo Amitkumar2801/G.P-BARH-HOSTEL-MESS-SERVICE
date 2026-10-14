@@ -19,6 +19,7 @@ import {
   QrCode,
   Laptop
 } from 'lucide-react';
+import axios from 'axios';
 import { apiPost } from '../utils/api';
 
 export default function ConnectAppModal({ isOpen, onClose, currentUser }) {
@@ -293,6 +294,7 @@ export default function ConnectAppModal({ isOpen, onClose, currentUser }) {
   // Process verification with backend
   const verifySessionToken = async (rawText) => {
     let cleanSessionId = (rawText || '').trim();
+    let qrApiBaseUrl = null;
 
     if (cleanSessionId.startsWith('gpbarh_login:')) {
       cleanSessionId = cleanSessionId.split('gpbarh_login:', 2)[1].trim();
@@ -300,20 +302,52 @@ export default function ConnectAppModal({ isOpen, onClose, currentUser }) {
       try {
         const parsed = JSON.parse(cleanSessionId);
         if (parsed.session_id) cleanSessionId = parsed.session_id.trim();
+        else if (parsed.sessionId) cleanSessionId = parsed.sessionId.trim();
+        if (parsed.apiBaseUrl) qrApiBaseUrl = parsed.apiBaseUrl.trim();
       } catch {
         // Raw string fallback
       }
     }
 
     try {
+      const storedToken = localStorage.getItem('auth_token');
       const payload = {
         session_id: cleanSessionId,
         user_id: currentUser?.id,
-        reg_no_email: currentUser?.reg_no_email || currentUser?.reg_no || currentUser?.email
+        reg_no_email: currentUser?.reg_no_email || currentUser?.reg_no || currentUser?.email,
+        token: storedToken || null
       };
 
-      // Call robust candidate endpoint resolver (works on Vercel production & localhost)
-      const response = await apiPost('/api/auth/qr/verify', payload);
+      const reqHeaders = {
+        'Content-Type': 'application/json'
+      };
+      if (storedToken) {
+        reqHeaders['Authorization'] = `Bearer ${storedToken}`;
+      }
+
+      let response = null;
+
+      // 1. If QR code contained a dedicated apiBaseUrl, try it first
+      if (qrApiBaseUrl && qrApiBaseUrl.startsWith('http')) {
+        try {
+          const directRes = await axios.post(`${qrApiBaseUrl}/api/auth/qr/verify`, payload, {
+            timeout: 10000,
+            headers: reqHeaders
+          });
+          if (directRes && directRes.data) {
+            response = directRes;
+          }
+        } catch (directErr) {
+          console.warn('Direct QR host verify bypassed, trying candidate endpoints:', directErr?.message);
+        }
+      }
+
+      // 2. Candidate endpoints fallback (Neon PostgreSQL backed)
+      if (!response || !response.data) {
+        response = await apiPost('/api/auth/qr/verify', payload, {
+          headers: reqHeaders
+        });
+      }
 
       if (response?.data?.status === 'AUTHENTICATED') {
         playSuccessChime();
@@ -351,7 +385,7 @@ export default function ConnectAppModal({ isOpen, onClose, currentUser }) {
       playErrorBuzz();
       triggerHaptic([100, 50, 100]);
 
-      const detail = err.response?.data?.detail || 'Invalid or expired QR code. Please refresh the login screen on your computer.';
+      const detail = err.response?.data?.detail || err.message || 'Scan Verification Failed - QR session has expired or is invalid. Please refresh the QR code on your computer.';
       setErrorMessage(detail);
       setScanState('error');
     } finally {

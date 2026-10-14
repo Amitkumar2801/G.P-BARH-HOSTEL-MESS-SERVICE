@@ -201,3 +201,17 @@ class SiteMetric(Base):
     metric_name = Column(String, primary_key=True, index=True)
     value = Column(BigInteger, default=15442)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class QRSession(Base):
+    __tablename__ = "qr_sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(String, unique=True, index=True, nullable=False)
+    status = Column(String, default="PENDING", index=True) # 'PENDING', 'SCANNED', 'AUTHENTICATED', 'EXPIRED'
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    token = Column(String, nullable=True)
+    user_data = Column(Text, nullable=True) # JSON-serialized user dict
+    created_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=False)
+
+    user = relationship("User", foreign_keys=[user_id])

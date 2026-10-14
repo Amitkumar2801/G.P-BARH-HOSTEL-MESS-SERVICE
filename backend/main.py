@@ -11,11 +11,11 @@ from dotenv import load_dotenv
 load_dotenv(_backend_dir / ".env", override=True)
 
 from typing import List, Optional
-from fastapi import FastAPI, Depends, HTTPException, status, Query, Header, BackgroundTasks
+from fastapi import FastAPI, Depends, HTTPException, status, Query, Header, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import text
+from sqlalchemy import text, or_
 from datetime import datetime, date, timedelta
 
 import os
@@ -947,12 +947,22 @@ def login_user(user: schemas.UserLogin, db: Session = Depends(get_db)):
 # }
 qr_sessions = {}
 
-def clean_expired_qr_sessions():
-    """Remove expired sessions from in-memory dictionary."""
-    now = time.time()
-    expired_ids = [sid for sid, sdata in qr_sessions.items() if sdata.get("expires_at", 0) < now]
+def clean_expired_qr_sessions(db: Session = None):
+    """Remove expired sessions from in-memory dictionary and database."""
+    now_ts = time.time()
+    expired_ids = [sid for sid, sdata in qr_sessions.items() if sdata.get("expires_at", 0) < now_ts]
     for sid in expired_ids:
         qr_sessions.pop(sid, None)
+
+    if db:
+        try:
+            now_utc = datetime.utcnow()
+            # Clean sessions older than 24 hours to keep DB tidy
+            cutoff = now_utc - timedelta(hours=24)
+            db.query(models.QRSession).filter(models.QRSession.created_at < cutoff).delete(synchronize_session=False)
+            db.commit()
+        except Exception:
+            db.rollback()
 
 def serialize_user_dict(user: models.User, db: Session = None) -> dict:
     """Format user model to standard JSON dictionary with active room allotment."""
@@ -1014,31 +1024,67 @@ def serialize_user_dict(user: models.User, db: Session = None) -> dict:
 
 @app.get("/api/auth/qr/generate", response_model=schemas.QRGenerateResponse, tags=["QR Authentication"])
 @app.get("/auth/qr/generate", response_model=schemas.QRGenerateResponse, tags=["QR Authentication"])
-def generate_qr_session():
-    """Generates a unique UUID session_id valid for 2 minutes (120s) for WhatsApp-style Scan Login."""
-    clean_expired_qr_sessions()
+def generate_qr_session(request: Request = None, db: Session = Depends(get_db)):
+    """Generates a unique UUID session_id with generous 10-minute TTL (600s) stored persistently in DB + memory."""
+    clean_expired_qr_sessions(db)
     session_id = str(uuid.uuid4())
-    now = time.time()
-    expires_in = 120  # 2 minutes
-    expires_at = now + expires_in
-    
-    # Store session state
+    now_utc = datetime.utcnow()
+    expires_in = 600  # 10 minutes generous TTL
+    expires_at_dt = now_utc + timedelta(seconds=expires_in)
+    expires_at_ts = expires_at_dt.timestamp()
+
+    # Determine backend API Base URL for cross-device mobile pairing
+    base_url = (
+        os.getenv("VITE_API_BASE_URL") or 
+        os.getenv("BACKEND_URL") or 
+        os.getenv("API_BASE_URL") or 
+        ""
+    ).rstrip("/")
+    if not base_url and request:
+        try:
+            base_url = str(request.base_url).rstrip("/")
+        except Exception:
+            pass
+
+    # 1. Store session in PostgreSQL/Neon database
+    try:
+        db_session = models.QRSession(
+            session_id=session_id,
+            status="PENDING",
+            created_at=now_utc,
+            expires_at=expires_at_dt
+        )
+        db.add(db_session)
+        db.commit()
+    except Exception as db_err:
+        db.rollback()
+        logger.warning(f"Failed to persist QRSession to DB: {db_err}")
+
+    # 2. Store session in fast in-memory cache
     qr_sessions[session_id] = {
         "status": "PENDING",
         "token": None,
         "user": None,
-        "created_at": now,
-        "expires_at": expires_at
+        "created_at": now_utc.timestamp(),
+        "expires_at": expires_at_ts
     }
-    
-    # Payload format: standard prefix recognizable by mobile scanner or json payload
-    qr_payload = f"gpbarh_login:{session_id}"
+
+    # 3. Rich structured JSON payload containing full cross-device verification metadata
+    qr_payload_dict = {
+        "type": "gpbarh_login",
+        "sessionId": session_id,
+        "session_id": session_id,
+        "timestamp": int(now_utc.timestamp()),
+        "expires_at": expires_at_ts,
+        "apiBaseUrl": base_url
+    }
+    qr_payload = json.dumps(qr_payload_dict)
 
     return {
         "session_id": session_id,
         "qr_payload": qr_payload,
         "expires_in": expires_in,
-        "expires_at": expires_at
+        "expires_at": expires_at_ts
     }
 
 @app.post("/api/auth/qr/verify", response_model=schemas.QRVerifyResponse, tags=["QR Authentication"])
@@ -1049,53 +1095,112 @@ def verify_qr_session(
     db: Session = Depends(get_db)
 ):
     """
-    Protected/Mobile verify endpoint.
-    Scans/receives the session_id, maps the authenticated user to the session,
-    and sets status = 'AUTHENTICATED' with a generated access token.
+    Mobile verify endpoint:
+    Scans/receives session_id, validates against DB/memory, authenticates user,
+    and updates session status = 'AUTHENTICATED' across DB and memory.
     """
-    clean_expired_qr_sessions()
-    session_id = payload.session_id.strip()
+    clean_expired_qr_sessions(db)
+    raw_session = payload.session_id.strip()
+    session_id = raw_session
 
-    # If payload contains the 'gpbarh_login:' prefix or JSON string, extract the session_id
+    # Support raw session_id, 'gpbarh_login:<id>', or JSON payload formats
     if session_id.startswith("gpbarh_login:"):
         session_id = session_id.split("gpbarh_login:", 1)[1].strip()
-    elif session_id.startswith("{") and "session_id" in session_id:
+    elif session_id.startswith("{") or "session_id" in session_id or "sessionId" in session_id:
         try:
-            parsed_json = json.loads(session_id)
-            if "session_id" in parsed_json:
-                session_id = parsed_json["session_id"].strip()
+            parsed = json.loads(session_id)
+            session_id = (parsed.get("session_id") or parsed.get("sessionId") or session_id).strip()
         except Exception:
             pass
 
-    if session_id not in qr_sessions:
+    now_utc = datetime.utcnow()
+
+    # 1. Look up in PostgreSQL/Neon DB first
+    db_session = db.query(models.QRSession).filter(models.QRSession.session_id == session_id).first()
+
+    # 2. Fallback to memory if DB query didn't find it yet
+    if not db_session and session_id in qr_sessions:
+        mem_data = qr_sessions[session_id]
+        if mem_data.get("expires_at", 0) > now_utc.timestamp():
+            try:
+                db_session = models.QRSession(
+                    session_id=session_id,
+                    status=mem_data.get("status", "PENDING"),
+                    token=mem_data.get("token"),
+                    created_at=now_utc,
+                    expires_at=datetime.utcfromtimestamp(mem_data["expires_at"])
+                )
+                db.add(db_session)
+                db.commit()
+                db.refresh(db_session)
+            except Exception:
+                db.rollback()
+
+    if not db_session:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="QR session has expired or is invalid. Please refresh the QR code on your computer."
+            detail="Scan Verification Failed - QR session has expired or is invalid. Please refresh the QR code on your computer."
         )
 
-    session_data = qr_sessions[session_id]
-    if session_data.get("expires_at", 0) < time.time():
+    # Clock drift tolerance buffer: 60 seconds
+    drift_allowance = timedelta(seconds=60)
+    if db_session.expires_at and (db_session.expires_at + drift_allowance) < now_utc:
+        db_session.status = "EXPIRED"
+        db.commit()
         qr_sessions.pop(session_id, None)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="QR session has expired. Please refresh the QR code."
+            detail="Scan Verification Failed - QR session has expired. Please refresh the QR code on your computer."
         )
 
-    # Resolve User
+    # Resolve User Identity from Token, user_id, or reg_no_email
     db_user = None
-    if payload.user_id:
-        db_user = db.query(models.User).filter(models.User.id == payload.user_id).first()
-    elif payload.reg_no_email:
-        db_user = db.query(models.User).filter(models.User.reg_no_email == payload.reg_no_email).first()
-    elif authorization:
-        # Check Bearer token or raw user string if provided
-        token_val = authorization.replace("Bearer ", "").strip()
-        if token_val.isdigit():
-            db_user = db.query(models.User).filter(models.User.id == int(token_val)).first()
-        else:
-            db_user = db.query(models.User).filter(models.User.reg_no_email == token_val).first()
+    token_candidate = payload.token or (authorization.replace("Bearer ", "").strip() if authorization else None)
 
-    # If not provided, fallback to default student if any, or raise error
+    # A. Check if token_candidate is a signed JWT
+    if token_candidate:
+        try:
+            decoded = decode_access_token(token_candidate)
+            if decoded:
+                user_ident = decoded.get("sub") or decoded.get("email") or decoded.get("reg_no_email")
+                if user_ident:
+                    db_user = db.query(models.User).filter(
+                        or_(
+                            models.User.email == user_ident,
+                            models.User.reg_no_email == user_ident,
+                            models.User.reg_no == user_ident
+                        )
+                    ).first()
+        except Exception:
+            pass
+
+    # B. Match by user_id
+    if not db_user and payload.user_id:
+        db_user = db.query(models.User).filter(models.User.id == payload.user_id).first()
+
+    # C. Match by reg_no_email
+    if not db_user and payload.reg_no_email:
+        db_user = db.query(models.User).filter(
+            or_(
+                models.User.reg_no_email == payload.reg_no_email,
+                models.User.email == payload.reg_no_email,
+                models.User.reg_no == payload.reg_no_email
+            )
+        ).first()
+
+    # D. Fallback check for raw identifier string
+    if not db_user and token_candidate:
+        if token_candidate.isdigit():
+            db_user = db.query(models.User).filter(models.User.id == int(token_candidate)).first()
+        else:
+            db_user = db.query(models.User).filter(
+                or_(
+                    models.User.reg_no_email == token_candidate,
+                    models.User.email == token_candidate,
+                    models.User.reg_no == token_candidate
+                )
+            ).first()
+
     if not db_user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -1106,10 +1211,21 @@ def verify_qr_session(
     token = f"gpbarh_qr_{secrets.token_urlsafe(32)}_{db_user.id}"
     serialized_user = serialize_user_dict(db_user, db)
 
+    # Update session in PostgreSQL/Neon DB
+    db_session.status = "AUTHENTICATED"
+    db_session.user_id = db_user.id
+    db_session.token = token
+    db_session.user_data = json.dumps(serialized_user)
+    db.commit()
+
     # Update session in memory
-    qr_sessions[session_id]["status"] = "AUTHENTICATED"
-    qr_sessions[session_id]["token"] = token
-    qr_sessions[session_id]["user"] = serialized_user
+    qr_sessions[session_id] = {
+        "status": "AUTHENTICATED",
+        "token": token,
+        "user": serialized_user,
+        "created_at": db_session.created_at.timestamp() if db_session.created_at else now_utc.timestamp(),
+        "expires_at": db_session.expires_at.timestamp() if db_session.expires_at else (now_utc + timedelta(minutes=10)).timestamp()
+    }
 
     return {
         "status": "AUTHENTICATED",
@@ -1121,25 +1237,42 @@ def verify_qr_session(
 
 @app.get("/api/auth/qr/poll/{session_id}", response_model=schemas.QRPollResponse, tags=["QR Authentication"])
 @app.get("/auth/qr/poll/{session_id}", response_model=schemas.QRPollResponse, tags=["QR Authentication"])
-def poll_qr_session(session_id: str):
+def poll_qr_session(session_id: str, db: Session = Depends(get_db)):
     """
     Polling endpoint for Web Login.
-    Returns status: 'PENDING', 'AUTHENTICATED', or 'EXPIRED'.
-    When 'AUTHENTICATED', returns JWT token and student profile, then consumes/deletes the session.
+    Checks memory and DB. When 'AUTHENTICATED', returns JWT token and student profile,
+    then consumes the session to prevent replay.
     """
-    clean_expired_qr_sessions()
+    clean_expired_qr_sessions(db)
     session_id = session_id.strip()
 
-    if session_id not in qr_sessions:
+    # 1. Check in-memory state
+    if session_id in qr_sessions and qr_sessions[session_id].get("status") == "AUTHENTICATED":
+        session_data = qr_sessions.pop(session_id)
+        # Mark consumed in DB
+        db_s = db.query(models.QRSession).filter(models.QRSession.session_id == session_id).first()
+        if db_s:
+            db_s.status = "EXPIRED"
+            db.commit()
+        return {
+            "status": "AUTHENTICATED",
+            "token": session_data.get("token"),
+            "user": session_data.get("user")
+        }
+
+    # 2. Check in PostgreSQL/Neon DB
+    db_session = db.query(models.QRSession).filter(models.QRSession.session_id == session_id).first()
+    if not db_session:
         return {
             "status": "EXPIRED",
             "token": None,
             "user": None
         }
 
-    session_data = qr_sessions[session_id]
-
-    if session_data.get("expires_at", 0) < time.time():
+    now_utc = datetime.utcnow()
+    if db_session.expires_at and db_session.expires_at < now_utc and db_session.status != "AUTHENTICATED":
+        db_session.status = "EXPIRED"
+        db.commit()
         qr_sessions.pop(session_id, None)
         return {
             "status": "EXPIRED",
@@ -1147,19 +1280,21 @@ def poll_qr_session(session_id: str):
             "user": None
         }
 
-    if session_data.get("status") == "AUTHENTICATED":
-        token = session_data.get("token")
-        user = session_data.get("user")
-        # Consume the session to prevent replay
+    if db_session.status == "AUTHENTICATED":
+        token = db_session.token
+        user_dict = json.loads(db_session.user_data) if db_session.user_data else None
+        # Consume session to prevent replay
+        db_session.status = "EXPIRED"
+        db.commit()
         qr_sessions.pop(session_id, None)
         return {
             "status": "AUTHENTICATED",
             "token": token,
-            "user": user
+            "user": user_dict
         }
 
     return {
-        "status": "PENDING",
+        "status": db_session.status or "PENDING",
         "token": None,
         "user": None
     }

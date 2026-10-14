@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { apiPost } from '../utils/api';
+import { apiPost, apiGet, API_BASE_URL } from '../utils/api';
 import { QRCodeSVG } from 'qrcode.react';
 import toast from 'react-hot-toast';
 import {
@@ -123,11 +123,11 @@ function Login() {
       setQrLoading(true);
       setQrExpired(false);
       setIsQrAuthenticated(false);
-      const res = await axios.get("http://127.0.0.1:8000/api/auth/qr/generate");
+      const res = await apiGet("/api/auth/qr/generate");
       if (res.data && res.data.session_id) {
         setQrSessionId(res.data.session_id);
         setQrPayload(res.data.qr_payload || res.data.session_id);
-        setCountdown(res.data.expires_in || 120);
+        setCountdown(res.data.expires_in || 600);
         if (showToast) {
           toast.success("QR Session refreshed! Ready to scan.", {
             style: { borderRadius: '10px', background: '#333', color: '#fff' }
@@ -136,10 +136,11 @@ function Login() {
       }
     } catch (error) {
       console.warn("Failed to fetch QR session from server:", error);
-      const fallbackId = 'gpbarh-' + Math.random().toString(36).substring(2, 10);
-      setQrSessionId(fallbackId);
-      setQrPayload(`gpbarh_login:${fallbackId}`);
-      setCountdown(120);
+      setQrExpired(true);
+      toast.error("Could not reach backend for QR session. Please check connection.", {
+        id: "qr-session-err",
+        duration: 3500
+      });
     } finally {
       setQrLoading(false);
     }
@@ -255,7 +256,7 @@ function Login() {
 
     const pollSession = async () => {
       try {
-        const res = await axios.get(`http://127.0.0.1:8000/api/auth/qr/poll/${qrSessionId}`);
+        const res = await apiGet(`/api/auth/qr/poll/${qrSessionId}`);
         if (res.data && res.data.status === "AUTHENTICATED" && res.data.user) {
           setIsQrAuthenticated(true);
           if (pollingRef.current) clearInterval(pollingRef.current);
