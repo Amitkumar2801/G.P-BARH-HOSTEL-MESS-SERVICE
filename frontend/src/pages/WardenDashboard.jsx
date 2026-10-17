@@ -1709,12 +1709,12 @@ function WardenDashboard() {
               <div className="bg-white p-0.5 sm:p-1 h-8 w-8 sm:h-11 sm:w-11 md:h-12 md:w-12 rounded-full shadow-md flex items-center justify-center overflow-hidden shrink-0">
                 <img src={logo} alt="GP Barh Logo" className="h-full w-full object-contain" />
               </div>
-              <div className="min-w-0">
-                <h1 className="text-[13.5px] sm:text-lg md:text-xl font-black tracking-tight leading-tight text-white drop-shadow-sm truncate">
+              <div className="min-w-0 flex flex-col justify-center pt-1">
+                <h1 className="text-[13.5px] sm:text-lg md:text-xl font-black tracking-tight leading-normal text-white drop-shadow-sm truncate pt-0.5">
                   राजकीय पॉलिटेक्निक, बाढ़
                 </h1>
                 <h2 className="text-[8.5px] sm:text-[10px] md:text-[11px] font-bold tracking-wider uppercase text-yellow-300 mt-0.5 truncate block">
-                  <span className="hidden sm:inline">GOVERNMENT POLYTECHNIC, BARH • </span>WARDEN DASHBOARD
+                  OFFICIAL CHIEF WARDEN &amp; ADMINISTRATION DESK
                 </h2>
               </div>
             </div>

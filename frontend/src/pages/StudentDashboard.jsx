@@ -87,11 +87,11 @@ const customCSS = `
   .header-left { display: flex; align-items: center; gap: 14px; min-width: 0; flex: 1; }
   .logo-placeholder { width: 46px; height: 46px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; padding: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.25); flex-shrink: 0; }
   .logo-placeholder img { width: 100%; height: 100%; object-fit: contain; }
-  .header-text-block { min-width: 0; }
-  .header-title { font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif; font-size: 20px; font-weight: 900; color: #fff; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.2px; }
+  .header-text-block { min-width: 0; display: flex; flex-direction: column; justify-content: center; padding-top: 3px; }
+  .header-title { font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif; font-size: 19px; font-weight: 800; color: #fff; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.2px; padding-top: 2px; }
   .desktop-brand { display: inline; }
   .mobile-brand { display: none; }
-  .header-sub { font-size: 11px; color: #fde047; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+  .header-sub { font-size: 10.5px; color: #fde047; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
 
   .header-right { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
   .theme-toggle { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.2); border-radius: 50%; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; transition: 0.2s; flex-shrink: 0; }
@@ -474,6 +474,9 @@ const customCSS = `
       box-shadow: 0 1px 4px rgba(0,0,0,0.2) !important;
       flex-shrink: 0 !important;
     }
+    .header-text-block {
+      padding-top: 2px !important;
+    }
     .desktop-brand {
       display: inline !important;
     }
@@ -487,13 +490,14 @@ const customCSS = `
       white-space: nowrap !important;
       overflow: hidden !important;
       text-overflow: ellipsis !important;
-      line-height: 1.2 !important;
+      line-height: 1.35 !important;
       letter-spacing: 0.1px !important;
+      padding-top: 1px !important;
     }
     .header-sub {
       display: block !important;
-      font-size: 8.5px !important;
-      letter-spacing: 0.5px !important;
+      font-size: 8px !important;
+      letter-spacing: 0.8px !important;
       color: #fde047 !important;
       font-weight: 700 !important;
       line-height: 1.1 !important;
@@ -1985,7 +1989,7 @@ function StudentDashboard() {
                   राजकीय पॉलिटेक्निक, बाढ़
                 </h1>
                 <p className="header-sub">
-                  <span className="hidden sm:inline">GOVERNMENT POLYTECHNIC, BARH • </span>STUDENT DASHBOARD
+                  OFFICIAL STUDENT HOSTEL &amp; MESS PORTAL
                 </p>
               </div>
             </div>
