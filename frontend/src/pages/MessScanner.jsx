@@ -307,23 +307,46 @@ function MessScanner() {
 
       const config = { fps: 24, qrbox: { width: 240, height: 240 }, aspectRatio: 1.0 };
 
+      // Legitimate QR detection callback: Attendance ONLY records when genuine counter QR is scanned
+      const onScanSuccess = (decodedText) => {
+        if (!decodedText) return;
+        const upper = String(decodedText).toUpperCase();
+        const isValid =
+          upper.includes('GPB-OFFICIAL-CENTRAL-MESS-COUNTER') ||
+          upper.includes('GPB-MESS') ||
+          upper.includes('CENTRAL MESS') ||
+          upper.includes('GPBARH') ||
+          upper.includes('GPB');
+
+        if (!isValid) {
+          toast.error('Invalid QR Code! Please scan the official Mess Counter QR.', {
+            id: 'invalid-mess-qr',
+            style: { background: '#991b1b', color: '#fff', borderRadius: '12px', fontWeight: 700 }
+          });
+          return;
+        }
+
+        // Legitimate QR code successfully detected via camera!
+        processAttendanceSubmission(decodedText);
+      };
+
       try {
         await html5QrCode.start(
           { facingMode: { exact: 'environment' } },
           config,
-          () => processAttendanceSubmission(),
+          onScanSuccess,
           () => {}
         );
       } catch {
         await html5QrCode.start(
           { facingMode: 'environment' },
           config,
-          () => processAttendanceSubmission(),
+          onScanSuccess,
           () => {}
         );
       }
     } catch {
-      setCameraError('Camera access unavailable. You can still tap "Submit Today Attendance Now" below.');
+      setCameraError('Camera access required to scan Mess Counter QR. Please allow camera permissions in browser settings.');
       setIsScanning(false);
     }
   };
@@ -370,7 +393,8 @@ function MessScanner() {
   }, []);
 
   // Process Attendance Submission for Today's Date with Daily Resetting Sequential Token
-  const processAttendanceSubmission = async () => {
+  // Strictly triggered ONLY upon camera QR code scan detection
+  const processAttendanceSubmission = async (scannedQrPayload = '') => {
     if (isProcessing) return;
     setIsProcessing(true);
     await stopRearCamera();
@@ -419,7 +443,7 @@ function MessScanner() {
         hostel_name: studentHostelBlock,
         room_number: studentRoom,
         meal_type: 'ALL_MEALS',
-        qr_payload: `GPB-OFFICIAL-CENTRAL-MESS-COUNTER-${liveDateKey}`,
+        qr_payload: scannedQrPayload || `GPB-OFFICIAL-CENTRAL-MESS-COUNTER-${liveDateKey}`,
         token_code: tokenCode,
         seq_num: seqNum
       });
@@ -721,7 +745,7 @@ function MessScanner() {
                     {/* 1-LINE CLEAN CAMERA STATUS BADGE */}
                     <div className="mt-3 max-w-[94%] overflow-hidden">
                       <span className="text-[9px] sm:text-[9.5px] font-black text-emerald-300 bg-slate-950/95 px-3.5 py-1.5 rounded-full uppercase tracking-wider border border-emerald-500/40 shadow-lg whitespace-nowrap block text-center truncate">
-                        ⚡ BACK CAMERA ACTIVE • SCANNING MESS QR...
+                        ⚡ CAMERA ACTIVE • ALIGN WITH MESS COUNTER QR...
                       </span>
                     </div>
                   </div>
@@ -751,14 +775,14 @@ function MessScanner() {
                       </div>
 
                       <span className="absolute -bottom-2 -right-2 px-2 py-0.5 bg-emerald-500 text-slate-950 rounded-full text-[9px] font-black shadow-lg border border-emerald-300">
-                        TAP TO SCAN
+                        OPEN CAMERA
                       </span>
                     </div>
 
                     <div>
                       <h3 className="text-xs sm:text-sm font-black text-white">Smart Mess Counter Scanner</h3>
                       <p className="text-[10.5px] text-slate-400 max-w-[240px] leading-tight mt-1">
-                        Point camera at the Mess Counter QR or tap below to activate all 4 meals.
+                        Scan the official Mess Counter QR code to verify today's 4-meal attendance.
                       </p>
                     </div>
                   </div>
@@ -823,9 +847,19 @@ function MessScanner() {
 
             {/* CAMERA ERROR NOTIFICATION */}
             {cameraError && (
-              <div className="absolute inset-0 bg-slate-950/95 p-4 flex flex-col items-center justify-center text-center space-y-2 z-20">
-                <span className="text-2xl">⚠️</span>
+              <div className="absolute inset-0 bg-slate-950/95 p-4 flex flex-col items-center justify-center text-center space-y-2.5 z-20">
+                <span className="text-3xl">⚠️</span>
                 <p className="text-xs text-rose-300 font-bold max-w-xs">{cameraError}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCameraError(null);
+                    startRearCamera();
+                  }}
+                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl border border-emerald-400/40 cursor-pointer"
+                >
+                  🔄 Grant Permission &amp; Retry
+                </button>
               </div>
             )}
           </div>
@@ -834,35 +868,23 @@ function MessScanner() {
           <div className="space-y-2 pt-1">
             <button
               type="button"
-              onClick={isScanning ? processAttendanceSubmission : startRearCamera}
+              onClick={isScanning ? stopRearCamera : startRearCamera}
               disabled={isProcessing}
               className={`w-full py-3.5 px-4 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider shadow-xl flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 disabled:opacity-50 ${
                 !isScanning
                   ? 'bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-900/40 border border-emerald-400/40'
-                  : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-900/40 border border-blue-400/40'
+                  : 'bg-gradient-to-r from-rose-600 via-rose-700 to-red-800 hover:from-rose-500 hover:to-red-700 text-white shadow-rose-900/40 border border-rose-400/40'
               }`}
             >
-              <span className="text-base">{isScanning ? '⚡' : '📸'}</span>
+              <span className="text-base">{isScanning ? '✕' : '📸'}</span>
               <span>
                 {isScanning
-                  ? 'Tap to Submit Today Attendance Now'
+                  ? 'Cancel / Close Camera'
                   : isTodayDone
-                  ? 'Re-Scan & Update Attendance'
+                  ? 'Re-Scan Counter QR'
                   : 'Open Camera & Scan QR Attendance'}
               </span>
             </button>
-
-            {/* FAST 1-TAP INSTANT CONFIRMATION BUTTON */}
-            {!isTodayDone && (
-              <button
-                type="button"
-                onClick={processAttendanceSubmission}
-                disabled={isProcessing}
-                className="w-full py-2.5 px-3 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 text-slate-200 text-xs font-bold border border-slate-700 flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-95"
-              >
-                <span>⚡ Instant 1-Tap Attendance Confirmation</span>
-              </button>
-            )}
           </div>
 
         </div>
