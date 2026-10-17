@@ -83,15 +83,15 @@ const customCSS = `
 
   /* MAIN CONTENT */
   .main-content-area { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; background: var(--bg); transition: 0.3s; }
-  .header { height: var(--header-h); background: var(--crimson); display: flex; align-items: center; justify-content: space-between; padding: 0 28px; flex-shrink: 0; z-index: 10; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-  .header-left { display: flex; align-items: center; gap: 16px; min-width: 0; }
-  .logo-placeholder { width: 44px; height: 44px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; padding: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); flex-shrink: 0; }
+  .header { height: var(--header-h); background: #720e0e; border-bottom: 3px solid rgba(234, 179, 8, 0.85); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; flex-shrink: 0; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.18); }
+  .header-left { display: flex; align-items: center; gap: 14px; min-width: 0; flex: 1; }
+  .logo-placeholder { width: 46px; height: 46px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; padding: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.25); flex-shrink: 0; }
   .logo-placeholder img { width: 100%; height: 100%; object-fit: contain; }
   .header-text-block { min-width: 0; }
-  .header-title { font-family: 'Fraunces', serif; font-size: 19px; font-weight: 700; color: #fff; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .header-title { font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif; font-size: 20px; font-weight: 900; color: #fff; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.2px; }
   .desktop-brand { display: inline; }
   .mobile-brand { display: none; }
-  .header-sub { font-size: 10px; color: #fca5a5; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .header-sub { font-size: 11px; color: #fde047; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
 
   .header-right { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
   .theme-toggle { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.2); border-radius: 50%; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; transition: 0.2s; flex-shrink: 0; }
@@ -440,14 +440,27 @@ const customCSS = `
       width: 100% !important;
     }
     .hamburger {
-      display: block !important;
+      display: flex !important;
+      align-items: center;
+      justify-content: center;
+      width: 30px !important;
+      height: 30px !important;
+      padding: 3px !important;
+      background: rgba(255,255,255,0.1) !important;
+      border-radius: 8px !important;
+      flex-shrink: 0 !important;
+    }
+    .hamburger svg {
+      width: 18px !important;
+      height: 18px !important;
     }
     .date-chip {
       display: none !important;
     }
     .header {
-      padding: 0 12px !important;
+      padding: 0 10px !important;
       height: 60px !important;
+      border-bottom: 3px solid rgba(234, 179, 8, 0.85) !important;
     }
     .header-left {
       gap: 8px !important;
@@ -455,43 +468,49 @@ const customCSS = `
       flex: 1 !important;
     }
     .logo-placeholder {
-      width: 34px !important;
-      height: 34px !important;
+      width: 32px !important;
+      height: 32px !important;
       padding: 2px !important;
       box-shadow: 0 1px 4px rgba(0,0,0,0.2) !important;
+      flex-shrink: 0 !important;
     }
     .desktop-brand {
-      display: none !important;
+      display: inline !important;
     }
     .mobile-brand {
-      display: inline !important;
-      font-size: 15px !important;
-      font-weight: 800 !important;
-      letter-spacing: -0.2px !important;
+      display: none !important;
     }
     .header-title {
-      font-size: 15px !important;
+      font-size: 13.5px !important;
+      font-weight: 800 !important;
       max-width: none !important;
       white-space: nowrap !important;
       overflow: hidden !important;
       text-overflow: ellipsis !important;
-      line-height: 1 !important;
+      line-height: 1.2 !important;
+      letter-spacing: 0.1px !important;
     }
     .header-sub {
-      display: none !important;
+      display: block !important;
+      font-size: 8.5px !important;
+      letter-spacing: 0.5px !important;
+      color: #fde047 !important;
+      font-weight: 700 !important;
+      line-height: 1.1 !important;
+      margin-top: 1px !important;
     }
     .header-right {
-      gap: 6px !important;
+      gap: 5px !important;
       flex-shrink: 0 !important;
     }
     .theme-toggle {
-      width: 32px !important;
-      height: 32px !important;
-      font-size: 13px !important;
+      width: 28px !important;
+      height: 28px !important;
+      font-size: 12px !important;
     }
     .status-toggle {
-      padding: 4px 9px !important;
-      font-size: 9.5px !important;
+      padding: 3px 7px !important;
+      font-size: 9px !important;
       font-weight: 800 !important;
       gap: 4px !important;
       border-radius: 9999px !important;
@@ -1958,13 +1977,16 @@ function StudentDashboard() {
               <button className="hamburger" onClick={() => setIsSidebarOpen(true)}>
                 <svg fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
               </button>
-              <div className="logo-placeholder"><img src={logo} alt="GP Barh" /></div>
+              <div className="logo-placeholder">
+                <img src={logo} alt="GP Barh Logo" />
+              </div>
               <div className="header-text-block">
                 <h1 className="header-title">
-                  <span className="desktop-brand">Govt. Polytechnic, Barh</span>
-                  <span className="mobile-brand">G.P. Barh</span>
+                  राजकीय पॉलिटेक्निक, बाढ़
                 </h1>
-                <p className="header-sub">Hostel &amp; Mess Management System</p>
+                <p className="header-sub">
+                  <span className="hidden sm:inline">GOVERNMENT POLYTECHNIC, BARH • </span>STUDENT DASHBOARD
+                </p>
               </div>
             </div>
             <div className="header-right">

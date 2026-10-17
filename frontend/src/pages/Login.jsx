@@ -34,6 +34,78 @@ function Login() {
   const [showIdCard, setShowIdCard] = useState(false);
   const [publicNoticeModal, setPublicNoticeModal] = useState({ isOpen: false, category: 'RULES' });
 
+  // Direct download for Homepage Public Documents (Rules, Mess Menu, Contact Warden)
+  const handleDownloadPublicDocument = async (category = 'RULES') => {
+    const config = {
+      RULES: {
+        cacheKey: 'gpbarh_rules_document',
+        label: 'Hostel Rules',
+        defaultName: 'GP_Barh_Hostel_Rules'
+      },
+      MESS_MENU: {
+        cacheKey: 'gpbarh_mess_menu_document',
+        label: 'Mess Menu',
+        defaultName: 'GP_Barh_Mess_Menu'
+      },
+      CONTACT_WARDEN: {
+        cacheKey: 'gpbarh_contact_warden_document',
+        label: 'Contact Warden Directory',
+        defaultName: 'GP_Barh_Contact_Warden'
+      }
+    }[category] || {
+      cacheKey: 'gpbarh_rules_document',
+      label: 'Document',
+      defaultName: 'GP_Barh_Document'
+    };
+
+    const toastId = `dl-${category.toLowerCase()}`;
+    try {
+      toast.loading(`Fetching ${config.label}...`, { id: toastId });
+
+      // 1. Check local sync cache first for instant response
+      let doc = null;
+      try {
+        const cached = localStorage.getItem(config.cacheKey);
+        if (cached) doc = JSON.parse(cached);
+      } catch {}
+
+      // 2. If not cached or no file_url, fetch from API
+      if (!doc || !doc.file_url) {
+        try {
+          const res = await apiGet(`/api/public/documents?category=${category}`);
+          if (Array.isArray(res.data) && res.data.length > 0) {
+            doc = res.data.find(d => d.category === category) || res.data[0];
+          }
+        } catch (e) {
+          console.warn(`API fetch ${category} notice, checking fallback...`, e);
+        }
+      }
+
+      // 3. Trigger direct download if file_url is present
+      if (doc && doc.file_url) {
+        const link = document.createElement('a');
+        link.href = doc.file_url;
+        link.download = doc.file_name || `${config.defaultName}.${doc.file_type === 'pdf' ? 'pdf' : 'png'}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success(`Downloading ${doc.file_name || config.label}... 📥`, { id: toastId });
+        return;
+      }
+
+      // 4. Fallback: if no custom file uploaded yet, open notice modal
+      toast.dismiss(toastId);
+      setPublicNoticeModal({ isOpen: true, category });
+    } catch (err) {
+      console.error(`Download ${category} error:`, err);
+      toast.dismiss(toastId);
+      setPublicNoticeModal({ isOpen: true, category });
+    }
+  };
+
+  const handleDownloadRules = () => handleDownloadPublicDocument('RULES');
+
+
   // LIVE METRICS & SYSTEM HEALTH STATES
   const [visitorCount, setVisitorCount] = useState(15442);
   const [systemStatus, setSystemStatus] = useState({
@@ -613,22 +685,25 @@ function Login() {
         <div className="bg-black text-gray-300 text-[10px] md:text-[11px] lg:text-xs py-1.5 md:py-2 px-4 md:px-6 flex justify-between items-center">
           <div className="flex space-x-4 items-center font-medium tracking-wide">
             <button
-              onClick={() => setPublicNoticeModal({ isOpen: true, category: 'RULES' })}
+              onClick={() => handleDownloadPublicDocument('RULES')}
               className="hover:text-white text-gray-300 transition-colors py-1 cursor-pointer bg-transparent border-none text-[10px] md:text-[11px] lg:text-xs font-semibold"
+              title="Download Official Hostel Rules (PDF/Image)"
             >
               Rules
             </button>
             <span className="text-gray-600">|</span>
             <button
-              onClick={() => setPublicNoticeModal({ isOpen: true, category: 'MESS_MENU' })}
+              onClick={() => handleDownloadPublicDocument('MESS_MENU')}
               className="hover:text-white text-gray-300 transition-colors py-1 cursor-pointer bg-transparent border-none text-[10px] md:text-[11px] lg:text-xs font-semibold"
+              title="Download Weekly Mess Menu Chart (PDF/Image)"
             >
               Mess Menu
             </button>
             <span className="text-gray-600">|</span>
             <button
-              onClick={() => setPublicNoticeModal({ isOpen: true, category: 'CONTACT_WARDEN' })}
+              onClick={() => handleDownloadPublicDocument('CONTACT_WARDEN')}
               className="hover:text-white text-gray-300 transition-colors py-1 cursor-pointer bg-transparent border-none text-[10px] md:text-[11px] lg:text-xs font-semibold"
+              title="Download Contact Warden Directory (PDF/Image)"
             >
               Contact Warden
             </button>
